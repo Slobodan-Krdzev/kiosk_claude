@@ -4,7 +4,7 @@ import { E, L, t, tf } from '../engine/state'
 import { useEngine } from '../store/engine'
 import { Ic, IcQR, LangPills } from './primitives'
 
-const HERO_LOCAL = '/brand/img/hero.webp'
+const HERO_LOCAL = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}brand/img/hero.webp`
 
 /** Attract / welcome screen — port of SCR.attract. Remote hero images fall back to the embedded photo. */
 export function Attract() {

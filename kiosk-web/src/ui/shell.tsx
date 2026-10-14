@@ -12,7 +12,7 @@ import { useEngine } from '../store/engine'
 import { CompactCard, FinishItem, ProductCard, ProductWide } from './cards'
 import { FoodImg, Ic, LangPills } from './primitives'
 
-const SIDEBAR_FALLBACK = '/brand/img/plateTer.webp'
+const SIDEBAR_FALLBACK = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}brand/img/plateTer.webp`
 
 export function Rail() {
   const b = E().brand
