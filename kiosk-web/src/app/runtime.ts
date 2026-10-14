@@ -6,7 +6,7 @@ import { getDeviceId, newOrderId } from '../domain/ids'
 import type { GuestitConfig } from '../domain/types'
 import { PaymentController } from '../payment/controller'
 import { LocalStoragePaidRecordStore } from '../payment/persistence'
-import { useKiosk } from '../store/kiosk'
+import { useEngine } from '../store/engine'
 import { attachPayState } from '../store/payment'
 
 export interface LogEntry {
@@ -46,7 +46,7 @@ export function createRuntime(resolved: ResolvedAdapters, config: GuestitConfig)
     newOrderId: () => newOrderId(deviceId),
     onAccepted: ({ orderNo, snapshot, orderId }) => {
       // The cart is emptied only now — after the POS accepted the order.
-      useKiosk.getState().clearCart()
+      useEngine.getState().setCart([])
       resolved.adapters.analytics.send([{ type: 'order_accepted', at: new Date().toISOString(), data: { orderNo, totalCents: snapshot.totals.totalCents, count: snapshot.totals.count } }])
       if (snapshot.loyalty) {
         void resolved.adapters.loyalty.commit({ key: `LTY-${orderId}`, memberId: snapshot.loyalty.memberId, orderId, totalCents: snapshot.totals.totalCents })

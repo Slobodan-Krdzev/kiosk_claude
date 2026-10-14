@@ -1,0 +1,48 @@
+[
+ {
+  "id": "popular",
+  "icon": "star"
+ },
+ {
+  "id": "pokewan",
+  "icon": "bowl"
+ },
+ {
+  "id": "stoneplate",
+  "icon": "plate"
+ },
+ {
+  "id": "stonebowl",
+  "icon": "stone"
+ },
+ {
+  "id": "sushi",
+  "icon": "sushi",
+  "filters": [
+   "maki",
+   "nigiri",
+   "special"
+  ]
+ },
+ {
+  "id": "ramen",
+  "icon": "ramen",
+  "two": true
+ },
+ {
+  "id": "curry",
+  "icon": "curry"
+ },
+ {
+  "id": "sides",
+  "icon": "skewer"
+ },
+ {
+  "id": "drinks",
+  "icon": "cup"
+ },
+ {
+  "id": "desserts",
+  "icon": "cake"
+ }
+]

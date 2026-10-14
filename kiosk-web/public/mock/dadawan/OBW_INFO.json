@@ -1,0 +1,50 @@
+{
+ "salmonpoke": {
+  "sub": {
+   "nl": "Poké bowl · rauwe zalm · 3 maten",
+   "en": "Poké bowl · raw salmon · 3 sizes",
+   "mk": "Поке бол · свеж лосос · 3 големини"
+  },
+  "flavour": [
+   {
+    "nl": "Fris",
+    "en": "Fresh",
+    "mk": "Свежо"
+   },
+   {
+    "nl": "Romig",
+    "en": "Creamy",
+    "mk": "Кремасто"
+   },
+   {
+    "nl": "Licht pittig",
+    "en": "Mildly spicy",
+    "mk": "Благо лутo"
+   }
+  ]
+ },
+ "tonkotsu": {
+  "sub": {
+   "nl": "Ramen · varkensbouillon · 12 uur getrokken",
+   "en": "Ramen · pork broth · simmered 12 hours",
+   "mk": "Рамен · свинска супа · 12 часа"
+  },
+  "flavour": [
+   {
+    "nl": "Rijk",
+    "en": "Rich",
+    "mk": "Богато"
+   },
+   {
+    "nl": "Umami",
+    "en": "Umami",
+    "mk": "Умами"
+   },
+   {
+    "nl": "Hartig",
+    "en": "Savoury",
+    "mk": "Солено"
+   }
+  ]
+ }
+}

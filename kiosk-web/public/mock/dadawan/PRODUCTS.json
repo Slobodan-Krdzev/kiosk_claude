@@ -1,0 +1,1634 @@
+[
+ {
+  "id": "salmonpoke",
+  "cat": "pokewan",
+  "name": "Poké Wan Salmon",
+  "price": 1250,
+  "servings": [
+   {
+    "short": {
+     "en": "Small",
+     "nl": "Small",
+     "mk": "Мало"
+    },
+    "sub": "± 350 g",
+    "price": 1050
+   },
+   {
+    "short": {
+     "en": "Regular",
+     "nl": "Regular",
+     "mk": "Средно"
+    },
+    "sub": "± 450 g",
+    "price": 1250,
+    "love": true
+   },
+   {
+    "short": {
+     "en": "Large",
+     "nl": "Large",
+     "mk": "Големо"
+    },
+    "sub": "± 600 g",
+    "price": 1550
+   }
+  ],
+  "kcal": 640,
+  "tags": [],
+  "badges": [
+   "pop"
+  ],
+  "img": "/brand/img/pokeSal.webp",
+  "em": "🥗",
+  "tint": "#F8F5EE",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "fish",
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Sushi rice, fresh salmon, edamame, mango and our DADAWAN sauce.",
+   "nl": "Sushirijst, verse zalm, edamame, mango en onze DADAWAN-saus.",
+   "mk": "Суши ориз, свеж лосос, едамаме, манго и нашиот DADAWAN сос."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "chickenpoke",
+  "cat": "pokewan",
+  "name": "Poké Wan Chicken",
+  "price": 1190,
+  "kcal": 610,
+  "tags": [],
+  "badges": [
+   "hal"
+  ],
+  "img": "/brand/img/pokeChick.webp",
+  "em": "🍗",
+  "tint": "#F8F5EE",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Teriyaki chicken, crunchy veggies, pickled ginger and sesame.",
+   "nl": "Teriyakikip, knapperige groenten, ingelegde gember en sesam.",
+   "mk": "Теријаки пилешко, крцкав зеленчук, кисел ѓумбир и сусам."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "tofupoke",
+  "cat": "pokewan",
+  "name": "Poké Wan Veggie",
+  "price": 1090,
+  "kcal": 540,
+  "tags": [],
+  "badges": [
+   "veg"
+  ],
+  "img": "/brand/img/pokeVeg.webp",
+  "em": "🥗",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Crispy tofu, avocado, edamame, radish and wakame.",
+   "nl": "Krokante tofu, avocado, edamame, radijs en wakame.",
+   "mk": "Крцкаво тофу, авокадо, едамаме, ротквица и вакаме."
+  },
+  "cut": true
+ },
+ {
+  "id": "shrimppoke",
+  "cat": "pokewan",
+  "name": "Poké Wan Shrimp",
+  "price": 1350,
+  "kcal": 590,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/pokeShr.webp",
+  "em": "🍤",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "shell",
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Crispy shrimp, sriracha mayo, cucumber and crispy onions.",
+   "nl": "Krokante garnalen, sriracha mayo, komkommer en krokante uitjes.",
+   "mk": "Крцкави ракчиња, срирача мајонез, краставица и крцкав кромид."
+  },
+  "cut": true
+ },
+ {
+  "id": "teribeef",
+  "cat": "stoneplate",
+  "name": "Stone Plate Teriyaki",
+  "price": 1450,
+  "kcal": 780,
+  "tags": [],
+  "badges": [
+   "pop",
+   "hal"
+  ],
+  "img": "/brand/img/plateTer.webp",
+  "em": "🍱",
+  "tint": "#F8F5EE",
+  "canMenu": true,
+  "choice": [
+   "protein",
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Sizzling stone plate with jasmine rice, wok veggies and teriyaki glaze.",
+   "nl": "Sissende stone plate met jasmijnrijst, wokgroenten en teriyakiglaze.",
+   "mk": "Врела камена плоча со јасмин ориз, вок зеленчук и теријаки глазура."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "peppersteak",
+  "cat": "stoneplate",
+  "name": "Stone Plate Black Pepper Beef",
+  "price": 1550,
+  "kcal": 820,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/plateBeef.webp",
+  "em": "🥩",
+  "tint": "#F8F5EE",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "celery"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Flame-seared beef in black pepper sauce, still sizzling at your table.",
+   "nl": "Geschroeide runderreepjes in zwarte-pepersaus, sissend geserveerd.",
+   "mk": "Запечено говедско во сос од црн пипер, сè уште цврчи на маса."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "steakMenu",
+  "cat": "stoneplate",
+  "name": "Biefstukmenu",
+  "price": 2450,
+  "kcal": 890,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/steakPlate.webp",
+  "em": "🥩",
+  "tint": "#F8F5EE",
+  "canMenu": false,
+  "experience": {
+   "flowType": "modification"
+  },
+  "choice": [
+   "doneness",
+   "garnish",
+   "steakSauce"
+  ],
+  "allergens": {
+   "contains": [
+    "celery"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Tender grilled steak, served on a hot stone with fresh vegetables.",
+   "nl": "Malse biefstuk van de grill, geserveerd op een hete steen met verse groenten.",
+   "mk": "Мек стек од скара, послужен на врел камен со свеж зеленчук."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "salmongrill",
+  "cat": "stoneplate",
+  "name": "Stone Plate Salmon",
+  "price": 1590,
+  "kcal": 740,
+  "tags": [],
+  "badges": [
+   "new"
+  ],
+  "img": "/brand/img/plateSal.webp",
+  "em": "🐟",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "fish",
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Glazed salmon fillet on hot stone with yuzu butter and greens.",
+   "nl": "Geglazuurde zalmfilet op hete steen met yuzuboter en groenten.",
+   "mk": "Глазиран лосос на врела плоча со јузу путер и зеленчук."
+  },
+  "cut": true
+ },
+ {
+  "id": "ddbowl",
+  "cat": "stonebowl",
+  "name": "The DADAWAN Bowl",
+  "price": 1490,
+  "kcal": 860,
+  "tags": [],
+  "badges": [
+   "pop"
+  ],
+  "img": "/brand/img/ddbowlImg.webp",
+  "em": "🍚",
+  "tint": "#F8F5EE",
+  "canMenu": true,
+  "choice": [
+   "protein",
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "sesame",
+    "egg"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [
+    "egg",
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Our signature hot stone bowl — East meets West in one big, big bowl.",
+   "nl": "Onze signature hot stone bowl — Oost ontmoet West in één grote kom.",
+   "mk": "Нашата препознатлива врела камена чинија — Исток и Запад во една голема чинија."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "bibimbap",
+  "cat": "stonebowl",
+  "name": "Stone Bowl Bibimbap",
+  "price": 1350,
+  "kcal": 790,
+  "tags": [],
+  "badges": [
+   "hal"
+  ],
+  "img": "/brand/img/bibim.webp",
+  "em": "🍳",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "protein",
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "sesame",
+    "egg"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [
+    "egg",
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Korean classic with crispy rice crust, veggies and a fried egg.",
+   "nl": "Koreaanse klassieker met krokante rijstkorst, groenten en spiegelei.",
+   "mk": "Корејски класик со крцкава кора од ориз, зеленчук и пржено јајце."
+  },
+  "cut": true
+ },
+ {
+  "id": "bulgogi",
+  "cat": "stonebowl",
+  "name": "Stone Bowl Bulgogi",
+  "price": 1450,
+  "kcal": 840,
+  "tags": [],
+  "badges": [
+   "spc"
+  ],
+  "img": "/brand/img/bulgogi.webp",
+  "em": "🔥",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Sweet-savoury beef bulgogi with gochujang kick and spring onion.",
+   "nl": "Zoet-hartige bulgogi van rund met gochujang en bosui.",
+   "mk": "Слатко-солен булгоги од говедско со гочуџанг и млад кромид."
+  },
+  "cut": true
+ },
+ {
+  "id": "tofudolsot",
+  "cat": "stonebowl",
+  "name": "Stone Bowl Garden",
+  "price": 1250,
+  "kcal": 640,
+  "tags": [],
+  "badges": [
+   "veg"
+  ],
+  "img": "/brand/img/sbVeg.webp",
+  "em": "🥬",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Shiitake, pak choi, tofu and sesame on crackling jasmine rice.",
+   "nl": "Shiitake, paksoi, tofu en sesam op knisperende jasmijnrijst.",
+   "mk": "Шитаке, пак чој, тофу и сусам врз крцкав јасмин ориз."
+  },
+  "cut": true
+ },
+ {
+  "id": "sushiplatter",
+  "cat": "sushi",
+  "name": "DADAWAN Platter (16 pcs)",
+  "price": 1890,
+  "kcal": 920,
+  "tags": [
+   "special"
+  ],
+  "badges": [
+   "pop"
+  ],
+  "img": "/brand/img/platter.webp",
+  "em": "🍣",
+  "tint": "#F8F5EE",
+  "canMenu": false,
+  "mods": [
+   "sushiX",
+   "sushiR"
+  ],
+  "allergens": {
+   "contains": [
+    "fish",
+    "soy",
+    "sesame",
+    "gluten"
+   ],
+   "traces": [
+    "shell"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Chef’s choice of our favourite maki and nigiri, made to share.",
+   "nl": "Keuze van de chef uit onze favoriete maki en nigiri, om te delen.",
+   "mk": "Избор на шефот од нашите омилени маки и нигири, за споделување."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "salmonroll",
+  "cat": "sushi",
+  "name": "Salmon Avocado Roll (8 pcs)",
+  "price": 850,
+  "kcal": 420,
+  "tags": [
+   "maki"
+  ],
+  "badges": [],
+  "img": "/brand/img/salRoll.webp",
+  "em": "🍣",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "mods": [
+   "sushiX",
+   "sushiR"
+  ],
+  "allergens": {
+   "contains": [
+    "fish",
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "shell",
+    "gluten"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Eight pieces with fresh salmon, avocado and sesame.",
+   "nl": "Acht stuks met verse zalm, avocado en sesam.",
+   "mk": "Осум парчиња со свеж лосос, авокадо и сусам."
+  },
+  "cut": true
+ },
+ {
+  "id": "chickenroll",
+  "cat": "sushi",
+  "name": "Crispy Chicken Roll (8 pcs)",
+  "price": 890,
+  "kcal": 510,
+  "tags": [
+   "maki"
+  ],
+  "badges": [
+   "hal"
+  ],
+  "img": "/brand/img/craRoll.webp",
+  "em": "🍥",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "mods": [
+   "sushiX",
+   "sushiR"
+  ],
+  "allergens": {
+   "contains": [
+    "gluten",
+    "soy",
+    "sesame",
+    "egg"
+   ],
+   "traces": [
+    "shell"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Crunchy chicken, cucumber and spicy mayo — our East-West roll.",
+   "nl": "Krokante kip, komkommer en spicy mayo — onze Oost-West-rol.",
+   "mk": "Крцкаво пилешко, краставица и спајси мајонез — нашиот Исток-Запад рол."
+  },
+  "cut": true
+ },
+ {
+  "id": "veggieroll",
+  "cat": "sushi",
+  "name": "Garden Roll (8 pcs)",
+  "price": 690,
+  "kcal": 340,
+  "tags": [
+   "maki"
+  ],
+  "badges": [
+   "veg"
+  ],
+  "img": "/brand/img/vegRoll.webp",
+  "em": "🥒",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "mods": [
+   "sushiX",
+   "sushiR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "shell",
+    "gluten"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Avocado, cucumber, carrot and pickled radish.",
+   "nl": "Avocado, komkommer, wortel en ingelegde rammenas.",
+   "mk": "Авокадо, краставица, морков и кисела ротква."
+  },
+  "cut": true
+ },
+ {
+  "id": "sakenigiri",
+  "cat": "sushi",
+  "name": "Nigiri Salmon (4 pcs)",
+  "price": 750,
+  "kcal": 260,
+  "tags": [
+   "nigiri"
+  ],
+  "badges": [],
+  "img": "/brand/img/nigSal.webp",
+  "em": "🍣",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "mods": [
+   "sushiR"
+  ],
+  "allergens": {
+   "contains": [
+    "fish",
+    "soy"
+   ],
+   "traces": [
+    "shell",
+    "gluten"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Hand-pressed rice topped with thick-cut salmon.",
+   "nl": "Handgevormde rijst met dikgesneden zalm.",
+   "mk": "Рачно обликуван ориз со дебело сечен лосос."
+  },
+  "cut": true
+ },
+ {
+  "id": "unaginigiri",
+  "cat": "sushi",
+  "name": "Nigiri Unagi (4 pcs)",
+  "price": 890,
+  "kcal": 300,
+  "tags": [
+   "nigiri"
+  ],
+  "badges": [
+   "new"
+  ],
+  "img": "/brand/img/nigUna.webp",
+  "em": "🍢",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "mods": [
+   "sushiR"
+  ],
+  "allergens": {
+   "contains": [
+    "fish",
+    "soy",
+    "gluten",
+    "sesame"
+   ],
+   "traces": [
+    "shell"
+   ],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Grilled eel with sweet unagi glaze and sesame.",
+   "nl": "Gegrilde paling met zoete unagi-glaze en sesam.",
+   "mk": "Јагула на скара со слатка унаги глазура и сусам."
+  },
+  "cut": true
+ },
+ {
+  "id": "tonkotsu",
+  "cat": "ramen",
+  "name": "Tonkotsu Ramen",
+  "price": 1390,
+  "servings": [
+   {
+    "short": {
+     "en": "Regular",
+     "nl": "Regular",
+     "mk": "Средно"
+    },
+    "sub": "± 450 g",
+    "price": 1390,
+    "love": true
+   },
+   {
+    "short": {
+     "en": "Large",
+     "nl": "Large",
+     "mk": "Големо"
+    },
+    "sub": "± 600 g",
+    "price": 1650,
+    "compareAt": 1700
+   }
+  ],
+  "kcal": 720,
+  "tags": [],
+  "badges": [
+   "pop"
+  ],
+  "img": "/brand/img/tonkotsu.webp",
+  "em": "🍜",
+  "tint": "#F8F5EE",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "ramenX",
+   "ramenR"
+  ],
+  "allergens": {
+   "contains": [
+    "gluten",
+    "soy",
+    "egg",
+    "sesame"
+   ],
+   "traces": [
+    "shell"
+   ],
+   "removable": [
+    "egg"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Rich 12-hour broth, chashu, ajitama egg, nori and spring onion.",
+   "nl": "Rijke 12-uursbouillon, chashu, ajitama-ei, nori en bosui.",
+   "mk": "Богат бульон од 12 часа, чашу, ајитама јајце, нори и млад кромид."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "misoRam",
+  "cat": "ramen",
+  "name": "Spicy Miso Ramen",
+  "price": 1350,
+  "kcal": 690,
+  "tags": [],
+  "badges": [
+   "spc"
+  ],
+  "img": "/brand/img/misoRam.webp",
+  "em": "🍜",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "ramenX",
+   "ramenR"
+  ],
+  "allergens": {
+   "contains": [
+    "gluten",
+    "soy",
+    "egg",
+    "sesame"
+   ],
+   "traces": [
+    "shell"
+   ],
+   "removable": [
+    "egg"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Miso broth with chili oil, corn, minced chicken and egg.",
+   "nl": "Misobouillon met chili-olie, maïs, kipgehakt en ei.",
+   "mk": "Мисо бульон со чили масло, пченка, мелено пилешко и јајце."
+  },
+  "cut": true
+ },
+ {
+  "id": "shiitakeramen",
+  "cat": "ramen",
+  "name": "Shiitake Ramen",
+  "price": 1250,
+  "kcal": 590,
+  "tags": [],
+  "badges": [
+   "veg"
+  ],
+  "img": "/brand/img/vegRam.webp",
+  "em": "🍄",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "ramenX",
+   "ramenR"
+  ],
+  "allergens": {
+   "contains": [
+    "gluten",
+    "soy",
+    "sesame"
+   ],
+   "traces": [
+    "shell"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Shoyu-mushroom broth, shiitake, pak choi and crispy tofu.",
+   "nl": "Shoyu-paddenstoelenbouillon, shiitake, paksoi en krokante tofu.",
+   "mk": "Шоју бульон од печурки, шитаке, пак чој и крцкаво тофу."
+  },
+  "cut": true
+ },
+ {
+  "id": "greenCur",
+  "cat": "curry",
+  "name": "Thai Green Curry",
+  "price": 1290,
+  "kcal": 680,
+  "tags": [],
+  "badges": [
+   "pop",
+   "spc"
+  ],
+  "img": "/brand/img/greenCur.webp",
+  "em": "🍛",
+  "tint": "#F8F5EE",
+  "canMenu": true,
+  "choice": [
+   "protein",
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "shell",
+    "soy"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Fragrant green curry with coconut, Thai basil and jasmine rice.",
+   "nl": "Geurige groene curry met kokos, Thaise basilicum en jasmijnrijst.",
+   "mk": "Мирислив зелен кари со кокос, тајландски босилек и јасмин ориз."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "katsu",
+  "cat": "curry",
+  "name": "Chicken Katsu Curry",
+  "price": 1250,
+  "kcal": 760,
+  "tags": [],
+  "badges": [
+   "hal"
+  ],
+  "img": "/brand/img/katsu.webp",
+  "em": "🍛",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "gluten",
+    "soy",
+    "egg",
+    "mustard"
+   ],
+   "traces": [
+    "nuts",
+    "shell"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Panko-crusted chicken, silky Japanese curry and sticky rice.",
+   "nl": "Kip in pankokorst, zijdezachte Japanse curry en kleefrijst.",
+   "mk": "Пилешко во панко кора, кадифен јапонски кари и леплив ориз."
+  },
+  "cut": true
+ },
+ {
+  "id": "redCur",
+  "cat": "curry",
+  "name": "Red Coconut Curry",
+  "price": 1190,
+  "kcal": 640,
+  "tags": [],
+  "badges": [
+   "veg"
+  ],
+  "img": "/brand/img/redCur.webp",
+  "em": "🥥",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": true,
+  "choice": [
+   "spice"
+  ],
+  "mods": [
+   "bowlX",
+   "bowlR"
+  ],
+  "allergens": {
+   "contains": [
+    "soy"
+   ],
+   "traces": [
+    "nuts",
+    "shell"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Red curry with sweet potato, tofu, snow peas and lime.",
+   "nl": "Rode curry met zoete aardappel, tofu, peultjes en limoen.",
+   "mk": "Црвен кари со сладок компир, тофу, грашок и лајм."
+  },
+  "cut": true
+ },
+ {
+  "id": "gyoza",
+  "cat": "sides",
+  "name": "Gyoza",
+  "price": 550,
+  "kcal": 310,
+  "tags": [],
+  "badges": [
+   "pop"
+  ],
+  "img": "/brand/img/gyoza.webp",
+  "em": "🥟",
+  "tint": "#F8F5EE",
+  "canMenu": false,
+  "choice": [
+   "gyozaN"
+  ],
+  "mods": [
+   "dips"
+  ],
+  "allergens": {
+   "contains": [
+    "gluten",
+    "soy",
+    "sesame"
+   ],
+   "traces": [],
+   "removable": [
+    "sesame"
+   ],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Pan-fried chicken dumplings with soy-vinegar dip.",
+   "nl": "Gebakken kip-dumplings met soja-azijndip.",
+   "mk": "Пржени пилешки кнедли со соја-оцет прелив."
+  },
+  "cut": true,
+  "tint2": "#FFFFFF"
+ },
+ {
+  "id": "springR",
+  "cat": "sides",
+  "name": "Vegetable Spring Rolls",
+  "price": 450,
+  "kcal": 280,
+  "tags": [],
+  "badges": [
+   "veg"
+  ],
+  "img": "/brand/img/springR.webp",
+  "em": "🌯",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "mods": [
+   "dips"
+  ],
+  "allergens": {
+   "contains": [
+    "gluten",
+    "soy",
+    "celery"
+   ],
+   "traces": [
+    "sesame"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Crispy rolls filled with glass noodles and vegetables.",
+   "nl": "Krokante loempia’s gevuld met glasnoedels en groenten.",
+   "mk": "Крцкави ролнички полнети со стаклени нудли и зеленчук."
+  },
+  "cut": true
+ },
+ {
+  "id": "edamame",
+  "cat": "sides",
+  "name": "Edamame Sea Salt",
+  "price": 420,
+  "kcal": 180,
+  "tags": [],
+  "badges": [
+   "veg"
+  ],
+  "img": "/brand/img/edamame.webp",
+  "em": "🌱",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "mods": [
+   "dips"
+  ],
+  "allergens": {
+   "contains": [
+    "soy"
+   ],
+   "traces": [
+    "sesame"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Steamed soybeans with flaky sea salt.",
+   "nl": "Gestoomde sojaboontjes met zeezoutvlokken.",
+   "mk": "Соја на пареа со морска сол."
+  },
+  "cut": true
+ },
+ {
+  "id": "kimchi",
+  "cat": "sides",
+  "name": "Kimchi",
+  "price": 390,
+  "kcal": 90,
+  "tags": [],
+  "badges": [
+   "spc"
+  ],
+  "img": "/brand/img/kimchi.webp",
+  "em": "🥬",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "allergens": {
+   "contains": [
+    "fish",
+    "celery"
+   ],
+   "traces": [
+    "sesame"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "House-fermented spicy cabbage, tangy and fiery.",
+   "nl": "Huisgefermenteerde pittige kool, fris en vurig.",
+   "mk": "Домашно ферментирана лута зелка, кисела и огнена."
+  },
+  "cut": true
+ },
+ {
+  "id": "crackers",
+  "cat": "sides",
+  "name": "Prawn Crackers",
+  "price": 350,
+  "kcal": 220,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/crackers.webp",
+  "em": "🍤",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "mods": [
+   "dips"
+  ],
+  "allergens": {
+   "contains": [
+    "shell"
+   ],
+   "traces": [
+    "sesame"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Light and crunchy, made for dipping.",
+   "nl": "Licht en knapperig, gemaakt om te dippen.",
+   "mk": "Лесни и крцкави, создадени за потопување."
+  },
+  "cut": true
+ },
+ {
+  "id": "misoSoup",
+  "cat": "sides",
+  "name": "Miso Soup",
+  "price": 350,
+  "kcal": 90,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/misoSoup.webp",
+  "em": "🍲",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "allergens": {
+   "contains": [
+    "soy"
+   ],
+   "traces": [
+    "sesame"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Comforting miso broth with tofu, wakame and spring onion.",
+   "nl": "Troostrijke misobouillon met tofu, wakame en bosui.",
+   "mk": "Утешен мисо бульон со тофу, вакаме и млад кромид."
+  },
+  "cut": true
+ },
+ {
+  "id": "swFries",
+  "cat": "sides",
+  "name": "Sweet Potato Fries",
+  "price": 490,
+  "kcal": 390,
+  "tags": [],
+  "badges": [
+   "new"
+  ],
+  "img": "/brand/img/fries.webp",
+  "em": "🍟",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "mods": [
+   "dips"
+  ],
+  "allergens": {
+   "contains": [],
+   "traces": [
+    "sesame"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Crispy sweet potato fries with togarashi salt.",
+   "nl": "Krokante zoete-aardappelfriet met togarashi-zout.",
+   "mk": "Крцкав помфрит од сладок компир со тогараши сол."
+  },
+  "cut": true
+ },
+ {
+  "id": "cola",
+  "cat": "drinks",
+  "name": "Coca-Cola",
+  "price": 290,
+  "kcal": 170,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/cola.webp",
+  "em": "🥤",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "choice": [
+   "drinkSize"
+  ],
+  "allergens": {
+   "contains": [],
+   "traces": [],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Ice-cold classic Coca-Cola.",
+   "nl": "IJskoude klassieke Coca-Cola.",
+   "mk": "Ледена класична Кока-Кола."
+  },
+  "cut": true
+ },
+ {
+  "id": "colazero",
+  "cat": "drinks",
+  "name": "Coca-Cola Zero",
+  "price": 290,
+  "kcal": 1,
+  "tags": [],
+  "badges": [
+   "pop"
+  ],
+  "img": "/brand/img/colazero.webp",
+  "em": "🥤",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "choice": [
+   "drinkSize"
+  ],
+  "allergens": {
+   "contains": [],
+   "traces": [],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "All the taste, zero sugar.",
+   "nl": "Alle smaak, nul suiker.",
+   "mk": "Целиот вкус, нула шеќер."
+  },
+  "cut": true
+ },
+ {
+  "id": "sprite",
+  "cat": "drinks",
+  "name": "Sprite",
+  "price": 290,
+  "kcal": 130,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/sprite.webp",
+  "em": "🍋",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "choice": [
+   "drinkSize"
+  ],
+  "allergens": {
+   "contains": [],
+   "traces": [],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Crisp lemon-lime sparkle.",
+   "nl": "Frisse citroen-limoen bubbels.",
+   "mk": "Свежи меурчиња од лимон и лимета."
+  },
+  "cut": true
+ },
+ {
+  "id": "water",
+  "cat": "drinks",
+  "name": "Still Water",
+  "price": 250,
+  "kcal": 0,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/water.webp",
+  "em": "💧",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "choice": [
+   "drinkSize"
+  ],
+  "allergens": {
+   "contains": [],
+   "traces": [],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Pure still spring water.",
+   "nl": "Puur plat bronwater.",
+   "mk": "Чиста негазирана изворска вода."
+  },
+  "cut": true
+ },
+ {
+  "id": "oj",
+  "cat": "drinks",
+  "name": "Fresh Orange Juice",
+  "price": 390,
+  "kcal": 180,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/oj.webp",
+  "em": "🧃",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "allergens": {
+   "contains": [],
+   "traces": [],
+   "removable": [],
+   "unknown": true
+  },
+  "desc": {
+   "en": "Squeezed to order, 100% orange.",
+   "nl": "Vers geperst, 100% sinaasappel.",
+   "mk": "Свежо исцеден, 100% портокал."
+  },
+  "cut": true
+ },
+ {
+  "id": "greentea",
+  "cat": "drinks",
+  "name": "Iced Green Tea",
+  "price": 290,
+  "kcal": 60,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/greentea.webp",
+  "em": "🍵",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "choice": [
+   "drinkSize"
+  ],
+  "allergens": {
+   "contains": [],
+   "traces": [],
+   "removable": [],
+   "unknown": true
+  },
+  "desc": {
+   "en": "Cold-brewed jasmine green tea, lightly sweetened.",
+   "nl": "Koudgezette jasmijn-groene thee, licht gezoet.",
+   "mk": "Ладно варен јасмин зелен чај, малку засладен."
+  },
+  "cut": true
+ },
+ {
+  "id": "lychee",
+  "cat": "drinks",
+  "name": "Lychee Lemonade",
+  "price": 350,
+  "kcal": 120,
+  "tags": [],
+  "badges": [
+   "new"
+  ],
+  "img": "/brand/img/lychee.webp",
+  "em": "🍈",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "choice": [
+   "drinkSize"
+  ],
+  "allergens": {
+   "contains": [],
+   "traces": [],
+   "removable": [],
+   "unknown": true
+  },
+  "desc": {
+   "en": "Sparkling lemonade with lychee and lime.",
+   "nl": "Bruisende limonade met lychee en limoen.",
+   "mk": "Газирана лимонада со личи и лајм."
+  },
+  "cut": true
+ },
+ {
+  "id": "mochi",
+  "cat": "desserts",
+  "name": "Mochi Trio",
+  "price": 490,
+  "kcal": 280,
+  "tags": [],
+  "badges": [
+   "pop"
+  ],
+  "img": "/brand/img/mochi.webp",
+  "em": "🍡",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "choice": [
+   "mochiFl"
+  ],
+  "allergens": {
+   "contains": [
+    "soy",
+    "milk"
+   ],
+   "traces": [
+    "nuts",
+    "gluten"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Three soft rice-dough bites with ice cream hearts.",
+   "nl": "Drie zachte rijstdeeg-bites met een hart van ijs.",
+   "mk": "Три меки залачиња од оризово тесто со срце од сладолед."
+  },
+  "cut": true
+ },
+ {
+  "id": "matcha",
+  "cat": "desserts",
+  "name": "Matcha Cheesecake",
+  "price": 550,
+  "kcal": 410,
+  "tags": [],
+  "badges": [
+   "new"
+  ],
+  "img": "/brand/img/matcha.webp",
+  "em": "🍵",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "allergens": {
+   "contains": [
+    "gluten",
+    "milk",
+    "egg"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Silky baked cheesecake with ceremonial matcha.",
+   "nl": "Zijdezachte cheesecake met ceremoniële matcha.",
+   "mk": "Кадифен чизкејк со церемонијална матча."
+  },
+  "cut": true
+ },
+ {
+  "id": "mangoR",
+  "cat": "desserts",
+  "name": "Mango Sticky Rice",
+  "price": 590,
+  "kcal": 430,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/mangoR.webp",
+  "em": "🥭",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "allergens": {
+   "contains": [
+    "soy"
+   ],
+   "traces": [
+    "nuts",
+    "gluten"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Warm coconut sticky rice with fresh mango and sesame.",
+   "nl": "Warme kokoskleefrijst met verse mango en sesam.",
+   "mk": "Топол кокосов леплив ориз со свежо манго и сусам."
+  },
+  "cut": true
+ },
+ {
+  "id": "banana",
+  "cat": "desserts",
+  "name": "Banana Fritters",
+  "price": 450,
+  "kcal": 390,
+  "tags": [],
+  "badges": [],
+  "img": "/brand/img/banana.webp",
+  "em": "🍌",
+  "tint": "#F8F5EE",
+  "tint2": "#FFFFFF",
+  "canMenu": false,
+  "allergens": {
+   "contains": [
+    "gluten",
+    "egg"
+   ],
+   "traces": [
+    "nuts"
+   ],
+   "removable": [],
+   "unknown": false
+  },
+  "desc": {
+   "en": "Golden-fried banana with palm sugar caramel.",
+   "nl": "Goudgebakken banaan met palmsuikerkaramel.",
+   "mk": "Златно пржена банана со карамел од палмин шеќер."
+  },
+  "cut": true
+ }
+]

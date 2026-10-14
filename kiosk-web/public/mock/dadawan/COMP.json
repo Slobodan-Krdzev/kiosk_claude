@@ -1,0 +1,32 @@
+{
+ "default": [
+  "edamame",
+  "gyoza",
+  "cola",
+  "misoSoup"
+ ],
+ "sushi": [
+  "edamame",
+  "gyoza",
+  "misoSoup",
+  "cola"
+ ],
+ "sides": [
+  "greentea",
+  "cola",
+  "lychee",
+  "mochi"
+ ],
+ "drinks": [
+  "gyoza",
+  "edamame",
+  "mochi",
+  "banana"
+ ],
+ "desserts": [
+  "greentea",
+  "oj",
+  "lychee",
+  "cola"
+ ]
+}

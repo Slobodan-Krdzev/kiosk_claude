@@ -1,0 +1,230 @@
+{
+ "hero": [
+  2160,
+  1220
+ ],
+ "lychee": [
+  520,
+  518
+ ],
+ "platter": [
+  1400,
+  1050
+ ],
+ "salmongrill": [
+  479,
+  520
+ ],
+ "unaginigiri": [
+  520,
+  511
+ ],
+ "fries": [
+  512,
+  520
+ ],
+ "salmonpoke": [
+  493,
+  520
+ ],
+ "teribeef": [
+  520,
+  518
+ ],
+ "rice": [
+  1400,
+  1050
+ ],
+ "salmonroll": [
+  520,
+  493
+ ],
+ "chickenroll": [
+  520,
+  516
+ ],
+ "veggieroll": [
+  520,
+  495
+ ],
+ "sakenigiri": [
+  520,
+  508
+ ],
+ "chickenpoke": [
+  518,
+  520
+ ],
+ "tofupoke": [
+  466,
+  520
+ ],
+ "shrimppoke": [
+  504,
+  520
+ ],
+ "peppersteak": [
+  520,
+  515
+ ],
+ "bibimbap": [
+  512,
+  520
+ ],
+ "bulgogi": [
+  501,
+  520
+ ],
+ "tofudolsot": [
+  476,
+  520
+ ],
+ "tonkotsu": [
+  520,
+  506
+ ],
+ "misoRam": [
+  520,
+  511
+ ],
+ "shiitakeramen": [
+  484,
+  520
+ ],
+ "greenCur": [
+  520,
+  517
+ ],
+ "katsu": [
+  493,
+  520
+ ],
+ "redCur": [
+  500,
+  520
+ ],
+ "gyoza": [
+  520,
+  495
+ ],
+ "springR": [
+  491,
+  520
+ ],
+ "edamame": [
+  520,
+  506
+ ],
+ "kimchi": [
+  494,
+  520
+ ],
+ "crackers": [
+  493,
+  520
+ ],
+ "misoSoup": [
+  496,
+  520
+ ],
+ "cola": [
+  517,
+  520
+ ],
+ "colazero": [
+  520,
+  520
+ ],
+ "sprite": [
+  520,
+  508
+ ],
+ "water": [
+  494,
+  520
+ ],
+ "oj": [
+  520,
+  504
+ ],
+ "greentea": [
+  520,
+  506
+ ],
+ "mochi": [
+  509,
+  520
+ ],
+ "matcha": [
+  500,
+  520
+ ],
+ "mangoR": [
+  502,
+  520
+ ],
+ "banana": [
+  494,
+  520
+ ],
+ "logoImg": [
+  1024,
+  489
+ ],
+ "lycheePromo": [
+  2160,
+  1220
+ ],
+ "platterPromo": [
+  2160,
+  1220
+ ],
+ "xSalmon": [
+  473,
+  520
+ ],
+ "xAvocado": [
+  480,
+  520
+ ],
+ "xMayo": [
+  479,
+  520
+ ],
+ "gyozaCut": [
+  489,
+  520
+ ],
+ "edamameCut": [
+  464,
+  520
+ ],
+ "springRCut": [
+  520,
+  510
+ ],
+ "menuCombo": [
+  517,
+  520
+ ],
+ "pokeSalCut": [
+  499,
+  520
+ ],
+ "riceSide": [
+  520,
+  474
+ ],
+ "steakPlate": [
+  513,
+  520
+ ],
+ "sushiplatter": [
+  520,
+  407
+ ],
+ "ddbowlImg": [
+  520,
+  478
+ ]
+}

@@ -1,0 +1,64 @@
+{
+ "disclaimer": {
+  "nl": "Heb je een ernstige allergie? Overleg altijd met een medewerker. Aanpassingen aan een gerecht garanderen niet dat het gerecht volledig vrij is van het betreffende allergeen.",
+  "en": "Do you have a serious allergy? Always check with a staff member. Changes to a dish do not guarantee it is completely free of that allergen.",
+  "mk": "Имаш сериозна алергија? Секогаш разговарај со вработен. Промените на јадењето не гарантираат дека е целосно без тој алерген."
+ },
+ "verifiedFree": [
+  "water",
+  "cola",
+  "colazero",
+  "sprite"
+ ],
+ "traces": {
+  "pokewan": [
+   "sesame",
+   "nuts"
+  ],
+  "sushi": [
+   "shell",
+   "gluten"
+  ],
+  "ramen": [
+   "shell"
+  ],
+  "stonebowl": [
+   "nuts"
+  ],
+  "stoneplate": [
+   "nuts"
+  ],
+  "curry": [
+   "nuts",
+   "shell"
+  ],
+  "sides": [
+   "sesame"
+  ],
+  "desserts": [
+   "nuts",
+   "gluten"
+  ]
+ },
+ "removable": {
+  "pokewan": [
+   "sesame"
+  ],
+  "sushi": [
+   "sesame"
+  ],
+  "ramen": [
+   "egg"
+  ],
+  "stonebowl": [
+   "egg",
+   "sesame"
+  ],
+  "stoneplate": [],
+  "curry": [],
+  "sides": [
+   "sesame"
+  ],
+  "desserts": []
+ }
+}

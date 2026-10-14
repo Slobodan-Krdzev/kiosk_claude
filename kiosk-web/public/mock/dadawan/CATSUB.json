@@ -1,0 +1,57 @@
+{
+ "popular": {
+  "en": "Guest favourites, ready in a tap",
+  "nl": "Favorieten van onze gasten",
+  "mk": "Омилени на гостите"
+ },
+ "pokewan": {
+  "en": "Fresh. Colourful. Yours.",
+  "nl": "Vers. Kleurrijk. Van jou.",
+  "mk": "Свежо. Шарено. Твое."
+ },
+ "stoneplate": {
+  "en": "Sizzling from the kitchen",
+  "nl": "Sissend uit de keuken",
+  "mk": "Цврчи од кујната"
+ },
+ "stonebowl": {
+  "en": "Hot stone, big flavour",
+  "nl": "Hete steen, groot van smaak",
+  "mk": "Врел камен, голем вкус"
+ },
+ "sushi": {
+  "en": "Fresh. Authentic. Always special.",
+  "nl": "Vers. Authentiek. Altijd speciaal.",
+  "mk": "Свежо. Автентично. Секогаш посебно."
+ },
+ "ramen": {
+  "en": "12 hours of broth, one bowl",
+  "nl": "12 uur bouillon, één kom",
+  "mk": "12 часа бульон, една чинија"
+ },
+ "curry": {
+  "en": "Fragrant, creamy, comforting",
+  "nl": "Geurig, romig, troostrijk",
+  "mk": "Мирисно, кремасто, утешно"
+ },
+ "sides": {
+  "en": "Little dishes, big joy",
+  "nl": "Kleine gerechten, groot plezier",
+  "mk": "Мали јадења, голема радост"
+ },
+ "drinks": {
+  "en": "Ice-cold and refreshing",
+  "nl": "IJskoud en verfrissend",
+  "mk": "Ледено и освежително"
+ },
+ "desserts": {
+  "en": "Sweet endings, DADAWAN style",
+  "nl": "Zoet einde, DADAWAN-stijl",
+  "mk": "Сладок крај, во DADAWAN стил"
+ },
+ "new": {
+  "en": "Our newest flavours",
+  "nl": "Onze nieuwste smaken",
+  "mk": "Нашите најнови вкусови"
+ }
+}

@@ -1,0 +1,243 @@
+{
+ "id": "dadawan",
+ "name": "DADAWAN",
+ "logoImg": "/brand/logo-dadawan.png",
+ "brandGraphic": "https://dadawan.nl/wp-content/uploads/2024/04/DADAWAN-kommenstapel-white_Tekengebied-1-650x1024.png",
+ "fonts": {
+  "head": "'Bebas Neue','Inter',sans-serif",
+  "body": "'Inter',system-ui,sans-serif"
+ },
+ "colors": {
+  "paper": "#F5F0E4",
+  "pbright": "#20C991",
+  "card": "#FFFDF8",
+  "ink": "#1A1915",
+  "mute": "#6E6A5F",
+  "line": "#E7E1D2",
+  "shade": "#EDE7D9",
+  "primary": "#0F6B4F",
+  "primarysoft": "#E3EFE7",
+  "gold": "#C49A3A",
+  "ember": "#C43D2C",
+  "cream": "#F3EDE0"
+ },
+ "radiusBtn": "999px",
+ "typography": {
+  "displayFont": "Bebas Neue",
+  "bodyFont": "Inter",
+  "accentFont": "Caveat"
+ },
+ "layout": {
+  "sidebarWidth": 240,
+  "basketOverlap": 16,
+  "contentPadding": 20,
+  "gridColumns": 3,
+  "gridGap": 24,
+  "heroHeight": 450,
+  "promoHeight": 300,
+  "productImageHeight": 196,
+  "basketBottom": 32,
+  "basketHeight": 88
+ },
+ "motion": {
+  "heroInterval": 7000,
+  "heroFade": 650,
+  "screenTransition": 260,
+  "categoryIndicator": 250,
+  "filterIndicator": 200,
+  "cardEntrance": 320,
+  "cardFast": 240,
+  "gridStagger": 26,
+  "addConfirm": 400,
+  "fieldXfade": 160,
+  "addNote": 900,
+  "containerTransform": 520,
+  "containerClose": 380,
+  "contentStagger": 45,
+  "pdpBarFade": 200,
+  "reqHighlight": 1400,
+  "basketEntrance": 240,
+  "basketExit": 160,
+  "quickAddLock": 225
+ },
+ "assetVersion": "2026-09-16",
+ "hero": {
+  "mode": "slider",
+  "interval": 7000,
+  "height": 450,
+  "contentFocalPoint": {
+   "x": 72,
+   "y": 50
+  },
+  "textSafeWidth": 58,
+  "images": [
+   "https://dadawan.nl/wp-content/uploads/2026/07/dadawan-mix-food-scaled.jpg",
+   "https://dadawan.nl/wp-content/uploads/2026/08/dadawan-worldly-food-small-town-prices-scaled.jpg",
+   "https://dadawan.nl/wp-content/uploads/2024/08/dadawan-arnhem-gele-rijders-plein-1024x683.jpg"
+  ],
+  "video": ""
+ },
+ "copy": {
+  "headline": {
+   "en": "ASIAN\nFLAVORS\nBOLDER\nTOGETHER",
+   "nl": "ASIAN\nFLAVORS\nBOLDER\nTOGETHER",
+   "mk": "ASIAN\nFLAVORS\nBOLDER\nTOGETHER"
+  },
+  "sub": {
+   "en": "GOOD FOOD\nBRIGHTER DAYS",
+   "nl": "GOOD FOOD\nBRIGHTER DAYS",
+   "mk": "GOOD FOOD\nBRIGHTER DAYS"
+  },
+  "logoTagline": "ASIAN KITCHEN",
+  "sideNote": "FRESH\nASIAN\nFLAVORS\nEVERY\nDAY",
+  "tagline": "WORLDLY FOOD · SMALL TOWN PRICES"
+ },
+ "languages": [
+  "nl",
+  "en",
+  "mk"
+ ],
+ "defaultLanguage": "nl",
+ "orderTypes": [
+  "eatin",
+  "takeaway"
+ ],
+ "defaultOrderType": "takeaway",
+ "features": {
+  "voucher": true,
+  "visualUpsells": true,
+  "loyalty": true
+ },
+ "sidebar": {
+  "backgroundType": "image",
+  "backgroundImage": "https://dadawan.nl/wp-content/uploads/2026/08/dadawan-worldly-food-small-town-prices-scaled.jpg",
+  "backgroundColor": "#101511",
+  "backgroundPosition": "center",
+  "focalPoint": {
+   "x": 50,
+   "y": 50
+  },
+  "overlayColor": "#191713",
+  "overlayOpacity": 0.58
+ },
+ "reward": {
+  "threshold": 2500,
+  "pid": "mochi",
+  "variant": {
+   "choices": {
+    "mochiFl": "mMat"
+   }
+  }
+ },
+ "sessionSettings": {
+  "inactivityTimeoutMs": 75000,
+  "inactivityWarningMs": 15000
+ },
+ "adminPin": "2580",
+ "cleaning": {
+  "enabled": true
+ },
+ "serviceModes": {
+  "eatin": {
+   "delivery": "counter"
+  },
+  "takeaway": {
+   "delivery": "counter"
+  }
+ },
+ "analytics": {
+  "enabled": true
+ },
+ "connectionSettings": {
+  "serverUrl": "http://guestit.local",
+  "pingMs": 600,
+  "bootGiveUpMs": 12000,
+  "retryMs": [
+   1000,
+   2000,
+   4000,
+   8000
+  ],
+  "sessionTtlMs": 180000
+ },
+ "paymentSettings": {
+  "connectMs": 700,
+  "cardWaitMs": 2600,
+  "processingMs": 1400,
+  "terminalTimeoutMs": 20000,
+  "lookupMs": 1400,
+  "submitMs": 900,
+  "doneCountdownS": 15
+ },
+ "promos": [
+  {
+   "pid": "ddbowl",
+   "menu": true,
+   "img": "/brand/img/hero.webp",
+   "em": "🍚",
+   "tint": "#2A2620",
+   "tint2": "#171512",
+   "flag": {
+    "en": "Combo deal",
+    "nl": "Combo-deal",
+    "mk": "Комбо акција"
+   },
+   "title": {
+    "en": "The DADAWAN Bowl, made a combo",
+    "nl": "The DADAWAN Bowl als combo",
+    "mk": "The DADAWAN Bowl како комбо"
+   },
+   "sub": {
+    "en": "2 gyoza + a drink of your choice",
+    "nl": "2 gyoza + een drankje naar keuze",
+    "mk": "2 гиоза + пијалок по избор"
+   }
+  },
+  {
+   "pid": "lychee",
+   "img": "/brand/img/lychee.webp",
+   "cut": true,
+   "em": "🍈",
+   "tint": "#F7EDEA",
+   "tint2": "#FFFFFF",
+   "flag": {
+    "en": "New",
+    "nl": "Nieuw",
+    "mk": "Ново"
+   },
+   "title": {
+    "en": "Lychee Lemonade",
+    "nl": "Lychee Lemonade",
+    "mk": "Личи лимонада"
+   },
+   "sub": {
+    "en": "Sparkling, floral, ice-cold",
+    "nl": "Bruisend, bloemig, ijskoud",
+    "mk": "Газирана, цветна, ледена"
+   }
+  },
+  {
+   "pid": "sushiplatter",
+   "img": "/brand/img/ddPlatter.webp",
+   "cut": true,
+   "em": "🍣",
+   "tint": "#F8F5EE",
+   "tint2": "#FFFFFF",
+   "flag": {
+    "en": "To share",
+    "nl": "Om te delen",
+    "mk": "За споделување"
+   },
+   "title": {
+    "en": "DADAWAN Platter",
+    "nl": "DADAWAN Platter",
+    "mk": "DADAWAN плата"
+   },
+   "sub": {
+    "en": "16 pieces of our chef favourites",
+    "nl": "16 stuks favorieten van de chef",
+    "mk": "16 парчиња омилени на шефот"
+   }
+  }
+ ]
+}

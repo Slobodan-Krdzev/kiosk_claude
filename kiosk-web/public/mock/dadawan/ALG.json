@@ -1,0 +1,52 @@
+{
+ "gluten": {
+  "en": "Gluten",
+  "nl": "Gluten",
+  "mk": "Глутен"
+ },
+ "soy": {
+  "en": "Soy",
+  "nl": "Soja",
+  "mk": "Соја"
+ },
+ "fish": {
+  "en": "Fish",
+  "nl": "Vis",
+  "mk": "Риба"
+ },
+ "shell": {
+  "en": "Shellfish",
+  "nl": "Schaaldieren",
+  "mk": "Школки/ракови"
+ },
+ "egg": {
+  "en": "Egg",
+  "nl": "Ei",
+  "mk": "Јајце"
+ },
+ "milk": {
+  "en": "Milk",
+  "nl": "Melk",
+  "mk": "Млеко"
+ },
+ "sesame": {
+  "en": "Sesame",
+  "nl": "Sesam",
+  "mk": "Сусам"
+ },
+ "nuts": {
+  "en": "Peanuts / nuts",
+  "nl": "Pinda's / noten",
+  "mk": "Кикирики / јатки"
+ },
+ "mustard": {
+  "en": "Mustard",
+  "nl": "Mosterd",
+  "mk": "Сенф"
+ },
+ "celery": {
+  "en": "Celery",
+  "nl": "Selderij",
+  "mk": "Целер"
+ }
+}

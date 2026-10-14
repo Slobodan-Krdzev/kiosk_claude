@@ -1,0 +1,16 @@
+{
+ "price": 450,
+ "side": "gyoza",
+ "sideLabel": {
+  "en": "2 gyoza",
+  "nl": "2 gyoza",
+  "mk": "2 гиоза"
+ },
+ "drinks": [
+  "cola",
+  "colazero",
+  "sprite",
+  "water",
+  "greentea"
+ ]
+}

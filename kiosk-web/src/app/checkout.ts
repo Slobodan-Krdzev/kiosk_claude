@@ -1,127 +1,174 @@
-// Checkout flow: cart → upsell → order tag → preflight checks → payment.
-// Preflight (v36 ACT.toPay): online, availability fresh, no price change, no active/uncertain attempt,
-// cart unchanged during the checks. Only then is the snapshot frozen and the terminal started.
+// Checkout: cart → (order tag) → availability + price revalidation → terminal. Port of ACT.toPay / priceConfirm.
+// The payment itself is our PaymentController (persist before pay, one attempt id per charge, same key on retry).
 
 import { withTimeout } from '../adapters/withTimeout'
-import { applyPriceChanges, buildSnapshot, detectPriceChanges } from '../domain/cart'
 import { canSubmitWrites } from '../domain/connectivity'
-import { resolveTagMode } from '../domain/orderTag'
-import { computeOffers } from '../domain/upsell'
-import { useKiosk } from '../store/kiosk'
+import type { OrderSnapshot, SnapshotLine } from '../domain/types'
+import { applyRevalidatedPrices, lineUnit, priceStamp, revalidatePrices, validateCart } from '../engine/cart'
+import { byId, mustId, servingOf, servingsOf } from '../engine/catalog'
+import { exQty } from '../engine/draft'
+import { E, L, setDisabled, setUnavailable } from '../engine/state'
+import type { CartLine, Product } from '../engine/types'
+import { PAY_ACTIVE, PAY_UNCERTAIN } from '../payment/states'
+import { useEngine } from '../store/engine'
+import { tagModeFor, type TagState } from '../ui/Tag'
 import { getRuntime } from './runtime'
 
-/** From the cart: go to upsell if there are offers, else to the tag step. */
-export function beginCheckout(): void {
-  const s = useKiosk.getState()
-  if (!s.catalog || !s.cms || s.cart.length === 0) return
-  getRuntime().resolved.adapters.analytics.send([{ type: 'checkout_started', at: new Date().toISOString(), data: { count: s.cart.length } }])
-  const offers = computeOffers(s.cart, s.catalog, s.cms)
-  if (offers.length) {
-    s.setScreen('upsell')
-  } else {
-    afterUpsell()
-  }
-}
+let paying = false
 
-/** After upsell: ask for the order tag when the venue requires one, else start payment. */
-export function afterUpsell(): void {
-  const s = useKiosk.getState()
-  if (!s.config || !s.service) return
-  const { mode, clientError } = resolveTagMode(s.config.orderTag, s.service)
-  if (clientError) s.addClientError(clientError)
-  if (mode === 'none') {
-    s.setTag(null)
-    void startPayment()
-  } else {
-    s.setScreen('tag')
-  }
-}
-
-/** Preflight checks, then hand the frozen snapshot to the payment controller. */
-export async function startPayment(): Promise<void> {
+/** Live catalog sync (availability + current prices). Never touches a started or paid snapshot. */
+export async function catalogRefresh(): Promise<boolean> {
   const rt = getRuntime()
   const { adapters } = rt.resolved
-  const s = useKiosk.getState()
-  if (!s.catalog || !s.config || !s.service || s.cart.length === 0) return
-  if (!rt.controller.canRetryPayment()) return
-  if (!canSubmitWrites(s.conn)) {
-    s.setPreflight({ step: 'error', key: s.conn.kind === 'no-authority' ? 'conn.noAuthority' : 'conn.waitSubmit' })
-    s.setScreen('payment')
+  const cfg = rt.config
+  try {
+    const want = E().products.map((p) => p.id)
+    const na = await withTimeout(adapters.availability.check(want), cfg.timeouts.availability, 'availability')
+    setUnavailable(na.unavailableIds)
+    const cur = await withTimeout(adapters.catalog.current(), cfg.timeouts.availability, 'catalog')
+    for (const [pid, cents] of Object.entries(cur.prices || {})) {
+      const p = byId(pid)
+      if (!p || typeof cents !== 'number' || cents === p.price) continue
+      const delta = cents - p.price
+      p.price = cents
+      servingsOf(p)?.forEach((s) => (s.price += delta))
+    }
+    setDisabled(cur.disabled || [])
+    return true
+  } catch (e) {
+    rt.log('catalog.refreshFailed', { error: String(e) })
+    return false
+  }
+}
+
+function tagNeeded(): boolean {
+  const s = useEngine.getState()
+  return tagModeFor(s.config!.orderTag, s.service) !== 'none'
+}
+
+const cartSig = (cart: CartLine[]) => JSON.stringify(cart.map((l) => [l.lid, l.qty, l.unitPrice]))
+
+export async function toPay(): Promise<void> {
+  const s = useEngine.getState()
+  const rt = getRuntime()
+  if (!canSubmitWrites(s.conn)) return
+  const st = rt.controller.state.status
+  if (PAY_ACTIVE.has(st) || PAY_UNCERTAIN.has(st) || paying) return
+  if (validateCart(s.cart).some((i) => i.code !== 'price-changed')) return
+  if (s.screen === 'cart' && tagNeeded()) {
+    s.tagOpen()
     return
   }
-  const versionAtStart = s.cartVersion
-  s.setPreflight({ step: 'checking' })
-  s.setScreen('payment')
-
+  paying = true
+  const sig = cartSig(s.cart)
   try {
-    const health = await withTimeout(adapters.pos.health(), s.config.timeouts.health, 'health')
-    if (!health.ok) {
-      s.setPreflight({ step: 'error', key: 'cart.offline' })
+    s.setChecking(true)
+    const ok = await catalogRefresh()
+    const s2 = useEngine.getState()
+    s2.setChecking(false)
+    if (sig !== cartSig(s2.cart)) return
+    if (!ok) {
+      s2.setConfirm('availFail')
       return
     }
-    const productIds = Array.from(new Set(s.cart.map((l) => l.productId)))
-    const avail = await withTimeout(adapters.availability.check(productIds), s.config.timeouts.availability, 'availability')
-    if (avail.unavailableIds.length) {
-      s.setUnavailable(avail.unavailableIds)
-      s.setPreflight({ step: 'error', key: 'cart.unavailableInCart' })
-      return
-    }
-    const current = await withTimeout(adapters.catalog.current(), s.config.timeouts.availability, 'catalogCurrent')
-    const disabledInCart = s.cart.filter((l) => current.disabled.includes(l.productId)).map((l) => l.productId)
-    if (disabledInCart.length) {
-      s.setUnavailable(Array.from(new Set([...s.unavailableIds, ...disabledInCart])))
-      s.setPreflight({ step: 'error', key: 'cart.unavailableInCart' })
-      return
-    }
-    const changes = detectPriceChanges(s.cart, s.catalog, current)
-    if (useKiosk.getState().cartVersion !== versionAtStart) {
-      // The guest kept editing during the checks: back to the cart, they tap pay again.
-      s.setPreflight({ step: 'idle' })
-      s.setScreen('cart')
-      return
-    }
+    if (validateCart(s2.cart).some((i) => i.code !== 'price-changed')) return
+    const changes = revalidatePrices(s2.cart)
     if (changes.length) {
-      s.setPreflight({ step: 'price-confirm', changes })
+      s2.setConfirm({ type: 'priceChanged', changes, shown: priceStamp(changes) })
       return
     }
-    await freezeAndPay()
-  } catch (e) {
-    rt.log('checkout.preflightFailed', { error: String(e) })
-    s.setPreflight({ step: 'error', key: 'cart.checkFailed' })
+    await startPay()
+  } finally {
+    paying = false
+    useEngine.getState().setChecking(false)
   }
 }
 
-/** Guest accepted the new prices. */
-export async function acceptPriceChanges(): Promise<void> {
-  const s = useKiosk.getState()
-  if (s.preflight.step !== 'price-confirm' || !s.catalog) return
-  s.setCatalog(applyPriceChanges(s.catalog, s.preflight.changes))
-  await freezeAndPay()
+export async function availRetry(): Promise<void> {
+  useEngine.getState().setConfirm(null)
+  await toPay()
+}
+export function availBack(): void {
+  useEngine.getState().setConfirm(null)
 }
 
-export function cancelPreflight(): void {
-  const s = useKiosk.getState()
-  s.setPreflight({ step: 'idle' })
-  s.setScreen('cart')
+export async function priceConfirm(): Promise<void> {
+  const s = useEngine.getState()
+  const conf = s.confirm
+  if (!conf || typeof conf !== 'object' || conf.type !== 'priceChanged') return
+  const now = revalidatePrices(s.cart)
+  if (priceStamp(now) !== conf.shown) {
+    s.setConfirm(now.length ? { type: 'priceChanged', changes: now, shown: priceStamp(now), again: true } : null)
+    if (!now.length) await toPay()
+    return
+  }
+  s.setCart(applyRevalidatedPrices(s.cart))
+  s.setConfirm(null)
+  await startPay()
+}
+export function priceBack(): void {
+  useEngine.getState().setConfirm(null)
 }
 
-async function freezeAndPay(): Promise<void> {
+export async function tagGo(st: TagState): Promise<void> {
+  const s = useEngine.getState()
+  if (!st.ok) return
+  s.tagConfirm({ type: st.type, value: st.v })
+  await toPay()
+}
+export async function tagSkip(): Promise<void> {
+  const s = useEngine.getState()
+  s.tagConfirm(null)
+  await toPay()
+}
+
+/** Freeze the order and hand it to the payment controller. */
+export async function startPay(): Promise<void> {
+  const s = useEngine.getState()
   const rt = getRuntime()
-  const s = useKiosk.getState()
-  if (!s.catalog || !s.service) return
-  const snapshot = buildSnapshot({
-    orderId: 'pending',
-    lines: s.cart,
-    catalog: s.catalog,
-    service: s.service,
-    lang: s.lang,
-    tag: s.tag,
-    member: s.member,
+  if (!rt.controller.canRetryPayment()) return
+  if (!s.cart.length) return
+  s.setScreen('pay')
+  const snapshot = buildSnapshot(s.cart, s.service === 'eatin' ? 'eat-in' : 'takeaway', s.lang, s.tag, s.member?.id ?? null)
+  const started = await rt.controller.start(snapshot)
+  if (!started && rt.controller.state.storeFailed) rt.log('pay.storeFail')
+}
+
+export function buildSnapshot(cart: CartLine[], service: 'eat-in' | 'takeaway', lang: OrderSnapshot['lang'], tag: OrderSnapshot['tag'], memberId: string | null): Omit<OrderSnapshot, 'orderId' | 'startedAt' | 'paidAt'> {
+  const lines: SnapshotLine[] = cart.map((l) => {
+    const p: Product = mustId(l.pid)
+    const sv = servingOf(p, l)
+    const unit = lineUnit(l)
+    const kind: SnapshotLine['kind'] = l.reward ? 'gift' : l.lineType === 'cross-sell' ? 'cross-sell' : 'item'
+    return {
+      lineId: l.lid,
+      productId: l.pid,
+      productName: p.name,
+      servingId: sv ? String(servingsOf(p)!.indexOf(sv)) : '',
+      servingName: sv ? L(sv.short) : '',
+      choices: Object.entries(l.choices || {})
+        .filter(([, v]) => !!v)
+        .map(([groupId, v]) => ({ groupId, optionIds: [v as string] })),
+      extras: (l.extras || []).map(([g, id]) => ({ extraId: `${g}:${id}`, qty: exQty(l, g, id) })),
+      removes: (l.removes || []).map(([g, id]) => `${g}:${id}`),
+      qty: l.qty,
+      unitPriceCents: unit,
+      lineTotalCents: unit * l.qty,
+      kind,
+      ...(l.priceVariantId ? { priceVariantId: l.priceVariantId } : {}),
+      ...(l.groupId ? { groupId: l.groupId } : {}),
+      ...(l.sourceLineId ? { sourceLineId: l.sourceLineId } : {}),
+      ...(l.menu && l.drink ? { menuDrink: { productId: l.drink, servingId: '', choices: {} }, menuSideId: E().menuDeal.side } : {}),
+    }
   })
-  s.setPreflight({ step: 'idle' })
-  const input = { lines: snapshot.lines, service: snapshot.service, lang: snapshot.lang, tag: snapshot.tag, totals: snapshot.totals, loyalty: snapshot.loyalty, pricedWith: snapshot.pricedWith }
-  const started = await rt.controller.start(input)
-  if (!started && rt.controller.state.storeFailed) {
-    useKiosk.getState().setPreflight({ step: 'error', key: 'pay.storeFail' })
+  const subtotal = lines.reduce((a, x) => a + x.lineTotalCents, 0)
+  return {
+    lines,
+    service,
+    lang,
+    tag,
+    totals: { subtotalCents: subtotal, discountCents: 0, totalCents: subtotal, count: cart.reduce((a, l) => a + l.qty, 0) },
+    loyalty: memberId ? { memberId } : null,
+    pricedWith: { catalogVersion: 36 },
   }
 }

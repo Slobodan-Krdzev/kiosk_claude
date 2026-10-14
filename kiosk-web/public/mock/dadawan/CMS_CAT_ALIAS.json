@@ -1,0 +1,27 @@
+{
+ "menu": [
+  "pokewan",
+  "stoneplate",
+  "stonebowl",
+  "ramen",
+  "curry"
+ ],
+ "popular": [
+  "popular"
+ ],
+ "sushi": [
+  "sushi"
+ ],
+ "softs": [
+  "drinks"
+ ],
+ "beers": [],
+ "wines": [],
+ "cocktails": [],
+ "desserts": [
+  "desserts"
+ ],
+ "sides": [
+  "sides"
+ ]
+}

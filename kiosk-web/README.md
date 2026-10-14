@@ -1,54 +1,52 @@
-# Guestit Kiosk (web)
+# Guestit Kiosk (web) — DADAWAN design
 
-React + TypeScript self-service kiosk. Built against the rules in `../failover-handover/` and the v36 kiosk
-reference (payment state machine, durable paid-order record, idempotent POS submit, order tag).
+React + TypeScript self-service kiosk that reproduces the Guestit white-label kiosk engine v36 (DADAWAN brand)
+on top of the failover-safe payment core from `../failover-handover/`.
 
-Today it runs on **static JSON fixtures** (`public/mock/*.json`) behind an adapter interface. Later the same UI
-runs inside the Guestit Launcher (Kotlin WebView) which injects `window.GuestitAdapters`, or against an HTTP
-backend. Nothing in the UI talks to a backend directly.
+Today it runs on **static JSON fixtures** (`public/mock/`) behind an adapter interface. Later the same UI runs inside
+the Guestit Launcher (Kotlin WebView), which injects `window.GuestitAdapters`, or against an HTTP backend.
 
 ## Run
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173 (pick another port with --port if taken)
-npm test           # unit tests (payment state machine, cart, order tag, persistence)
-npm run build      # production bundle in dist/ (relative paths, ES2018 for older WebViews)
+npm run dev        # open the printed URL; a portrait window shows the kiosk edge to edge, landscape shows the scaled device
+npm test           # 39 unit tests: payment state machine, engine pricing/cart, order tag, persistence
+npm run build      # dist/ (relative paths, ES2018 for older WebViews)
 ```
 
-Staff panel: tap the logo 5 times within 3 seconds, PIN is `staffPin` in `public/mock/config.json` (demo: 2468).
-The **Simulation** tab switches terminal / POS / printer / health outcomes, hangs, connectivity scenarios,
-unavailable products and price changes. The **Status** tab shows the payment record, idempotency key, recovery
-reference and connection state. Simulation is never evidence of production behaviour.
+Staff panel: tap the brand logo 5 times within 3 seconds, PIN `staffPin` from `public/mock/config.json` (demo 2468).
+Simulation tab: terminal / POS / printer / health outcomes, hangs, connectivity scenarios, sold-out products, price changes.
 
-## Layout
+## Where things live
 
 ```
-src/
-  adapters/        GuestitAdapters interface (+ withTimeout); static/ = JSON fixtures + simulated terminal/POS/printer
-  domain/          pure logic: types, cart pricing, upsell offers, order tag validation, ids, connectivity state
-  payment/         v36 state machine: states.ts (tables), controller.ts (logic), persistence.ts (durable record)
-  store/           zustand kiosk store; usePayState() bridges the controller into React
-  app/             runtime (singletons), boot + screen routing (App.tsx), checkout preflight, session persistence
-  screens/         Attract/Service, Menu (+ProductSheet), Cart, Upsell, OrderTag, Payment, Confirmation, StaffPanel
-  components/      ui primitives, IdleGuard
-  i18n/            strings EN / NL / MK
-public/mock/       config.json, catalog.json, cms.json (upsell), availability.json, catalog-current.json, members.json
+public/brand/            fonts.css + woff2 (Inter, Bebas Neue, Caveat, IBM Plex Mono), img/<key>.webp (56 photos), logos
+public/mock/dadawan/     engine data as JSON (PRODUCTS, MODS, CATS, MENU_DEAL, UPSELL_CMS, GUESTIT_CMS, I18N, BRAND, P icons …) — money in cents
+public/mock/config.json  kiosk config: orderTag, timeouts, idle, staffPin (later: window.GuestitConfig)
+src/reference.css        the engine stylesheet verbatim (tokens, compiled Tailwind utilities, component styles)
+src/engine/              pure port of the engine logic: catalog, pricing, draft/validation, CMS experience, cart, i18n, money
+src/store/engine.ts      kiosk state + actions (the engine's S / ACT) on Zustand
+src/ui/                  screens as JSX with the engine's class names: Attract, shell (rail/home/menu), cards, Pdp (R44), Cart, Tag, Pay, Overlays, Stage, StaffPanel
+src/payment/             PaymentController (v36 state machine), durable paid-order record
+src/adapters/            GuestitAdapters interface; static/ = JSON fixtures + simulated terminal, POS, printer, connectivity
+src/app/                 boot (App.tsx), checkout preflight, runtime singletons, session persistence
 ```
 
-## Guarantees implemented on the client (see `../failover-handover/CLAUDE.md`)
+## Design parity rules
 
-- The paid-order record is written **before** the terminal is called; if the write fails, no payment starts.
-- One `attemptId` per attempt; approval is applied exactly once; late/duplicate answers are ignored.
-- A timeout is **unknown**: the guest is never asked to pay again automatically; status lookup resolves it.
-- The idempotency key `IDEMP-<orderId>` never changes across retries, resend or restart.
-- The success screen appears only after the POS returned an `orderNo`; the cart is cleared only then.
-- Paid but not accepted → `recovery-required` with a staff reference, survives restart, resend with the same key.
-- Inactivity reset never clears an uncertain or paid state.
-- Payment is blocked unless the connection state is `connected` (authority comes from the backend/Launcher).
+- Copy markup and class strings from the matching `SCR.*` / render function in
+  `../failover-handover/docs/reference/kiosk-v36-source/engine.js`; do not invent new styles.
+- Brand values come from `BRAND.json`; `applyBrand()` writes them as `--c-*` CSS variables.
+- The canvas is 1080×1920 design px. Portrait devices use the engine's fluid rule (CSS `zoom`), landscape previews scale the device.
+
+## Guarantees kept from the payment core
+
+Persist before pay · one attempt id per charge · timeout = unknown · same idempotency key on retry and restart ·
+success only after the POS returned an order number · paid-but-unconfirmed is a protected, recoverable state.
 
 ## Replacing the fixtures
 
-Implement `GuestitAdapters` (`src/adapters/types.ts`) and either inject it as `window.GuestitAdapters` from the
-Launcher before the page loads, or add an `HttpAdapters` implementation and select it in `src/adapters/index.ts`.
-In `production` mode the kiosk refuses to run on the static simulation.
+Implement `GuestitAdapters` (`src/adapters/types.ts`) and inject it as `window.GuestitAdapters` from the Launcher, or add
+an HTTP implementation and select it in `src/adapters/index.ts`. Engine data is loaded in `src/engine/data.ts`
+(`fetchEngineData`) — point it at the backend's catalog/CMS endpoints. In `production` mode the kiosk refuses to run on the simulation.
