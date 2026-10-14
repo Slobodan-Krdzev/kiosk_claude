@@ -1,0 +1,268 @@
+{
+  "version": 312,
+  "venue": { "id": "V-DEMO", "name": "Guestit Demo Kitchen", "currency": "EUR" },
+  "categories": [
+    { "id": "burgers", "name": { "nl": "Burgers", "en": "Burgers", "mk": "Бургери" }, "icon": "🍔", "sort": 1 },
+    { "id": "bowls", "name": { "nl": "Bowls", "en": "Bowls", "mk": "Чинии" }, "icon": "🥗", "sort": 2 },
+    { "id": "sides", "name": { "nl": "Bijgerechten", "en": "Sides", "mk": "Прилози" }, "icon": "🍟", "sort": 3 },
+    { "id": "drinks", "name": { "nl": "Dranken", "en": "Drinks", "mk": "Пијалаци" }, "icon": "🥤", "sort": 4 },
+    { "id": "desserts", "name": { "nl": "Desserts", "en": "Desserts", "mk": "Десерти" }, "icon": "🍰", "sort": 5 }
+  ],
+  "products": [
+    {
+      "id": "em-1001", "categoryId": "burgers", "image": "🍔", "priceCents": 1150, "available": true,
+      "name": { "nl": "Classic Beef", "en": "Classic Beef", "mk": "Класик говедско" },
+      "description": { "nl": "Rundvleesburger, cheddar, sla, tomaat, huisgemaakte saus.", "en": "Beef patty, cheddar, lettuce, tomato, house sauce.", "mk": "Говедско плескавица, чедар, салата, домат, домашен сос." },
+      "allergens": ["gluten", "milk", "egg"],
+      "tags": ["popular"],
+      "servings": [
+        { "id": "single", "name": { "nl": "Single", "en": "Single", "mk": "Сингл" }, "priceDeltaCents": 0, "love": true },
+        { "id": "double", "name": { "nl": "Double", "en": "Double", "mk": "Дабл" }, "priceDeltaCents": 350 }
+      ],
+      "choiceGroups": [
+        { "id": "doneness", "req": true, "min": 1, "max": 1, "name": { "nl": "Bereiding", "en": "Doneness", "mk": "Печење" },
+          "options": [
+            { "id": "medium", "name": { "nl": "Medium", "en": "Medium", "mk": "Средно" }, "priceDeltaCents": 0 },
+            { "id": "well", "name": { "nl": "Doorbakken", "en": "Well done", "mk": "Добро печено" }, "priceDeltaCents": 0 }
+          ] }
+      ],
+      "extras": [
+        { "id": "bacon", "name": { "nl": "Bacon", "en": "Bacon", "mk": "Бекон" }, "priceCents": 150, "maxQuantity": 2 },
+        { "id": "cheese", "name": { "nl": "Extra kaas", "en": "Extra cheese", "mk": "Екстра сирење" }, "priceCents": 100, "maxQuantity": 2 },
+        { "id": "jalapeno", "name": { "nl": "Jalapeño", "en": "Jalapeño", "mk": "Халапењо" }, "priceCents": 75, "maxQuantity": 1 }
+      ]
+    },
+    {
+      "id": "em-1002", "categoryId": "burgers", "image": "🍗", "priceCents": 1095, "available": true,
+      "name": { "nl": "Crispy Chicken", "en": "Crispy Chicken", "mk": "Крцкаво пилешко" },
+      "description": { "nl": "Krokante kip, koolsla, pickles, sriracha-mayo.", "en": "Crispy chicken, slaw, pickles, sriracha mayo.", "mk": "Крцкаво пилешко, зелка, кисели краставички, срирача мајонез." },
+      "allergens": ["gluten", "egg", "mustard"],
+      "servings": [
+        { "id": "regular", "name": { "nl": "Normaal", "en": "Regular", "mk": "Обично" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [
+        { "id": "spice", "req": true, "min": 1, "max": 1, "name": { "nl": "Pittigheid", "en": "Spice level", "mk": "Лутина" },
+          "options": [
+            { "id": "mild", "name": { "nl": "Mild", "en": "Mild", "mk": "Благо" }, "priceDeltaCents": 0 },
+            { "id": "hot", "name": { "nl": "Pittig", "en": "Hot", "mk": "Луто" }, "priceDeltaCents": 0 },
+            { "id": "xhot", "name": { "nl": "Extra pittig", "en": "Extra hot", "mk": "Многу луто" }, "priceDeltaCents": 0 }
+          ] }
+      ],
+      "extras": [
+        { "id": "cheese", "name": { "nl": "Extra kaas", "en": "Extra cheese", "mk": "Екстра сирење" }, "priceCents": 100, "maxQuantity": 2 },
+        { "id": "avocado", "name": { "nl": "Avocado", "en": "Avocado", "mk": "Авокадо" }, "priceCents": 175, "maxQuantity": 1 }
+      ]
+    },
+    {
+      "id": "em-1003", "categoryId": "burgers", "image": "🌱", "priceCents": 1125, "available": true,
+      "name": { "nl": "Garden Veggie", "en": "Garden Veggie", "mk": "Градинарски вегетаријански" },
+      "description": { "nl": "Plantaardige burger, gegrilde groenten, hummus.", "en": "Plant-based patty, grilled vegetables, hummus.", "mk": "Растителна плескавица, зеленчук на скара, хумус." },
+      "allergens": ["gluten", "sesame"],
+      "tags": ["vegan"],
+      "servings": [
+        { "id": "regular", "name": { "nl": "Normaal", "en": "Regular", "mk": "Обично" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [],
+      "extras": [
+        { "id": "avocado", "name": { "nl": "Avocado", "en": "Avocado", "mk": "Авокадо" }, "priceCents": 175, "maxQuantity": 1 }
+      ]
+    },
+    {
+      "id": "em-1004", "categoryId": "burgers", "image": "🥓", "priceCents": 1395, "available": false,
+      "name": { "nl": "Smokehouse BBQ", "en": "Smokehouse BBQ", "mk": "Смокхаус BBQ" },
+      "description": { "nl": "Rundvlees, bacon, uienringen, BBQ-saus.", "en": "Beef, bacon, onion rings, BBQ sauce.", "mk": "Говедско, бекон, кромид, BBQ сос." },
+      "allergens": ["gluten", "milk"],
+      "servings": [
+        { "id": "single", "name": { "nl": "Single", "en": "Single", "mk": "Сингл" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [],
+      "extras": []
+    },
+    {
+      "id": "em-2001", "categoryId": "bowls", "image": "🥗", "priceCents": 1250, "available": true,
+      "name": { "nl": "Poke Bowl Zalm", "en": "Salmon Poke Bowl", "mk": "Поке со лосос" },
+      "description": { "nl": "Sushirijst, zalm, edamame, avocado, sesam.", "en": "Sushi rice, salmon, edamame, avocado, sesame.", "mk": "Суши ориз, лосос, едамаме, авокадо, сусам." },
+      "allergens": ["fish", "soy", "sesame"],
+      "tags": ["popular"],
+      "servings": [
+        { "id": "regular", "name": { "nl": "Normaal", "en": "Regular", "mk": "Обично" }, "priceDeltaCents": 0, "love": true },
+        { "id": "large", "name": { "nl": "Groot", "en": "Large", "mk": "Голема" }, "priceDeltaCents": 300 }
+      ],
+      "choiceGroups": [
+        { "id": "base", "req": true, "min": 1, "max": 1, "name": { "nl": "Basis", "en": "Base", "mk": "Основа" },
+          "options": [
+            { "id": "rice", "name": { "nl": "Sushirijst", "en": "Sushi rice", "mk": "Суши ориз" }, "priceDeltaCents": 0 },
+            { "id": "quinoa", "name": { "nl": "Quinoa", "en": "Quinoa", "mk": "Киноа" }, "priceDeltaCents": 100 }
+          ] }
+      ],
+      "extras": [
+        { "id": "extra-salmon", "name": { "nl": "Extra zalm", "en": "Extra salmon", "mk": "Екстра лосос" }, "priceCents": 350, "maxQuantity": 1 },
+        { "id": "mango", "name": { "nl": "Mango", "en": "Mango", "mk": "Манго" }, "priceCents": 125, "maxQuantity": 1 }
+      ]
+    },
+    {
+      "id": "em-2002", "categoryId": "bowls", "image": "🍜", "priceCents": 1195, "available": true,
+      "name": { "nl": "Teriyaki Chicken Bowl", "en": "Teriyaki Chicken Bowl", "mk": "Теријаки пилешко" },
+      "description": { "nl": "Jasmijnrijst, kip teriyaki, broccoli, lente-ui.", "en": "Jasmine rice, teriyaki chicken, broccoli, spring onion.", "mk": "Јасмин ориз, пилешко теријаки, брокула, млад кромид." },
+      "allergens": ["soy", "gluten"],
+      "servings": [
+        { "id": "regular", "name": { "nl": "Normaal", "en": "Regular", "mk": "Обично" }, "priceDeltaCents": 0, "love": true },
+        { "id": "large", "name": { "nl": "Groot", "en": "Large", "mk": "Голема" }, "priceDeltaCents": 300 }
+      ],
+      "choiceGroups": [],
+      "extras": [
+        { "id": "egg", "name": { "nl": "Gekookt ei", "en": "Boiled egg", "mk": "Варено јајце" }, "priceCents": 100, "maxQuantity": 2 }
+      ]
+    },
+    {
+      "id": "em-2003", "categoryId": "bowls", "image": "🥙", "priceCents": 1095, "available": true,
+      "name": { "nl": "Falafel Bowl", "en": "Falafel Bowl", "mk": "Фалафел чинија" },
+      "description": { "nl": "Couscous, falafel, tzatziki, geroosterde paprika.", "en": "Couscous, falafel, tzatziki, roasted peppers.", "mk": "Кускус, фалафел, цацики, печени пиперки." },
+      "allergens": ["gluten", "milk", "sesame"],
+      "tags": ["vegetarian"],
+      "servings": [
+        { "id": "regular", "name": { "nl": "Normaal", "en": "Regular", "mk": "Обично" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [],
+      "extras": []
+    },
+    {
+      "id": "em-3001", "categoryId": "sides", "image": "🍟", "priceCents": 395, "available": true,
+      "name": { "nl": "Friet", "en": "Fries", "mk": "Помфрит" },
+      "description": { "nl": "Verse friet met zeezout.", "en": "Fresh-cut fries with sea salt.", "mk": "Свеж помфрит со морска сол." },
+      "allergens": [],
+      "tags": ["popular"],
+      "servings": [
+        { "id": "small", "name": { "nl": "Klein", "en": "Small", "mk": "Мал" }, "priceDeltaCents": -100 },
+        { "id": "medium", "name": { "nl": "Medium", "en": "Medium", "mk": "Среден" }, "priceDeltaCents": 0, "love": true },
+        { "id": "large", "name": { "nl": "Groot", "en": "Large", "mk": "Голем" }, "priceDeltaCents": 125 }
+      ],
+      "choiceGroups": [],
+      "extras": [
+        { "id": "truffle", "name": { "nl": "Truffelmayo", "en": "Truffle mayo", "mk": "Тартуф мајонез" }, "priceCents": 125, "maxQuantity": 2 }
+      ]
+    },
+    {
+      "id": "em-3002", "categoryId": "sides", "image": "🧅", "priceCents": 450, "available": true,
+      "name": { "nl": "Uienringen", "en": "Onion Rings", "mk": "Колутчиња кромид" },
+      "description": { "nl": "Krokante uienringen, 8 stuks.", "en": "Crispy onion rings, 8 pieces.", "mk": "Крцкави колутчиња кромид, 8 парчиња." },
+      "allergens": ["gluten", "milk"],
+      "servings": [
+        { "id": "regular", "name": { "nl": "8 stuks", "en": "8 pieces", "mk": "8 парчиња" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [],
+      "extras": []
+    },
+    {
+      "id": "em-3003", "categoryId": "sides", "image": "🥣", "priceCents": 150, "available": true,
+      "name": { "nl": "Dipsaus", "en": "Dipping Sauce", "mk": "Сос за потопување" },
+      "description": { "nl": "Kies je favoriete saus.", "en": "Pick your favourite sauce.", "mk": "Избери го омилениот сос." },
+      "allergens": ["egg", "mustard"],
+      "servings": [
+        { "id": "regular", "name": { "nl": "Portie", "en": "Portion", "mk": "Порција" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [
+        { "id": "sauce", "req": true, "min": 1, "max": 1, "name": { "nl": "Saus", "en": "Sauce", "mk": "Сос" },
+          "options": [
+            { "id": "garlic", "name": { "nl": "Knoflook", "en": "Garlic", "mk": "Лук" }, "priceDeltaCents": 0 },
+            { "id": "bbq", "name": { "nl": "BBQ", "en": "BBQ", "mk": "BBQ" }, "priceDeltaCents": 0 },
+            { "id": "sriracha", "name": { "nl": "Sriracha-mayo", "en": "Sriracha mayo", "mk": "Срирача мајонез" }, "priceDeltaCents": 0 }
+          ] }
+      ],
+      "extras": []
+    },
+    {
+      "id": "em-4001", "categoryId": "drinks", "image": "🥤", "priceCents": 295, "available": true,
+      "name": { "nl": "Cola", "en": "Cola", "mk": "Кола" },
+      "description": { "nl": "Ook als zero verkrijgbaar.", "en": "Also available as zero.", "mk": "Достапна и како зеро." },
+      "allergens": [],
+      "servings": [
+        { "id": "small", "name": { "nl": "0,33 l", "en": "0.33 l", "mk": "0,33 л" }, "priceDeltaCents": 0, "love": true },
+        { "id": "large", "name": { "nl": "0,5 l", "en": "0.5 l", "mk": "0,5 л" }, "priceDeltaCents": 100 }
+      ],
+      "choiceGroups": [
+        { "id": "variant", "req": true, "min": 1, "max": 1, "name": { "nl": "Variant", "en": "Variant", "mk": "Варијанта" },
+          "options": [
+            { "id": "regular", "name": { "nl": "Regular", "en": "Regular", "mk": "Обична" }, "priceDeltaCents": 0 },
+            { "id": "zero", "name": { "nl": "Zero", "en": "Zero", "mk": "Зеро" }, "priceDeltaCents": 0 }
+          ] }
+      ],
+      "extras": []
+    },
+    {
+      "id": "em-4002", "categoryId": "drinks", "image": "💧", "priceCents": 250, "available": true,
+      "name": { "nl": "Water", "en": "Water", "mk": "Вода" },
+      "description": { "nl": "Plat of bruisend.", "en": "Still or sparkling.", "mk": "Обична или газирана." },
+      "allergens": [],
+      "servings": [
+        { "id": "small", "name": { "nl": "0,33 l", "en": "0.33 l", "mk": "0,33 л" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [
+        { "id": "variant", "req": true, "min": 1, "max": 1, "name": { "nl": "Soort", "en": "Type", "mk": "Вид" },
+          "options": [
+            { "id": "still", "name": { "nl": "Plat", "en": "Still", "mk": "Обична" }, "priceDeltaCents": 0 },
+            { "id": "sparkling", "name": { "nl": "Bruisend", "en": "Sparkling", "mk": "Газирана" }, "priceDeltaCents": 0 }
+          ] }
+      ],
+      "extras": []
+    },
+    {
+      "id": "em-4003", "categoryId": "drinks", "image": "🧋", "priceCents": 325, "available": true,
+      "name": { "nl": "Ice Tea", "en": "Iced Tea", "mk": "Леден чај" },
+      "description": { "nl": "Perzik of citroen.", "en": "Peach or lemon.", "mk": "Праска или лимон." },
+      "allergens": [],
+      "servings": [
+        { "id": "small", "name": { "nl": "0,33 l", "en": "0.33 l", "mk": "0,33 л" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [
+        { "id": "flavour", "req": true, "min": 1, "max": 1, "name": { "nl": "Smaak", "en": "Flavour", "mk": "Вкус" },
+          "options": [
+            { "id": "peach", "name": { "nl": "Perzik", "en": "Peach", "mk": "Праска" }, "priceDeltaCents": 0 },
+            { "id": "lemon", "name": { "nl": "Citroen", "en": "Lemon", "mk": "Лимон" }, "priceDeltaCents": 0 }
+          ] }
+      ],
+      "extras": []
+    },
+    {
+      "id": "em-4004", "categoryId": "drinks", "image": "🍋", "priceCents": 450, "available": true,
+      "name": { "nl": "Huisgemaakte Limonade", "en": "House Lemonade", "mk": "Домашна лимонада" },
+      "description": { "nl": "Vers geperst, met munt en gember.", "en": "Freshly squeezed, with mint and ginger.", "mk": "Свежо цедена, со нане и ѓумбир." },
+      "allergens": [],
+      "tags": ["premium"],
+      "servings": [
+        { "id": "regular", "name": { "nl": "0,4 l", "en": "0.4 l", "mk": "0,4 л" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [],
+      "extras": []
+    },
+    {
+      "id": "em-5001", "categoryId": "desserts", "image": "🍰", "priceCents": 550, "available": true,
+      "name": { "nl": "Cheesecake", "en": "Cheesecake", "mk": "Чизкејк" },
+      "description": { "nl": "New York style met rood fruit.", "en": "New York style with red berries.", "mk": "Њујорк стил со црвено овошје." },
+      "allergens": ["gluten", "milk", "egg"],
+      "servings": [
+        { "id": "slice", "name": { "nl": "Punt", "en": "Slice", "mk": "Парче" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [],
+      "extras": []
+    },
+    {
+      "id": "em-5002", "categoryId": "desserts", "image": "🍦", "priceCents": 395, "available": true,
+      "name": { "nl": "Softijs", "en": "Soft Serve", "mk": "Сладолед" },
+      "description": { "nl": "Vanille softijs met topping naar keuze.", "en": "Vanilla soft serve with your choice of topping.", "mk": "Ванила сладолед со прелив по избор." },
+      "allergens": ["milk"],
+      "servings": [
+        { "id": "regular", "name": { "nl": "Normaal", "en": "Regular", "mk": "Обично" }, "priceDeltaCents": 0, "love": true }
+      ],
+      "choiceGroups": [
+        { "id": "topping", "req": false, "min": 0, "max": 2, "name": { "nl": "Topping", "en": "Topping", "mk": "Прелив" },
+          "options": [
+            { "id": "caramel", "name": { "nl": "Karamel", "en": "Caramel", "mk": "Карамела" }, "priceDeltaCents": 0 },
+            { "id": "chocolate", "name": { "nl": "Chocolade", "en": "Chocolate", "mk": "Чоколадо" }, "priceDeltaCents": 0 },
+            { "id": "sprinkles", "name": { "nl": "Discodip", "en": "Sprinkles", "mk": "Мрвички" }, "priceDeltaCents": 50 }
+          ] }
+      ],
+      "extras": []
+    }
+  ]
+}

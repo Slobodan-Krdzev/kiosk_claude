@@ -1,0 +1,36 @@
+{
+  "venueId": "V-DEMO",
+  "tenantId": "T-GUESTIT",
+  "venueName": "Guestit Demo Kitchen",
+  "currency": "EUR",
+  "locale": "nl-NL",
+  "defaultLang": "nl",
+  "languages": ["nl", "en", "mk"],
+  "mode": "demo",
+  "staffPin": "2468",
+  "orderTag": {
+    "mode": "table",
+    "takeawayMode": "pager",
+    "required": true,
+    "min": 1,
+    "max": 99,
+    "table": { "min": 1, "max": 40 },
+    "pager": { "min": 1, "max": 150 },
+    "nameMin": 2,
+    "nameMax": 16,
+    "nameBlocklist": []
+  },
+  "timeouts": {
+    "paymentStart": 90000,
+    "paymentStatus": 12000,
+    "paymentCancel": 12000,
+    "posSubmit": 15000,
+    "print": 10000,
+    "availability": 8000,
+    "health": 5000
+  },
+  "uncertainMs": 120000,
+  "idle": { "warnAfterMs": 60000, "countdownMs": 15000 },
+  "doneAutoResetMs": 30000,
+  "sessionTtlMs": 180000
+}

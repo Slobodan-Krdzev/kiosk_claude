@@ -1,0 +1,6 @@
+{
+  "members": [
+    { "code": "123456", "id": "M-0001", "name": "Demo Member", "points": 240 },
+    { "code": "777777", "id": "M-0002", "name": "Gold Member", "points": 1820 }
+  ]
+}

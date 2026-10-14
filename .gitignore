@@ -1,0 +1,13 @@
+# OS
+.DS_Store
+
+# Node / Vite
+node_modules/
+dist/
+*.log
+*.local
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/

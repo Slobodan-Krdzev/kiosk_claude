@@ -1,0 +1,77 @@
+{
+  "brand": {
+    "name": "Guestit Demo Kitchen",
+    "tagline": { "nl": "Bestel en betaal in een minuut", "en": "Order and pay in a minute", "mk": "Нарачајте и платете за една минута" },
+    "money": { "currency": "EUR", "locale": "nl-NL" }
+  },
+  "badges": {
+    "popular": { "nl": "Populair", "en": "Popular", "mk": "Популарно" },
+    "vegan": { "nl": "Vegan", "en": "Vegan", "mk": "Веган" },
+    "vegetarian": { "nl": "Vegetarisch", "en": "Vegetarian", "mk": "Вегетаријанско" },
+    "premium": { "nl": "Premium", "en": "Premium", "mk": "Премиум" }
+  },
+  "allergens": {
+    "gluten": { "nl": "Gluten", "en": "Gluten", "mk": "Глутен" },
+    "milk": { "nl": "Melk", "en": "Milk", "mk": "Млеко" },
+    "egg": { "nl": "Ei", "en": "Egg", "mk": "Јајце" },
+    "fish": { "nl": "Vis", "en": "Fish", "mk": "Риба" },
+    "soy": { "nl": "Soja", "en": "Soy", "mk": "Соја" },
+    "sesame": { "nl": "Sesam", "en": "Sesame", "mk": "Сусам" },
+    "mustard": { "nl": "Mosterd", "en": "Mustard", "mk": "Сенф" }
+  },
+  "upsell": {
+    "menuUpgrade": {
+      "id": "menu-upgrade",
+      "enabled": true,
+      "priority": 1,
+      "target": { "cats": ["burgers", "bowls"] },
+      "priceCents": 450,
+      "priceVariantId": "menu-combo",
+      "sidePid": "em-3001",
+      "sideServingId": "medium",
+      "drinkPids": ["em-4001", "em-4002", "em-4003"],
+      "title": { "nl": "Maak er een menu van", "en": "Make it a meal", "mk": "Направи го мени" },
+      "subtitle": { "nl": "Friet + drankje naar keuze", "en": "Fries + a drink of your choice", "mk": "Помфрит + пијалак по избор" }
+    },
+    "crossSells": [
+      {
+        "id": "xs-dip",
+        "enabled": true,
+        "priority": 2,
+        "target": { "cats": ["sides", "burgers"] },
+        "pid": "em-3003",
+        "servingId": "regular",
+        "choices": { "sauce": ["garlic"] },
+        "priceVariantId": "xs-dip",
+        "priceCents": 100,
+        "conflictsWith": [],
+        "title": { "nl": "Knoflookdip erbij?", "en": "Add a garlic dip?", "mk": "Да додадеме сос од лук?" },
+        "subtitle": { "nl": "Alleen nu voor € 1,00", "en": "Only € 1.00 now", "mk": "Само сега за 1,00 €" }
+      },
+      {
+        "id": "xs-dessert",
+        "enabled": true,
+        "priority": 3,
+        "target": { "cats": ["burgers", "bowls"] },
+        "pid": "em-5002",
+        "servingId": "regular",
+        "choices": {},
+        "priceVariantId": "xs-softserve",
+        "priceCents": 295,
+        "conflictsWith": ["em-5001"],
+        "title": { "nl": "Softijs als afsluiter?", "en": "Soft serve to finish?", "mk": "Сладолед за крај?" },
+        "subtitle": { "nl": "€ 1,00 korting bij je bestelling", "en": "€ 1.00 off with your order", "mk": "1,00 € попуст со нарачката" }
+      }
+    ],
+    "premiumDrinks": {
+      "id": "premium-drinks",
+      "enabled": true,
+      "priority": 4,
+      "fromPids": ["em-4001", "em-4002", "em-4003"],
+      "toPid": "em-4004",
+      "toServingId": "regular",
+      "title": { "nl": "Upgrade naar huisgemaakte limonade", "en": "Upgrade to house lemonade", "mk": "Надгради на домашна лимонада" },
+      "subtitle": { "nl": "Vers geperst, met munt en gember", "en": "Freshly squeezed, with mint and ginger", "mk": "Свежо цедена, со нане и ѓумбир" }
+    }
+  }
+}
