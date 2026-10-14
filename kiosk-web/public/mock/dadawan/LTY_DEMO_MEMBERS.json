@@ -1,0 +1,96 @@
+{
+ "xander": {
+  "id": "M-10427",
+  "firstName": "Xander",
+  "points": 620,
+  "credit": 350,
+  "assets": [
+   {
+    "key": "A-GYOZA",
+    "name": "Gyoza met 50% korting",
+    "description": "Speciaal voor jou",
+    "kind": "item",
+    "pids": [
+     "gyoza"
+    ],
+    "pct": 50,
+    "offer": true,
+    "validUntil": "31-10-2026"
+   },
+   {
+    "key": "A-DRINK",
+    "name": "Gratis drankje",
+    "description": "Welkomstcadeau",
+    "kind": "item",
+    "cats": [
+     "drinks"
+    ],
+    "pct": 100,
+    "validUntil": "31-10-2026"
+   },
+   {
+    "key": "A-DESSERT",
+    "name": "20% korting op desserts",
+    "kind": "percent",
+    "cats": [
+     "desserts"
+    ],
+    "pct": 20
+   },
+   {
+    "key": "A-2OFF",
+    "name": "€2 korting vanaf €15",
+    "kind": "amount",
+    "amountMinor": 200,
+    "minSpendMinor": 1500
+   }
+  ],
+  "deals": [
+   {
+    "id": "D-POKE",
+    "name": "10% op Poké Wan",
+    "cats": [
+     "pokewan"
+    ],
+    "pct": 10
+   }
+  ],
+  "punchCards": [
+   {
+    "id": "PC-POKE",
+    "name": "Poké-stempelkaart",
+    "stamps": 4,
+    "total": 6,
+    "rewardName": "Gratis Poké Wan"
+   }
+  ]
+ },
+ "maria": {
+  "id": "M-20981",
+  "firstName": "Maria",
+  "points": 1850,
+  "credit": 0,
+  "assets": [
+   {
+    "key": "B-BDAY",
+    "name": "Verjaardag: gratis dessert",
+    "description": "Gefeliciteerd, Maria!",
+    "kind": "item",
+    "cats": [
+     "desserts"
+    ],
+    "pct": 100
+   }
+  ],
+  "deals": [],
+  "punchCards": [
+   {
+    "id": "PC-RAMEN",
+    "name": "Ramen-stempelkaart",
+    "stamps": 5,
+    "total": 6,
+    "rewardName": "Gratis ramen"
+   }
+  ]
+ }
+}

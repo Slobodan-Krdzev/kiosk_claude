@@ -1,43 +1,33 @@
-// Short-interruption session (v36: sessionStorage 'guestit.session', TTL 3 min).
-// Restores only an UNPAID cart within the same interruption. Separate from the paid-order record.
+// Short-interruption session (sessionStorage 'guestit.session', TTL from config). Restores only an UNPAID cart.
 
-import type { Screen } from '../store/kiosk'
-import { useKiosk } from '../store/kiosk'
-import type { CartLine, Lang, LoyaltyMember, OrderTag, ServiceMode } from '../domain/types'
+import type { OrderTag } from '../domain/types'
+import type { CartLine, Lang } from '../engine/types'
+import { useEngine, type Screen, type Service } from '../store/engine'
 
 const KEY = 'guestit.session'
 
-interface SessionBlob {
-  v: 1
-  savedAt: number
+interface Blob {
+  v: 2
+  at: number
   cart: CartLine[]
-  service: ServiceMode | null
+  service: Service | null
   lang: Lang
-  tag: OrderTag | null
-  member: LoyaltyMember | null
   screen: Screen
+  cat: string
+  tag: OrderTag | null
 }
 
-const RESTORABLE: Screen[] = ['menu', 'cart', 'upsell', 'tag']
+const RESTORABLE: Screen[] = ['home', 'menu', 'cart']
 
 export function saveSession(): void {
-  const s = useKiosk.getState()
-  if (!s.booted) return
+  const s = useEngine.getState()
+  if (!s.ready) return
   try {
     if (s.screen === 'attract' || s.cart.length === 0) {
       sessionStorage.removeItem(KEY)
       return
     }
-    const blob: SessionBlob = {
-      v: 1,
-      savedAt: Date.now(),
-      cart: s.cart,
-      service: s.service,
-      lang: s.lang,
-      tag: s.tag,
-      member: s.member,
-      screen: RESTORABLE.includes(s.screen) ? s.screen : 'cart',
-    }
+    const blob: Blob = { v: 2, at: Date.now(), cart: s.cart, service: s.service, lang: s.lang, screen: RESTORABLE.includes(s.screen) ? s.screen : 'cart', cat: s.cat, tag: s.tag }
     sessionStorage.setItem(KEY, JSON.stringify(blob))
   } catch {
     /* storage blocked */
@@ -48,12 +38,12 @@ export function restoreSession(ttlMs: number): boolean {
   try {
     const raw = sessionStorage.getItem(KEY)
     if (!raw) return false
-    const blob = JSON.parse(raw) as SessionBlob
-    if (blob.v !== 1 || Date.now() - blob.savedAt > ttlMs || !Array.isArray(blob.cart) || blob.cart.length === 0) {
+    const b = JSON.parse(raw) as Blob
+    if (b.v !== 2 || Date.now() - b.at > ttlMs || !Array.isArray(b.cart) || !b.cart.length) {
       sessionStorage.removeItem(KEY)
       return false
     }
-    useKiosk.getState().hydrateSession({ cart: blob.cart, service: blob.service, lang: blob.lang, tag: blob.tag, member: blob.member, screen: blob.screen })
+    useEngine.getState().hydrate({ cart: b.cart, service: b.service, lang: b.lang, screen: b.screen, cat: b.cat, tag: b.tag })
     return true
   } catch {
     return false
@@ -68,11 +58,10 @@ export function clearSession(): void {
   }
 }
 
-/** Persist on every relevant change. Returns the unsubscribe function. */
 export function startSessionPersistence(): () => void {
   let last = ''
-  return useKiosk.subscribe((s) => {
-    const sig = `${s.cartVersion}|${s.screen}|${s.lang}|${s.service}|${s.tag?.value ?? ''}|${s.member?.id ?? ''}`
+  return useEngine.subscribe((s) => {
+    const sig = `${s.cartVersion}|${s.screen}|${s.lang}|${s.service}|${s.cat}|${s.tag?.value ?? ''}`
     if (sig === last) return
     last = sig
     saveSession()

@@ -1,0 +1,407 @@
+{
+ "upsellSettings": {
+  "enabled": true,
+  "showMenuUpgrade": true,
+  "maxProductEnhancementsVisible": 3,
+  "maxCrossSellsVisible": 3,
+  "showAllEnhancementsAction": true,
+  "showAllCrossSellsAction": false,
+  "showPriceSummary": true,
+  "crossSellDisplay": {
+   "mode": "compact-horizontal",
+   "maxVisible": 3
+  },
+  "targetOrderValue": {
+   "minimum": 1600,
+   "maximum": 2000
+  }
+ },
+ "sections": {
+  "enhancements": {
+   "default": {
+    "title": {
+     "en": "Make your dish complete",
+     "nl": "Maak je gerecht compleet",
+     "mk": "Заокружи го јадењето"
+    }
+   }
+  },
+  "crossSells": {
+   "default": {
+    "title": {
+     "en": "Nice with it",
+     "nl": "Lekker erbij",
+     "mk": "Убаво покрај"
+    }
+   }
+  }
+ },
+ "menuUpgrade": {
+  "id": "vuMenu",
+  "role": "menu-upgrade",
+  "enabled": true,
+  "priority": 0,
+  "target": {
+   "canMenu": true
+  },
+  "title": {
+   "en": "Make it a menu",
+   "nl": "Maak er een menu van",
+   "mk": "Направи го мени"
+  },
+  "incl": {
+   "en": "Gyoza + a drink of your choice",
+   "nl": "Gyoza + drankje naar keuze",
+   "mk": "Гиоза + пијалок по избор"
+  },
+  "badge": {
+   "en": "Most chosen",
+   "nl": "Meest gekozen",
+   "mk": "Најизбирано"
+  },
+  "includedProducts": [
+   {
+    "pid": "gyoza",
+    "qty": 1,
+    "displayQuantity": {
+     "en": "2 pieces",
+     "nl": "2 stuks",
+     "mk": "2 парчиња"
+    }
+   },
+   {
+    "role": "included-drink",
+    "qty": 1
+   }
+  ],
+  "conflictsWithCrossSells": [
+   "xsGyoza"
+  ],
+  "conflictMode": "extra-portion"
+ },
+ "productEnhancements": [
+  {
+   "id": "vuSalmon",
+   "role": "product-enhancement",
+   "enabled": true,
+   "recommended": true,
+   "priority": 10,
+   "target": {
+    "cats": [
+     "pokewan"
+    ]
+   },
+   "price": 350,
+   "img": "/brand/img/xSalmon.webp",
+   "cut": true,
+   "tint": "#F7F3EA",
+   "shadows": [],
+   "badge": null,
+   "minSelections": 0,
+   "maxSelections": 1,
+   "maxQuantity": 5,
+   "title": {
+    "en": "Extra salmon",
+    "nl": "Extra zalm",
+    "mk": "Екстра лосос"
+   },
+   "qtyLabel": {
+    "en": "80 g",
+    "nl": "80 g",
+    "mk": "80 г"
+   },
+   "description": {
+    "en": "A generous extra portion",
+    "nl": "Een royale extra portie",
+    "mk": "Дарежлива дополнителна порција"
+   }
+  },
+  {
+   "id": "vuAvo",
+   "role": "product-enhancement",
+   "enabled": true,
+   "recommended": true,
+   "priority": 20,
+   "target": {
+    "cats": [
+     "pokewan"
+    ]
+   },
+   "price": 150,
+   "img": "/brand/img/xAvocado.webp",
+   "cut": true,
+   "tint": "#F2F6EC",
+   "shadows": [
+    [
+     "bowlX",
+     "avo"
+    ]
+   ],
+   "badge": null,
+   "minSelections": 0,
+   "maxSelections": 1,
+   "maxQuantity": 5,
+   "title": {
+    "en": "Extra avocado",
+    "nl": "Extra avocado",
+    "mk": "Екстра авокадо"
+   },
+   "qtyLabel": {
+    "en": "½ avocado",
+    "nl": "½ avocado",
+    "mk": "½ авокадо"
+   },
+   "description": {
+    "en": "Creamy and fresh",
+    "nl": "Romig en vers",
+    "mk": "Кремасто и свежо"
+   }
+  },
+  {
+   "id": "vuSpMayo",
+   "role": "product-enhancement",
+   "enabled": true,
+   "recommended": true,
+   "priority": 30,
+   "target": {
+    "cats": [
+     "pokewan"
+    ]
+   },
+   "price": 80,
+   "img": "/brand/img/xMayo.webp",
+   "cut": true,
+   "em": "🌶",
+   "tint": "#F7F3EA",
+   "shadows": [],
+   "badge": null,
+   "minSelections": 0,
+   "maxSelections": 1,
+   "maxQuantity": 5,
+   "title": {
+    "en": "Spicy mayo",
+    "nl": "Spicy mayo",
+    "mk": "Спајси мајонез"
+   },
+   "qtyLabel": {
+    "en": "30 ml",
+    "nl": "30 ml",
+    "mk": "30 мл"
+   },
+   "description": {
+    "en": "Creamy with a spicy kick",
+    "nl": "Romig met een pittige kick",
+    "mk": "Кремасто со лут вкус"
+   }
+  },
+  {
+   "id": "vuVeg",
+   "role": "product-enhancement",
+   "enabled": true,
+   "recommended": false,
+   "priority": 40,
+   "target": {
+    "cats": [
+     "pokewan"
+    ]
+   },
+   "price": 180,
+   "img": "/brand/img/edamame.webp",
+   "tint": "#D9E4CE",
+   "shadows": [
+    [
+     "bowlX",
+     "edam"
+    ]
+   ],
+   "badge": null,
+   "minSelections": 0,
+   "maxSelections": 1,
+   "title": {
+    "en": "Extra veggies",
+    "nl": "Extra groenten",
+    "mk": "Екстра зеленчук"
+   },
+   "description": {
+    "en": "Edamame, cucumber and seaweed",
+    "nl": "Edamame, komkommer en zeewier",
+    "mk": "Едамаме, краставица и алги"
+   }
+  },
+  {
+   "id": "vuCrunch",
+   "role": "product-enhancement",
+   "enabled": true,
+   "recommended": false,
+   "priority": 50,
+   "target": {
+    "cats": [
+     "pokewan"
+    ]
+   },
+   "price": 90,
+   "img": "/brand/img/fries.webp",
+   "tint": "#EBD9BE",
+   "shadows": [
+    [
+     "bowlX",
+     "crisp"
+    ]
+   ],
+   "badge": null,
+   "minSelections": 0,
+   "maxSelections": 1,
+   "title": {
+    "en": "Extra crunch",
+    "nl": "Extra crunch",
+    "mk": "Екстра крцкаво"
+   },
+   "description": {
+    "en": "Crispy onions and sesame",
+    "nl": "Krokante uitjes en sesam",
+    "mk": "Крцкав кромид и сусам"
+   }
+  }
+ ],
+ "crossSells": [
+  {
+   "id": "xsGyoza",
+   "role": "cross-sell",
+   "enabled": true,
+   "recommended": true,
+   "priority": 10,
+   "pid": "gyoza",
+   "target": {
+    "cats": [
+     "pokewan",
+     "stonebowl",
+     "stoneplate",
+     "curry",
+     "ramen",
+     "sushi"
+    ]
+   },
+   "priceVariantId": "gyoza-cross-sell",
+   "img": "/brand/img/gyozaCut.webp",
+   "cut": true,
+   "tint": "#F7F3EA",
+   "badge": null,
+   "minSelections": 0,
+   "maxSelections": 1,
+   "title": {
+    "en": "Gyoza",
+    "nl": "Gyoza",
+    "mk": "Гиоза"
+   },
+   "qtyLabel": {
+    "en": "2 gyoza",
+    "nl": "2 gyoza",
+    "mk": "2 гиоза"
+   }
+  },
+  {
+   "id": "xsSpring",
+   "role": "cross-sell",
+   "enabled": true,
+   "recommended": true,
+   "priority": 20,
+   "pid": "springR",
+   "target": {
+    "cats": [
+     "pokewan",
+     "stonebowl",
+     "stoneplate",
+     "curry",
+     "ramen",
+     "sushi"
+    ]
+   },
+   "priceVariantId": "springR-cross-sell",
+   "img": "/brand/img/springRCut.webp",
+   "cut": true,
+   "tint": "#F7F3EA",
+   "badge": null,
+   "minSelections": 0,
+   "maxSelections": 1,
+   "title": {
+    "en": "Mini spring rolls",
+    "nl": "Mini-loempia’s",
+    "mk": "Мини пролетни ролнички"
+   },
+   "qtyLabel": {
+    "en": "6 mini spring rolls",
+    "nl": "6 mini-loempia’s",
+    "mk": "6 мини ролнички"
+   }
+  },
+  {
+   "id": "xsEdam",
+   "role": "cross-sell",
+   "enabled": true,
+   "recommended": true,
+   "priority": 30,
+   "pid": "edamame",
+   "target": {
+    "cats": [
+     "pokewan",
+     "stonebowl",
+     "stoneplate",
+     "curry",
+     "ramen",
+     "sushi"
+    ]
+   },
+   "priceVariantId": "edamame-cross-sell",
+   "img": "/brand/img/edamameCut.webp",
+   "cut": true,
+   "tint": "#F2F6EC",
+   "badge": null,
+   "minSelections": 0,
+   "maxSelections": 1,
+   "title": {
+    "en": "Edamame",
+    "nl": "Edamame",
+    "mk": "Едамаме"
+   },
+   "qtyLabel": {
+    "en": "Edamame · 150 g",
+    "nl": "Edamame · 150 g",
+    "mk": "Едамаме · 150 г"
+   }
+  }
+ ],
+ "premiumDrinks": [
+  {
+   "id": "vuLychee",
+   "role": "premium-drink-upgrade",
+   "enabled": true,
+   "priority": 10,
+   "pid": "lychee",
+   "priceVariantId": "lychee-menu-upgrade",
+   "target": {
+    "canMenu": true
+   },
+   "description": {
+    "en": "Sparkling, floral, ice-cold",
+    "nl": "Bruisend, bloemig, ijskoud",
+    "mk": "Газирана, цветна, ледена"
+   }
+  },
+  {
+   "id": "vuOj",
+   "role": "premium-drink-upgrade",
+   "enabled": true,
+   "priority": 20,
+   "pid": "oj",
+   "priceVariantId": "oj-menu-upgrade",
+   "target": {
+    "canMenu": true
+   },
+   "description": {
+    "en": "Freshly squeezed",
+    "nl": "Vers geperst",
+    "mk": "Свежо исцеден"
+   }
+  }
+ ]
+}

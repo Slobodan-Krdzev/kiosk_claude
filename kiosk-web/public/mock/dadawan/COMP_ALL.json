@@ -1,0 +1,6 @@
+{
+ "default": "sides",
+ "sides": "drinks",
+ "drinks": "sides",
+ "desserts": "drinks"
+}

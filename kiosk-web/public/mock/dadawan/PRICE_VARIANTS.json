@@ -1,0 +1,22 @@
+{
+ "gyoza-cross-sell": {
+  "pid": "gyoza",
+  "price": 350
+ },
+ "springR-cross-sell": {
+  "pid": "springR",
+  "price": 290
+ },
+ "edamame-cross-sell": {
+  "pid": "edamame",
+  "price": 250
+ },
+ "lychee-menu-upgrade": {
+  "pid": "lychee",
+  "price": 150
+ },
+ "oj-menu-upgrade": {
+  "pid": "oj",
+  "price": 120
+ }
+}

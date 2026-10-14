@@ -1,0 +1,26 @@
+{
+ "pop": [
+  "b-pop",
+  "b_pop"
+ ],
+ "new": [
+  "b-new",
+  "b_new"
+ ],
+ "veg": [
+  "b-veg",
+  "b_veg"
+ ],
+ "spc": [
+  "b-spc",
+  "b_spc"
+ ],
+ "dea": [
+  "b-dea",
+  "b_dea"
+ ],
+ "hal": [
+  "b-hal",
+  "b_hal"
+ ]
+}

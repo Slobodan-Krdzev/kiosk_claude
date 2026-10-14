@@ -217,6 +217,8 @@ export interface SnapshotLine {
   groupId?: string
   sourceLineId?: string
   menuDrink?: { productId: string; servingId: string; choices: Record<string, string[]> }
+  menuSideId?: string
+  removes?: string[]
 }
 
 export interface OrderSnapshot {

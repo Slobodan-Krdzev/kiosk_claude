@@ -1,0 +1,73 @@
+{
+ "earnPerEuro": 1,
+ "rewards": [
+  {
+   "id": "r-lychee",
+   "pid": "lychee",
+   "cost": 250,
+   "pct": 100,
+   "maxPerOrder": 2
+  },
+  {
+   "id": "r-edamame",
+   "pid": "edamame",
+   "cost": 300,
+   "pct": 100,
+   "maxPerOrder": 2
+  },
+  {
+   "id": "r-salroll",
+   "pid": "salmonroll",
+   "cost": 350,
+   "pct": 50,
+   "maxPerOrder": 1
+  },
+  {
+   "id": "r-gyoza",
+   "pid": "gyoza",
+   "cost": 400,
+   "pct": 100,
+   "maxPerOrder": 3
+  },
+  {
+   "id": "r-mochi",
+   "pid": "mochi",
+   "cost": 450,
+   "pct": 100,
+   "maxPerOrder": 1,
+   "variant": {
+    "choices": {
+     "mochiFl": "mMat"
+    }
+   }
+  },
+  {
+   "id": "r-matcha",
+   "pid": "matcha",
+   "cost": 550,
+   "pct": 100,
+   "maxPerOrder": 1
+  },
+  {
+   "id": "r-poke",
+   "pid": "chickenpoke",
+   "cost": 900,
+   "pct": 100,
+   "maxPerOrder": 1
+  },
+  {
+   "id": "r-katsu",
+   "pid": "katsu",
+   "cost": 1000,
+   "pct": 100,
+   "maxPerOrder": 1
+  },
+  {
+   "id": "r-platter",
+   "pid": "sushiplatter",
+   "cost": 1500,
+   "pct": 100,
+   "maxPerOrder": 1
+  }
+ ]
+}

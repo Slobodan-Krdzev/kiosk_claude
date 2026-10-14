@@ -1,0 +1,720 @@
+{
+ "spice": {
+  "label": {
+   "en": "Spice level",
+   "nl": "Pittigheid",
+   "mk": "Лутина"
+  },
+  "type": "choice",
+  "items": [
+   {
+    "id": "sMild",
+    "name": {
+     "en": "Mild",
+     "nl": "Mild",
+     "mk": "Благо"
+    },
+    "price": 0
+   },
+   {
+    "id": "sMed",
+    "name": {
+     "en": "Medium",
+     "nl": "Medium",
+     "mk": "Средно"
+    },
+    "price": 0
+   },
+   {
+    "id": "sHot",
+    "name": {
+     "en": "Hot 🌶",
+     "nl": "Pittig 🌶",
+     "mk": "Луто 🌶"
+    },
+    "price": 0
+   },
+   {
+    "id": "sXhot",
+    "name": {
+     "en": "Extra hot 🌶🌶",
+     "nl": "Extra pittig 🌶🌶",
+     "mk": "Екстра луто 🌶🌶"
+    },
+    "price": 0
+   }
+  ],
+  "def": "sMed"
+ },
+ "protein": {
+  "label": {
+   "en": "Your protein",
+   "nl": "Jouw proteïne",
+   "mk": "Твој протеин"
+  },
+  "type": "choice",
+  "req": true,
+  "items": [
+   {
+    "id": "pChick",
+    "name": {
+     "en": "Chicken",
+     "nl": "Kip",
+     "mk": "Пилешко"
+    },
+    "price": 0
+   },
+   {
+    "id": "pBeef",
+    "name": {
+     "en": "Beef",
+     "nl": "Rund",
+     "mk": "Говедско"
+    },
+    "price": 150
+   },
+   {
+    "id": "pTofu",
+    "name": {
+     "en": "Crispy tofu",
+     "nl": "Krokante tofu",
+     "mk": "Крцкаво тофу"
+    },
+    "price": 0
+   },
+   {
+    "id": "pShrimp",
+    "name": {
+     "en": "Shrimp",
+     "nl": "Garnalen",
+     "mk": "Ракчиња"
+    },
+    "price": 200,
+    "allergens": {
+     "contains": [
+      "shell"
+     ]
+    }
+   }
+  ]
+ },
+ "bowlX": {
+  "label": {
+   "en": "Extra toppings",
+   "nl": "Extra toppings",
+   "mk": "Екстра додатоци"
+  },
+  "type": "extra",
+  "items": [
+   {
+    "id": "avo",
+    "em": "🥑",
+    "name": {
+     "en": "Avocado",
+     "nl": "Avocado",
+     "mk": "Авокадо"
+    },
+    "price": 120
+   },
+   {
+    "id": "edam",
+    "em": "🌱",
+    "name": {
+     "en": "Edamame",
+     "nl": "Edamame",
+     "mk": "Едамаме"
+    },
+    "price": 100
+   },
+   {
+    "id": "mangoT",
+    "em": "🥭",
+    "name": {
+     "en": "Mango",
+     "nl": "Mango",
+     "mk": "Манго"
+    },
+    "price": 100
+   },
+   {
+    "id": "crisp",
+    "em": "🧅",
+    "name": {
+     "en": "Crispy onions",
+     "nl": "Krokante uitjes",
+     "mk": "Крцкав кромид"
+    },
+    "price": 70
+   },
+   {
+    "id": "ddx",
+    "em": "🥣",
+    "name": {
+     "en": "Extra DADAWAN sauce",
+     "nl": "Extra DADAWAN-saus",
+     "mk": "Екстра DADAWAN сос"
+    },
+    "price": 50
+   }
+  ]
+ },
+ "bowlR": {
+  "label": {
+   "en": "Remove ingredients",
+   "nl": "Ingrediënten weglaten",
+   "mk": "Без состојки"
+  },
+  "type": "remove",
+  "items": [
+   {
+    "id": "noCor",
+    "name": {
+     "en": "No coriander",
+     "nl": "Zonder koriander",
+     "mk": "Без коријандер"
+    },
+    "price": 0
+   },
+   {
+    "id": "noPea",
+    "name": {
+     "en": "No peanuts",
+     "nl": "Zonder pinda's",
+     "mk": "Без кикирики"
+    },
+    "price": 0
+   },
+   {
+    "id": "noChi",
+    "name": {
+     "en": "No chili",
+     "nl": "Zonder chili",
+     "mk": "Без чили"
+    },
+    "price": 0
+   },
+   {
+    "id": "noGin",
+    "name": {
+     "en": "No ginger",
+     "nl": "Zonder gember",
+     "mk": "Без ѓумбир"
+    },
+    "price": 0
+   },
+   {
+    "id": "noSpr",
+    "name": {
+     "en": "No spring onion",
+     "nl": "Zonder bosui",
+     "mk": "Без млад кромид"
+    },
+    "price": 0
+   }
+  ]
+ },
+ "sushiX": {
+  "label": {
+   "en": "Extra toppings",
+   "nl": "Extra toppings",
+   "mk": "Екстра додатоци"
+  },
+  "type": "extra",
+  "items": [
+   {
+    "id": "spMayo",
+    "em": "🌶",
+    "name": {
+     "en": "Spicy mayo",
+     "nl": "Spicy mayo",
+     "mk": "Спајси мајонез"
+    },
+    "price": 50
+   },
+   {
+    "id": "unagi",
+    "em": "🥢",
+    "name": {
+     "en": "Unagi drizzle",
+     "nl": "Unagi-saus",
+     "mk": "Унаги прелив"
+    },
+    "price": 70
+   },
+   {
+    "id": "xgin",
+    "em": "🍥",
+    "name": {
+     "en": "Extra ginger",
+     "nl": "Extra gember",
+     "mk": "Екстра ѓумбир"
+    },
+    "price": 30
+   }
+  ]
+ },
+ "sushiR": {
+  "label": {
+   "en": "Remove ingredients",
+   "nl": "Ingrediënten weglaten",
+   "mk": "Без состојки"
+  },
+  "type": "remove",
+  "items": [
+   {
+    "id": "noWas",
+    "name": {
+     "en": "No wasabi",
+     "nl": "Zonder wasabi",
+     "mk": "Без васаби"
+    },
+    "price": 0
+   },
+   {
+    "id": "noGinS",
+    "name": {
+     "en": "No ginger",
+     "nl": "Zonder gember",
+     "mk": "Без ѓумбир"
+    },
+    "price": 0
+   },
+   {
+    "id": "noSes",
+    "name": {
+     "en": "No sesame",
+     "nl": "Zonder sesam",
+     "mk": "Без сусам"
+    },
+    "price": 0
+   }
+  ]
+ },
+ "ramenX": {
+  "label": {
+   "en": "Extra toppings",
+   "nl": "Extra toppings",
+   "mk": "Екстра додатоци"
+  },
+  "type": "extra",
+  "items": [
+   {
+    "id": "xEgg",
+    "em": "🥚",
+    "name": {
+     "en": "Extra egg",
+     "nl": "Extra ei",
+     "mk": "Екстра јајце"
+    },
+    "price": 100
+   },
+   {
+    "id": "xCha",
+    "em": "🥩",
+    "name": {
+     "en": "Extra chashu",
+     "nl": "Extra chashu",
+     "mk": "Екстра чашу"
+    },
+    "price": 200
+   },
+   {
+    "id": "xNood",
+    "em": "🍜",
+    "name": {
+     "en": "Extra noodles",
+     "nl": "Extra noedels",
+     "mk": "Екстра нудли"
+    },
+    "price": 150
+   },
+   {
+    "id": "xNori",
+    "em": "🌿",
+    "name": {
+     "en": "Extra nori",
+     "nl": "Extra nori",
+     "mk": "Екстра нори"
+    },
+    "price": 50
+   }
+  ]
+ },
+ "ramenR": {
+  "label": {
+   "en": "Remove ingredients",
+   "nl": "Ingrediënten weglaten",
+   "mk": "Без состојки"
+  },
+  "type": "remove",
+  "items": [
+   {
+    "id": "rEgg",
+    "name": {
+     "en": "No egg",
+     "nl": "Zonder ei",
+     "mk": "Без јајце"
+    },
+    "price": 0
+   },
+   {
+    "id": "rSpr",
+    "name": {
+     "en": "No spring onion",
+     "nl": "Zonder bosui",
+     "mk": "Без млад кромид"
+    },
+    "price": 0
+   },
+   {
+    "id": "rNori",
+    "name": {
+     "en": "No nori",
+     "nl": "Zonder nori",
+     "mk": "Без нори"
+    },
+    "price": 0
+   },
+   {
+    "id": "rOil",
+    "name": {
+     "en": "No chili oil",
+     "nl": "Zonder chili-olie",
+     "mk": "Без чили масло"
+    },
+    "price": 0
+   }
+  ]
+ },
+ "dips": {
+  "label": {
+   "en": "Dips & sauces",
+   "nl": "Dips & sauzen",
+   "mk": "Сосови"
+  },
+  "type": "extra",
+  "items": [
+   {
+    "id": "swChi",
+    "em": "🌶",
+    "name": {
+     "en": "Sweet chili",
+     "nl": "Sweet chili",
+     "mk": "Слатко чили"
+    },
+    "price": 50
+   },
+   {
+    "id": "pnut",
+    "em": "🥜",
+    "name": {
+     "en": "Peanut sauce",
+     "nl": "Pindasaus",
+     "mk": "Сос од кикирики"
+    },
+    "price": 70
+   },
+   {
+    "id": "ddip",
+    "em": "🥣",
+    "name": {
+     "en": "DADAWAN sauce",
+     "nl": "DADAWAN-saus",
+     "mk": "DADAWAN сос"
+    },
+    "price": 50
+   },
+   {
+    "id": "srir",
+    "em": "🔥",
+    "name": {
+     "en": "Sriracha mayo",
+     "nl": "Sriracha mayo",
+     "mk": "Срирача мајонез"
+    },
+    "price": 50
+   }
+  ]
+ },
+ "gyozaN": {
+  "label": {
+   "en": "Portion",
+   "nl": "Portie",
+   "mk": "Порција"
+  },
+  "type": "choice",
+  "items": [
+   {
+    "id": "g4",
+    "name": {
+     "en": "4 pieces",
+     "nl": "4 stuks",
+     "mk": "4 парчиња"
+    },
+    "price": 0
+   },
+   {
+    "id": "g6",
+    "name": {
+     "en": "6 pieces",
+     "nl": "6 stuks",
+     "mk": "6 парчиња"
+    },
+    "price": 180
+   },
+   {
+    "id": "g8",
+    "name": {
+     "en": "8 pieces",
+     "nl": "8 stuks",
+     "mk": "8 парчиња"
+    },
+    "price": 320
+   }
+  ]
+ },
+ "drinkSize": {
+  "label": {
+   "en": "Size",
+   "nl": "Formaat",
+   "mk": "Големина"
+  },
+  "type": "choice",
+  "items": [
+   {
+    "id": "dS",
+    "name": {
+     "en": "Small",
+     "nl": "Klein",
+     "mk": "Мало"
+    },
+    "price": -40
+   },
+   {
+    "id": "dM",
+    "name": {
+     "en": "Medium",
+     "nl": "Medium",
+     "mk": "Средно"
+    },
+    "price": 0
+   },
+   {
+    "id": "dL",
+    "name": {
+     "en": "Large",
+     "nl": "Groot",
+     "mk": "Големо"
+    },
+    "price": 60
+   }
+  ]
+ },
+ "mochiFl": {
+  "label": {
+   "en": "Flavour",
+   "nl": "Smaak",
+   "mk": "Вкус"
+  },
+  "type": "choice",
+  "req": true,
+  "items": [
+   {
+    "id": "mMat",
+    "name": {
+     "en": "Matcha",
+     "nl": "Matcha",
+     "mk": "Матча"
+    },
+    "price": 0
+   },
+   {
+    "id": "mMan",
+    "name": {
+     "en": "Mango",
+     "nl": "Mango",
+     "mk": "Манго"
+    },
+    "price": 0
+   },
+   {
+    "id": "mStr",
+    "name": {
+     "en": "Strawberry",
+     "nl": "Aardbei",
+     "mk": "Јагода"
+    },
+    "price": 0
+   }
+  ]
+ },
+ "doneness": {
+  "label": {
+   "en": "Choose doneness",
+   "nl": "Kies bereidingswijze",
+   "mk": "Избери печење"
+  },
+  "type": "choice",
+  "req": true,
+  "items": [
+   {
+    "id": "dRare",
+    "name": {
+     "en": "Rare",
+     "nl": "Rare",
+     "mk": "Ретко"
+    },
+    "price": 0
+   },
+   {
+    "id": "dMed",
+    "name": {
+     "en": "Medium",
+     "nl": "Medium",
+     "mk": "Средно"
+    },
+    "price": 0
+   },
+   {
+    "id": "dWell",
+    "name": {
+     "en": "Well done",
+     "nl": "Well done",
+     "mk": "Добро печено"
+    },
+    "price": 0
+   }
+  ]
+ },
+ "garnish": {
+  "label": {
+   "en": "Choose side",
+   "nl": "Kies garnituur",
+   "mk": "Избери прилог"
+  },
+  "type": "choice",
+  "req": true,
+  "items": [
+   {
+    "id": "gFries",
+    "name": {
+     "en": "Fries",
+     "nl": "Friet",
+     "mk": "Помфрит"
+    },
+    "price": 0
+   },
+   {
+    "id": "gPot",
+    "name": {
+     "en": "Potatoes",
+     "nl": "Aardappelen",
+     "mk": "Компири"
+    },
+    "price": 0
+   },
+   {
+    "id": "gSal",
+    "name": {
+     "en": "Salad",
+     "nl": "Salade",
+     "mk": "Салата"
+    },
+    "price": 0
+   }
+  ]
+ },
+ "steakSauce": {
+  "label": {
+   "en": "Choose sauce",
+   "nl": "Kies saus",
+   "mk": "Избери сос"
+  },
+  "type": "choice",
+  "req": true,
+  "items": [
+   {
+    "id": "sPep",
+    "name": {
+     "en": "Pepper sauce",
+     "nl": "Pepersaus",
+     "mk": "Сос од пипер"
+    },
+    "price": 0
+   },
+   {
+    "id": "sMush",
+    "name": {
+     "en": "Mushroom sauce",
+     "nl": "Champignonsaus",
+     "mk": "Сос од печурки"
+    },
+    "price": 0
+   },
+   {
+    "id": "sNone",
+    "name": {
+     "en": "No sauce",
+     "nl": "Geen saus",
+     "mk": "Без сос"
+    },
+    "price": 0
+   }
+  ]
+ },
+ "premX": {
+  "label": {
+   "en": "Premium extras",
+   "nl": "Premium extra’s",
+   "mk": "Премиум додатоци"
+  },
+  "type": "extra",
+  "items": [
+   {
+    "id": "vuSalmon",
+    "name": {
+     "en": "Extra salmon",
+     "nl": "Extra zalm",
+     "mk": "Екстра лосос"
+    },
+    "price": 350
+   },
+   {
+    "id": "vuAvo",
+    "name": {
+     "en": "Extra avocado",
+     "nl": "Extra avocado",
+     "mk": "Екстра авокадо"
+    },
+    "price": 150
+   },
+   {
+    "id": "vuSpMayo",
+    "name": {
+     "en": "Spicy mayo",
+     "nl": "Spicy mayo",
+     "mk": "Спајси мајонез"
+    },
+    "price": 80
+   },
+   {
+    "id": "vuVeg",
+    "name": {
+     "en": "Extra veggies",
+     "nl": "Extra groenten",
+     "mk": "Екстра зеленчук"
+    },
+    "price": 180
+   },
+   {
+    "id": "vuCrunch",
+    "name": {
+     "en": "Extra crunch",
+     "nl": "Extra crunch",
+     "mk": "Екстра крцкаво"
+    },
+    "price": 90
+   }
+  ]
+ }
+}

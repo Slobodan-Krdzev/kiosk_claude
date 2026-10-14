@@ -1,0 +1,174 @@
+{
+ "version": 1,
+ "brand": {
+  "money": {
+   "symbol": "",
+   "decimals": ","
+  },
+  "controls": {
+   "shape": "square",
+   "radius": 12
+  }
+ },
+ "badges": {
+  "pop": {
+   "label": "Populair"
+  },
+  "new": {
+   "label": "Nieuw"
+  },
+  "halal": {
+   "label": "Halal"
+  },
+  "veg": {
+   "label": "Vega",
+   "icon": "check"
+  },
+  "share": {
+   "label": "Om te delen"
+  },
+  "feat": {
+   "label": "Uitgelicht",
+   "color": "#ff2d8f"
+  },
+  "spicy": {
+   "label": "Pittig",
+   "icon": "chili"
+  }
+ },
+ "categories": {
+  "sushi": {
+   "presentation": {
+    "card": "compact",
+    "columns": {
+     "kiosk": 3,
+     "tablet": 2,
+     "tabletWide": 3
+    }
+   }
+  }
+ },
+ "upsell": {
+  "blocks": [
+   {
+    "id": "finishMains",
+    "role": "category-finish",
+    "enabled": true,
+    "priority": 10,
+    "target": {
+     "cats": [
+      "menu",
+      "popular",
+      "sushi"
+     ]
+    },
+    "title": "Maak het helemaal af",
+    "subtitle": "Lekker erbij",
+    "display": {
+     "mode": "compact-horizontal",
+     "maxVisible": 4
+    },
+    "items": [
+     {
+      "pid": "edamame"
+     },
+     {
+      "pid": "gyoza"
+     },
+     {
+      "pid": "kimchi"
+     },
+     {
+      "pid": "misoSoup"
+     }
+    ]
+   },
+   {
+    "id": "finishDrinks",
+    "role": "category-finish",
+    "enabled": true,
+    "priority": 10,
+    "target": {
+     "cats": [
+      "beers",
+      "wines",
+      "cocktails"
+     ]
+    },
+    "title": "Maak het helemaal af",
+    "subtitle": "Borrelhapjes erbij",
+    "display": {
+     "mode": "compact-horizontal",
+     "maxVisible": 4
+    },
+    "items": [
+     {
+      "pid": "springR"
+     },
+     {
+      "pid": "edamame"
+     },
+     {
+      "pid": "gyoza"
+     }
+    ]
+   },
+   {
+    "id": "finishSofts",
+    "role": "category-finish",
+    "enabled": true,
+    "priority": 10,
+    "target": {
+     "cats": [
+      "softs"
+     ]
+    },
+    "title": "Maak het helemaal af",
+    "subtitle": "Iets zoets erbij",
+    "display": {
+     "mode": "compact-horizontal",
+     "maxVisible": 4
+    },
+    "items": [
+     {
+      "pid": "mochi"
+     },
+     {
+      "pid": "matcha"
+     },
+     {
+      "pid": "mangoR"
+     }
+    ]
+   },
+   {
+    "id": "cartInspire",
+    "role": "cart-inspire",
+    "enabled": true,
+    "priority": 10,
+    "title": {
+     "nl": "Nog iets erbij?",
+     "en": "Anything else?",
+     "mk": "Уште нешто?"
+    },
+    "subtitle": {
+     "nl": "Vaak samen besteld",
+     "en": "Often ordered together",
+     "mk": "Често нарачано заедно"
+    },
+    "items": [
+     {
+      "pid": "mochi"
+     },
+     {
+      "pid": "matcha"
+     }
+    ],
+    "link": {
+     "cat": "desserts",
+     "label": "Bekijk alle desserts"
+    }
+   }
+  ]
+ }
+}
