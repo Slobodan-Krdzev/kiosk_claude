@@ -72,11 +72,19 @@ function VoucherSheet() {
         </button>
       </div>
       {err ? <div className="text-center text-[19px] font-bold text-ember mt-3">{t('cm_err')}</div> : null}
-      <button type="button" data-a="closeSheet" className="press w-full h-[96px] mt-6 rounded-full bg-ink text-cream hd text-[24px] tracking-[.1em]" onClick={close}>
+      <button type="button" data-a="closeSheet" className="press w-full h-[96px] mt-6 rounded-full bg-ink text-cream grid place-items-center text-center hd text-[24px] tracking-[.1em]" onClick={close}>
         {t('close')}
       </button>
     </Sheet>
   )
+}
+
+/** Allergen icon: the kiosk's own image when there is one (API menus), else the emoji. */
+function AlgIcon({ id, size }: { id: string; size: number }) {
+  const src = E().algImg?.[id]
+  const [broken, setBroken] = useState(false)
+  if (src && !broken) return <img src={src} alt="" width={size} height={size} style={{ width: size, height: size, objectFit: 'contain' }} onError={() => setBroken(true)} />
+  return <span style={{ fontSize: Math.round(size * 0.8), lineHeight: 1 }}>{E().algIcon[id] || '•'}</span>
 }
 
 function AllergenSheet({ pid }: { pid: string }) {
@@ -88,7 +96,7 @@ function AllergenSheet({ pid }: { pid: string }) {
     ids.length ? (
       ids.map((a) => (
         <span key={a} className={`h-[64px] px-6 rounded-full ${tone} flex items-center gap-3 text-[21px] font-bold`}>
-          <span>{E().algIcon[a] || '•'}</span>
+          <AlgIcon id={a} size={36} />
           {E().alg[a] ? L(E().alg[a]) : String(a)}
         </span>
       ))
@@ -106,13 +114,16 @@ function AllergenSheet({ pid }: { pid: string }) {
     <Sheet onClose={close} label={t('allergens')}>
       <div className="hd text-[46px] tracking-[.02em]">{t('allergens')}</div>
       <div className="text-[23px] text-mute font-semibold mt-1.5">
-        {p.name} · {p.kcal} {t('kcal')} {t('perServing')}
+        {p.name}
+        {p.kcal ? ` · ${p.kcal} ${t('kcal')} ${t('perServing')}` : ''}
       </div>
       <div className="text-[18px] text-mute font-semibold mt-2">{t('alForOrder')}</div>
-      {A.contains.length || A.traces.length ? (
+      {A.contains.length || A.traces.length || A.info?.length ? (
         <>
           {sec(t('alContains'), A.contains, 'bg-ember/15 text-ember')}
-          {sec(t('alTraces'), A.traces, 'bg-gold/25 text-ink')}
+          {/* API menus carry no traces: the section only shows when there are some (the brand pack always has it). */}
+          {A.traces.length || !E().algImg ? sec(t('alTraces'), A.traces, 'bg-gold/25 text-ink') : null}
+          {A.info?.length ? sec(t('alDiet'), A.info, 'bg-card shadow-soft') : null}
           {A.removable.length ? sec(t('alRemovable'), A.removable, 'bg-card shadow-soft', t('alRemovableNote')) : null}
         </>
       ) : (
@@ -124,7 +135,7 @@ function AllergenSheet({ pid }: { pid: string }) {
         </div>
       ) : null}
       <div className="mt-8 rounded-[20px] bg-card shadow-soft p-6 text-[20px] font-medium leading-relaxed text-ink/85">⚠️ {L(E().allergenPolicy.disclaimer)}</div>
-      <button type="button" data-a="closeSheet" className="press w-full h-[96px] mt-10 rounded-full bg-ink text-cream hd text-[24px] tracking-[.1em]" onClick={close}>
+      <button type="button" data-a="closeSheet" className="press w-full h-[96px] mt-10 rounded-full bg-ink text-cream grid place-items-center text-center hd text-[24px] tracking-[.1em]" onClick={close}>
         {t('close')}
       </button>
     </Sheet>
@@ -140,12 +151,12 @@ function AlFilterSheet() {
       <div className="hd text-[46px] tracking-[.02em]">{t('alFilterT')}</div>
       <div className="text-[22px] text-mute font-semibold mt-1.5">{t('alFilterS')}</div>
       <div className="al-grid mt-7">
-        {Object.keys(E().alg).map((id) => {
+        {(E().algFilter || Object.keys(E().alg)).map((id) => {
           const on = F.includes(id)
           return (
             <button key={id} type="button" data-a="alToggle" aria-pressed={on} className={`press optBtn al-chip rounded-[16px] bg-card flex items-center gap-3 text-[21px] font-bold text-left${on ? ' on' : ''}`} onClick={() => a.alToggle(id)}>
-              <span className="text-[26px] flex-none" aria-hidden="true">
-                {E().algIcon[id] || '•'}
+              <span className="text-[26px] flex-none grid place-items-center" aria-hidden="true">
+                <AlgIcon id={id} size={34} />
               </span>
               <span className="al-lbl">{L(E().alg[id])}</span>
               <span className="al-ck flex-none w-8 h-8 rounded-full grid place-items-center" aria-hidden="true">
@@ -163,7 +174,7 @@ function AlFilterSheet() {
         <button type="button" data-a="alClear" className="press h-[88px] px-8 rounded-full bg-card shadow-soft text-[22px] font-bold whitespace-nowrap flex-none" onClick={a.alClear}>
           {t('alReset')}
         </button>
-        <button type="button" data-a="closeSheet" className="press h-[88px] px-8 rounded-full bg-jade text-white hd text-[24px] tracking-[.1em] whitespace-nowrap flex-1 min-w-[260px]" onClick={close}>
+        <button type="button" data-a="closeSheet" className="press h-[88px] px-8 rounded-full bg-jade text-white grid place-items-center text-center hd text-[24px] tracking-[.1em] whitespace-nowrap flex-1 min-w-[260px]" onClick={close}>
           {t('close')}
         </button>
       </div>

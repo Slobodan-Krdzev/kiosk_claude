@@ -197,6 +197,17 @@ export interface GuestitConfig {
   idle: { warnAfterMs: number; countdownMs: number }
   doneAutoResetMs: number
   sessionTtlMs: number
+  /** Where the menu comes from. Overridable per kiosk with ?source=static|api|test&menuId=<n>. */
+  catalogSource?: CatalogSourceConfig
+}
+
+export interface CatalogSourceConfig {
+  source: 'static' | 'api' | 'test'
+  /** Kiosk API base, e.g. https://kioskapi.dev.revelapps.com/api (GET {base}/getfullresources). */
+  apiBase: string
+  /** Test-mode menu endpoint; ?menu=<menuId> is appended. */
+  testUrl: string
+  menuId: number
 }
 
 // ---------- Order snapshot (frozen at payment start) ----------

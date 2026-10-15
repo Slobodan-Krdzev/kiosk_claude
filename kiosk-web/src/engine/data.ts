@@ -39,7 +39,21 @@ export async function fetchEngineData(base: string): Promise<EngineData> {
     }),
   )
   const d = Object.fromEntries(entries) as unknown as EngineData
+  rebaseAssets(d, root)
   return finalizeEngineData(d)
+}
+
+/** The data refers to embedded assets as '/brand/…'; rewrite them relative to the page so a sub-folder host works. */
+function rebaseAssets(o: unknown, root: string, seen = new Set<object>()): void {
+  if (!o || typeof o !== 'object' || seen.has(o)) return
+  seen.add(o)
+  const rec = o as Record<string, unknown>
+  for (const k of Object.keys(rec)) {
+    const v = rec[k]
+    if (typeof v === 'string') {
+      if (v.startsWith('/brand/')) rec[k] = root + v.slice(1)
+    } else if (v && typeof v === 'object') rebaseAssets(v, root, seen)
+  }
 }
 
 /** Load-time normalisation the engine performs after the data literals. */
@@ -47,7 +61,7 @@ export function finalizeEngineData(d: EngineData): EngineData {
   const b = d.brand as Brand & { promos?: Brand['promos'] }
   b.promos = b.promos || []
   // Offline-safe media: the embedded photos replace remote hero/sidebar URLs when they are not reachable.
-  const localHero = '/brand/img/hero.webp'
+  const localHero = (b.logoImg || '').replace(/brand\/.*$/, 'brand/') + 'img/hero.webp'
   if (!b.hero.images?.length) b.hero.images = [localHero]
   // Premium extras group mirrors the CMS product enhancements (price read from the CMS item).
   if (d.mods.premX) {

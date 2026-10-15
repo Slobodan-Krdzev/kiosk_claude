@@ -3,17 +3,20 @@
 import { alHidden, byId, mustId, modItem, servingOf, servingsOf, servingIx } from './catalog'
 import { cmsById, drinkUp, priceOf } from './cms'
 import { E, L, checkProducts, t, tf } from './state'
-import { MAX_LINE_QTY, type CrossSellSel, type Draft, type Product } from './types'
+import { MAX_LINE_QTY, type CrossSellSel, type Draft, type ModGroup, type Product } from './types'
 
 export const clampQty = (n: number): number => Math.max(1, Math.min(MAX_LINE_QTY, n | 0))
 
 export function defChoice(g: string): string | null {
   const grp = E().mods[g]
-  if (grp.req) return null
   if (grp.def) return grp.def
+  if (grp.req) return null
   const z = grp.items.find((i) => i.price === 0)
   return (z || grp.items[0]).id
 }
+
+/** Upsell 'step' groups keep their selections in draft.extras, counted against min..max. */
+export const isStep = (g: string): boolean => E().mods[g]?.type === 'step'
 
 export function newDraft(p: Product, { menu = false }: { menu?: boolean } = {}): Draft {
   const choices: Record<string, string | null> = {}
@@ -33,14 +36,15 @@ export function exQty(d: Draft, g: string, id: string): number {
   return (d.extras || []).some(([gg, ii]) => gg === g && ii === id) ? Math.max(1, ((d.extraQty || {})[exKey(g, id)] | 0) || 1) : 0
 }
 
-export function exMax(id: string): number {
+export function exMax(id: string, g?: string): number {
+  if (g && isStep(g)) return Math.max(1, E().mods[g].items.find((i) => i.id === id)?.maxQty || 1)
   const v = cmsById(id)
   return Math.max(1, v?.maxQuantity || 1)
 }
 
 export function exSet(d: Draft, g: string, id: string, n: number): number {
   d.extraQty = d.extraQty || {}
-  n = Math.max(0, Math.min(exMax(id), n | 0))
+  n = Math.max(0, Math.min(exMax(id, g), n | 0))
   const i = (d.extras || []).findIndex(([gg, ii]) => gg === g && ii === id)
   if (n <= 0) {
     if (i >= 0) d.extras.splice(i, 1)
@@ -50,6 +54,90 @@ export function exSet(d: Draft, g: string, id: string, n: number): number {
   if (i < 0) d.extras.push([g, id])
   d.extraQty[exKey(g, id)] = n
   return n
+}
+
+// ---------- upsell steps (selection rules from the API collection) ----------
+
+/**
+ * Number of DIFFERENT options picked in an upsell step. The group's min/max count options, not items;
+ * how often one option is taken is capped by that option's maxQty (old kiosk rule, Kiosk Upsale Flow doc, 2026-10-15).
+ */
+export function grpCount(d: Draft, g: string): number {
+  return new Set((d.extras || []).filter(([gg]) => gg === g).map(([, id]) => id)).size
+}
+
+export const grpMin = (g: string): number => Math.max(0, E().mods[g]?.min ?? 0)
+export const grpMax = (g: string): number => Math.max(1, E().mods[g]?.max ?? Number.MAX_SAFE_INTEGER)
+
+/** The upsell steps currently on the page: the chain from steps[0], following picked options. */
+export function activeSteps(p: Product, d: Draft): string[] {
+  const mods = E().mods
+  const out: string[] = []
+  const seen = new Set<string>()
+  let g: string | null | undefined = (p.steps || [])[0]
+  while (g && mods[g] && !seen.has(g)) {
+    seen.add(g)
+    out.push(g)
+    const grp: ModGroup = mods[g]
+    const sel = grp.items.filter((it) => exQty(d, g!, it.id) > 0)
+    if (sel.some((it) => it.finish)) break
+    const jump = sel.find((it) => it.next != null)
+    g = jump ? jump.next : grp.next
+  }
+  return out
+}
+
+/** Drop selections of steps that are no longer on the page. */
+export function pruneSteps(d: Draft): void {
+  const p = byId(d.pid)
+  if (!p?.steps?.length) return
+  const on = new Set(activeSteps(p, d))
+  const mods = E().mods
+  const gone = (d.extras || []).filter(([g]) => mods[g]?.type === 'step' && !on.has(g))
+  gone.forEach(([g, id]) => exSet(d, g, id, 0))
+}
+
+/**
+ * Set one option of an upsell step to n (capped by the option's maxQty).
+ * Picking a NEW option when the group already has `max` different options is refused, except in a group
+ * with max 1, which behaves as a radio: the new option replaces the old one. Returns false when refused.
+ */
+export function grpSet(d: Draft, g: string, id: string, n: number): boolean {
+  const max = grpMax(g)
+  const cur = exQty(d, g, id)
+  n = Math.max(0, Math.min(exMax(id, g), n | 0))
+  if (n > cur && stepLocked(d, g)) return false
+  if (cur === 0 && n > 0 && grpCount(d, g) >= max) {
+    if (max !== 1) return false
+    ;(d.extras || []).filter(([gg, ii]) => gg === g && ii !== id).forEach(([gg, ii]) => exSet(d, gg, ii, 0))
+  }
+  exSet(d, g, id, n)
+  pruneSteps(d)
+  return true
+}
+
+/**
+ * An upsell step is locked (greyed out, no new picks) while an earlier step on the page is required and not
+ * finished yet — the product-page form of the old wizard's "choose first, then Next" (2026-10-15).
+ * Picks already made in a step that becomes locked are kept.
+ */
+export function stepLocked(d: Draft, g: string): boolean {
+  const p = byId(d.pid)
+  if (!p || !isStep(g)) return false
+  for (const s of activeSteps(p, d)) {
+    if (s === g) return false
+    if (grpCount(d, s) < grpMin(s)) return true
+  }
+  return false
+}
+
+/** Groups whose rules apply to the draft right now: modifiers and the active upsell steps. */
+export const ruleGroups = (p: Product, d: Draft): string[] => [...(p.choice || []), ...activeSteps(p, d)]
+
+function groupUnmet(d: Draft, g: string): boolean {
+  const grp = E().mods[g]
+  if (isStep(g)) return grpCount(d, g) < grpMin(g)
+  return !!grp.req && !d.choices[g]
 }
 
 // ---------- cross-sells (draft.crossSells = [{id, quantity, extraPortion}]) ----------
@@ -207,6 +295,11 @@ export function validateLineStructure(d: Draft): Issue[] {
   for (const [g, id] of d.extras || []) {
     if (!mods[g] || !mods[g].items.some((i) => i.id === id)) issues.push({ code: 'invalid-extra', group: g })
   }
+  const live = new Set(ruleGroups(p, d))
+  for (const g of new Set((d.extras || []).map(([gg]) => gg))) {
+    if (!mods[g] || !isStep(g)) continue
+    if (!live.has(g) || grpCount(d, g) > grpMax(g)) issues.push({ code: 'invalid-extra', group: g })
+  }
   return issues
 }
 
@@ -215,9 +308,8 @@ export function validateDraft(d: Draft, { availability = true }: { availability?
   const issues: Issue[] = []
   if (!p || p.disabled) return [{ code: 'product-missing', pid: d.pid }]
   issues.push(...validateLineStructure(d))
-  const mods = E().mods
-  ;(p.choice || []).forEach((g) => {
-    if (mods[g].req && !d.choices[g]) issues.push({ code: 'required-choice', group: g })
+  ruleGroups(p, d).forEach((g) => {
+    if (groupUnmet(d, g)) issues.push({ code: 'required-choice', group: g })
   })
   if (d.menu && !d.drink) issues.push({ code: 'menu-drink' })
   if (!(Number.isInteger(d.qty) && d.qty >= 1 && d.qty <= MAX_LINE_QTY)) issues.push({ code: 'qty' })
@@ -235,8 +327,7 @@ export const draftValid = (d: Draft): boolean => validateDraft(d).length === 0
 
 export const firstIncomplete = (d: Draft): string | null => {
   const p = mustId(d.pid)
-  const mods = E().mods
-  return (p.choice || []).find((g) => mods[g].req && !d.choices[g]) || null
+  return ruleGroups(p, d).find((g) => groupUnmet(d, g)) || null
 }
 
 export interface UnavailPart {

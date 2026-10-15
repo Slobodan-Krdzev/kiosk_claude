@@ -1,4 +1,4 @@
-import { E, checkProducts, getAllergenFilter } from './state'
+import { E, L, checkProducts, getAllergenFilter, t } from './state'
 import type { Allergens, Cat, Draft, ModItem, Product, Serving } from './types'
 
 export function byId(id: string | null | undefined): Product | undefined {
@@ -14,6 +14,12 @@ export function mustId(id: string): Product {
 
 export function catOf(id: string): Cat | undefined {
   return E().cats.find((c) => c.id === id)
+}
+
+/** Category name: from the API catalog when present, else the brand pack's i18n key. */
+export function catLabel(id: string): string {
+  const c = catOf(id)
+  return c?.name ? L(c.name) : t('cat_' + id)
 }
 
 export function servingsOf(p: Product | undefined | null): Serving[] | null {
@@ -50,7 +56,8 @@ export function obHasReq(p: Product): boolean {
 }
 
 export function obNeedsDetail(p: Product): boolean {
-  return obHasReq(p) || !!obSizes(p)
+  // API catalog: upsell steps are chosen on the product page.
+  return obHasReq(p) || !!obSizes(p) || !!p.steps?.length
 }
 
 /** May show its sizes in a WIDE card. */
@@ -132,5 +139,5 @@ export function composedAllergens(d: Draft, cmsPidOf: (id: string) => string | u
       ;(it.allergens.traces || []).forEach((a) => tr.add(a))
     } else unknownNames.push(typeof it.name === 'string' ? it.name : it.name.en)
   })
-  return { contains: [...c], traces: [...tr].filter((a) => !c.has(a)), removable: p.allergens?.removable || [], unknown: unknownNames.length > 0, unknownNames }
+  return { contains: [...c], traces: [...tr].filter((a) => !c.has(a)), removable: p.allergens?.removable || [], unknown: unknownNames.length > 0, unknownNames, ...(p.allergens?.info?.length ? { info: p.allergens.info } : {}) }
 }
