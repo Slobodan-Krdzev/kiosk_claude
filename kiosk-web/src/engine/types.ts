@@ -18,6 +18,8 @@ export interface Allergens {
   traces: string[]
   removable: string[]
   unknown: boolean
+  /** Dietary marks shown with the allergens (API ids 19–22: pregnancy, spicy, vegan, vegetarian); never filtered on. */
+  info?: string[]
 }
 
 export interface Product {
@@ -47,6 +49,10 @@ export interface Product {
   taxGroup?: string
   prepMin?: number
   experience?: { flowType?: 'visual-upsell' | 'modification' }
+  /** Upsell steps shown on the product page; steps[0] is the entry of the chain. */
+  steps?: string[]
+  /** POS article code (API IdOtherPos). */
+  plu?: string
 }
 
 export interface ModItem {
@@ -56,14 +62,33 @@ export interface ModItem {
   em?: string
   sub?: L10n
   allergens?: { contains?: string[]; traces?: string[] }
+  /** Backend product id of this option (API catalog), sent with the order. */
+  pid?: string
+  img?: string
+  /** 'step' groups: how often this one option may be taken (default 1). */
+  maxQty?: number
+  /** 'step' groups: picking this option jumps to that step instead of the group's `next`. */
+  next?: string | null
+  /** 'step' groups: picking this option ends the upsell chain after this step. */
+  finish?: boolean
 }
 
+/**
+ * choice  – exactly one option (draft.choices)
+ * extra / remove – the v36 customize step (draft.extras / draft.removes)
+ * step    – one step of an upsell collection on the product page (draft.extras), chained by `next`
+ */
 export interface ModGroup {
   label: L10n
-  type: 'choice' | 'extra' | 'remove'
+  type: 'choice' | 'extra' | 'remove' | 'step'
   req?: boolean
   def?: string
   items: ModItem[]
+  /** step: minimum and maximum number of different options picked in this step. */
+  min?: number
+  max?: number
+  /** step: the step that follows (null = last). */
+  next?: string | null
 }
 
 export interface Cat {
@@ -71,6 +96,9 @@ export interface Cat {
   icon: string
   filters?: string[]
   two?: boolean
+  /** Display name from the API catalog; the Dadawan pack uses i18n key cat_<id> instead. */
+  name?: L10n
+  sub?: L10n
 }
 
 export interface MenuDeal {
@@ -268,7 +296,37 @@ export interface CartLine extends Draft {
   fixed?: boolean
 }
 
+/** One slide of the venue's screensaver (API TMKData[].Screensaver.Slides[]). */
+export interface Slide {
+  img: string
+  /** Shown only between these local times ("HH:MM", may wrap past midnight). */
+  time?: { from: string; to: string }
+  /** Linked product / subcategory (kept for later; not wired to a tap yet). */
+  pid?: string
+  cat?: string
+}
+
+export interface Screensaver {
+  /** Time per slide (API SlideTimer, seconds → ms). */
+  intervalMs: number
+  /** Idle time before the screensaver starts (API ActivationTime, seconds → ms). Not used yet. */
+  idleMs: number
+  /** Slide opacity 0..1 (API Transparency). */
+  opacity: number
+  /** Slides per language, in display order. */
+  slides: Partial<Record<Lang, Slide[]>>
+}
+
+/** Venue identity from the API menu (ThemeResponse). */
+export interface Venue {
+  name?: string
+  logoImg?: string
+}
+
 export interface EngineData {
+  /** Venue screensaver from the API menu; absent on the static brand pack. */
+  screensaver?: Screensaver
+  venue?: Venue
   brand: Brand
   cats: Cat[]
   products: Product[]
@@ -280,6 +338,10 @@ export interface EngineData {
   i18n: Record<Lang, Record<string, string>>
   alg: Record<string, L10n>
   algIcon: Record<string, string>
+  /** Allergen icon images (API menus: the kiosk's own allergen PNGs); algIcon is the fallback. */
+  algImg?: Record<string, string>
+  /** Allergens offered in the allergen filter, in order (default: every key of alg). */
+  algFilter?: string[]
   catsub: Record<string, L10n>
   comp: Record<string, string[]>
   compAll: Record<string, string>

@@ -7,6 +7,12 @@
   "defaultLang": "nl",
   "languages": ["nl", "en", "mk"],
   "mode": "demo",
+  "catalogSource": {
+    "source": "api",
+    "apiBase": "https://kioskapi.dev.revelapps.com/api",
+    "testUrl": "https://my.tabletmenukaart.nl/service/kioskTestModeResources",
+    "menuId": 2408
+  },
   "staffPin": "2468",
   "orderTag": {
     "mode": "table",

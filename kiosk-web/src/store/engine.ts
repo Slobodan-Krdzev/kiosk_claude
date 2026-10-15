@@ -22,8 +22,8 @@ import {
 } from '../engine/cart'
 import { byId, defServingIx, mustId, obBlocked, obNeedsDetail, obSizes, obVarCard, servingsOf } from '../engine/catalog'
 import { cmsById, experienceFor } from '../engine/cms'
-import { cfgKey, clampQty, exQty, exSet, newDraft, stepKey, unavailParts, validateDraft, xsConflicts, xsKey, xsPortion, xsRemove, xsSel, xsSelected, xsSet, draftValid } from '../engine/draft'
-import { E, L, checkProducts, setAllergenFilter, setLang as engineSetLang } from '../engine/state'
+import { cfgKey, clampQty, exQty, exSet, grpSet, newDraft, stepKey, unavailParts, validateDraft, xsConflicts, xsKey, xsPortion, xsRemove, xsSel, xsSelected, xsSet, draftValid } from '../engine/draft'
+import { E, L, checkProducts, hasEngine, setAllergenFilter, setLang as engineSetLang } from '../engine/state'
 import type { CartLine, Draft, Lang, Product } from '../engine/types'
 
 export type Screen = 'attract' | 'home' | 'menu' | 'cart' | 'tag' | 'pay'
@@ -120,6 +120,10 @@ export interface EngineState {
   openProduct(p: Product, opts?: { menu?: boolean; editing?: string | null; draft?: Draft | null; from?: 'home' | 'menu' | 'cart' }): void
   closeProduct(): void
   choice(g: string, id: string): void
+  /** Upsell steps: toggle an option (within the step's min..max). */
+  pick(g: string, id: string): void
+  /** Upsell steps: change how often an option is taken. */
+  pickQty(g: string, id: string, delta: number): void
   pickDrink(id: string): void
   vuMenu(): void
   xsKeep(id: string): void
@@ -186,11 +190,14 @@ const QUICK_LOCK_MS = 225
 
 const INITIAL_CONN: ConnectionState = { kind: 'resolving', attempt: 0 }
 
+/** First sidebar category: 'popular' in the brand pack, the first API subcategory otherwise. */
+const firstCat = (): string => (hasEngine() && E().cats[0]?.id) || 'popular'
+
 function resetFields() {
   return {
     screen: 'attract' as Screen,
     navDir: 'fwd' as const,
-    cat: 'popular',
+    cat: firstCat(),
     filter: 'all',
     cart: [] as CartLine[],
     pdpOpen: false,
@@ -298,7 +305,7 @@ export const useEngine = create<EngineState>((set, get) => {
 
     setReady: (config, lang) => {
       engineSetLang(lang)
-      set({ ready: true, config, lang })
+      set({ ready: true, config, lang, cat: firstCat() })
     },
     setBootError: (msg) => set({ bootError: msg }),
     setConn: (conn) => set({ conn }),
@@ -432,6 +439,14 @@ export const useEngine = create<EngineState>((set, get) => {
     choice: (g, id) =>
       mutateDraft((d) => {
         d.choices[g] = id
+      }),
+    pick: (g, id) =>
+      mutateDraft((d) => {
+        grpSet(d, g, id, exQty(d, g, id) > 0 ? 0 : 1)
+      }),
+    pickQty: (g, id, delta) =>
+      mutateDraft((d) => {
+        grpSet(d, g, id, exQty(d, g, id) + delta)
       }),
     pickDrink: (id) =>
       mutateDraft((d) => {
@@ -691,8 +706,12 @@ export const useEngine = create<EngineState>((set, get) => {
     },
     hydrate: (h) => {
       bumpIds(h.cart)
-      engineSetLang(h.lang)
-      set((s) => ({ cart: h.cart, service: h.service, lang: h.lang, screen: h.screen, cat: h.cat, tag: h.tag, cartVersion: s.cartVersion + 1 }))
+      // The menu may have changed since the session was saved: keep only a category and language it still has.
+      const d = E()
+      const cat = ['new', 'rewards'].includes(h.cat) || d.cats.some((c) => c.id === h.cat) ? h.cat : firstCat()
+      const lang = d.brand.languages.includes(h.lang) ? h.lang : d.brand.defaultLanguage
+      engineSetLang(lang)
+      set((s) => ({ cart: h.cart, service: h.service, lang, screen: h.screen, cat, tag: h.tag, cartVersion: s.cartVersion + 1 }))
     },
     dismissReward: () => set({ rewardDismissed: true }),
   }

@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/shallow'
 import { cartClashes, cartCount, hasCat, lineSummary, lineUnit, validateCart, type PriceChange } from '../engine/cart'
 import { byId, mustId } from '../engine/catalog'
 import { cmsAddable, cmsBlocks } from '../engine/cms'
-import { lineNeedsChoice, unavailParts, validateLineStructure } from '../engine/draft'
+import { firstIncomplete, lineNeedsChoice, unavailParts, validateLineStructure } from '../engine/draft'
 import { fmt } from '../engine/money'
 import { E, L, checkProducts, t, tf } from '../engine/state'
 import type { CartLine, Product } from '../engine/types'
@@ -97,7 +97,7 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
       </div>
     )
   if (!na && l.lineType === 'product' && lineNeedsChoice(l)) {
-    const g = (p.choice || []).find((gg) => E().mods[gg].req && !l.choices[gg])!
+    const g = firstIncomplete(l)!
     return (
       <div className="flex gap-6 p-5 rounded-[26px] mb-4 line-need" role="group">
         {img()}

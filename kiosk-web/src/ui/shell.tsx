@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/shallow'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { baseTotal, cartCount, cartTotal, rewardClaimed, rewardLeft } from '../engine/cart'
-import { alHidden, byId, catOf, obVarCard, prodsInCards, visible } from '../engine/catalog'
+import { alHidden, byId, catLabel, catOf, obVarCard, prodsInCards, visible } from '../engine/catalog'
 import { cmsAddable, cmsFinishBlock, obwMode, presentationFor } from '../engine/cms'
 import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
@@ -85,7 +85,7 @@ export function Rail() {
           <div className="text-[14px] font-bold leading-[20px] tracking-[3px] uppercase pl-[22px] pt-4 pb-2 flex-none" style={{ color: 'rgb(var(--c-cream) / .58)' }}>
             {t('menuLbl')}
           </div>
-          {E().cats.map((c) => row(c.id, 'cat', { 'data-cat': c.id }, cat === c.id && screen === 'menu', c.icon, t('cat_' + c.id), () => a.goCat(c.id), !!c.two))}
+          {E().cats.map((c) => row(c.id, 'cat', { 'data-cat': c.id }, cat === c.id && screen === 'menu', c.icon, catLabel(c.id), () => a.goCat(c.id), !!c.two))}
         </div>
         <div className="flex-1" />
         <div
@@ -416,7 +416,7 @@ export function MenuMain() {
           </span>
         ))}
       </div>
-      <h1 className="hd text-[72px] leading-[72px] tracking-[1px] px-5 mt-4 flex-none">{cat === 'new' ? t('newIn') : t('cat_' + cat)}</h1>
+      <h1 className="hd text-[72px] leading-[72px] tracking-[1px] px-5 mt-4 flex-none">{cat === 'new' ? t('newIn') : catLabel(cat)}</h1>
       <div className="cat-sub text-[24px] text-mute font-semibold px-5 mt-2 flex-none">{L(E().catsub[cat] || E().catsub.popular)}</div>
       {c?.filters ? (
         <div className="px-5 mt-6 flex-none">

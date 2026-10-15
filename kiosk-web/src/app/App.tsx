@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { fetchEngineData, resolveOrderTagConfig } from '../engine/data'
+import { loadEngineData, resolveCatalogSource } from '../adapters/http/catalogSource'
+import { resolveOrderTagConfig } from '../engine/data'
 import { setEngine } from '../engine/state'
 import { useEngine } from '../store/engine'
 import { usePayState } from '../store/payment'
@@ -29,7 +30,8 @@ async function boot(): Promise<void> {
     if (config.mode === 'production' && resolved.adapters.kind === 'static') {
       throw new Error('production mode requires real adapters (window.GuestitAdapters) — refusing to run on the simulation')
     }
-    const engine = await fetchEngineData(import.meta.env.BASE_URL)
+    const source = resolveCatalogSource(config.catalogSource, window.location.search)
+    const engine = await loadEngineData(import.meta.env.BASE_URL, source)
     setEngine(engine)
     applyBrand(engine.brand)
     brandName = engine.brand.name
@@ -49,7 +51,7 @@ async function boot(): Promise<void> {
       rt.log('connectivity.state', { kind: c.kind, ...(c.kind === 'connected' ? { role: c.role, epoch: c.epoch } : {}) })
     })
     void catalogRefresh()
-    rt.log('boot.ok', { adapters: resolved.adapters.kind, mode: config.mode, brand: engine.brand.id })
+    rt.log('boot.ok', { adapters: resolved.adapters.kind, mode: config.mode, brand: engine.brand.id, catalog: source.source })
   } catch (e) {
     store.setBootError(String(e))
   }

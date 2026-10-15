@@ -2,7 +2,7 @@
 
 import { alHidden, byId, modItem, mustId, servingIx, servingOf, servingsOf } from './catalog'
 import { cmsById, priceOf } from './cms'
-import { canMergeCartLine, cfgKey, clampQty, defChoice, exQty, newDraft, unitPrice, validateDraft, type Issue } from './draft'
+import { canMergeCartLine, cfgKey, clampQty, defChoice, exQty, newDraft, unitPrice, validateDraft, validateLineStructure, type Issue } from './draft'
 import { E, L, checkProducts, t } from './state'
 import { MAX_LINE_QTY, type CartLine, type CmsItem, type CrossSellSel, type Draft, type Product } from './types'
 
@@ -247,15 +247,19 @@ export interface PriceChange {
   now: number
 }
 
+/** A line whose product or options no longer exist in the menu (e.g. the menu changed since the session was saved). */
+const priceable = (l: CartLine): boolean => !l.reward && validateLineStructure(l).length === 0
+
 export function revalidatePrices(cart: CartLine[]): PriceChange[] {
+  // Lines that are no longer in the menu are reported by validateDraft ('product-missing' / 'invalid-…') and shown as invalid.
   return cart
-    .filter((l) => !l.reward)
+    .filter(priceable)
     .map((l) => ({ lid: l.lid, name: mustId(l.pid).name, old: lineUnit(l), now: currentPriceOf(l) }))
     .filter((c) => c.old !== c.now)
 }
 
 export function applyRevalidatedPrices(cart: CartLine[]): CartLine[] {
-  return cart.map((l) => (l.reward ? l : { ...l, unitPrice: currentPriceOf(l), priceCheckedAt: Date.now() }))
+  return cart.map((l) => (!priceable(l) ? l : { ...l, unitPrice: currentPriceOf(l), priceCheckedAt: Date.now() }))
 }
 
 export const priceStamp = (ch: PriceChange[]): string => JSON.stringify(ch.map((c) => [c.lid, c.now]).sort())

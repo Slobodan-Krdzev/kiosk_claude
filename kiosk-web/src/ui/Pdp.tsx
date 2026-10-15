@@ -5,7 +5,13 @@ import { useEffect, useRef, useState } from 'react'
 import { byId, mustId, servingIx, servingsOf } from '../engine/catalog'
 import { cmsById, drinkUp, priceOf } from '../engine/cms'
 import {
+  activeSteps,
   blockReason,
+  grpCount,
+  grpMax,
+  grpMin,
+  isStep,
+  stepLocked,
   draftValid,
   exMax,
   exQty,
@@ -54,18 +60,30 @@ function R44Bowl({ frac }: { frac: number }) {
   )
 }
 
-function R44Head({ title, note }: { title: React.ReactNode; note: 'req' | 'opt' | null }) {
+/** Group header. `numbered`: always a step number and full-size title, also when optional (upsell steps). */
+function R44Head({ title, note, rule, numbered }: { title: React.ReactNode; note: 'req' | 'opt' | null; rule?: string; numbered?: boolean }) {
+  const small = note === 'opt' && !numbered
   return (
-    <div className={`r44-step${note === 'opt' ? ' r44-optional' : ''}`}>
-      {note === 'opt' ? null : <span className="r44-num" aria-hidden="true" />}
+    <div className={`r44-step${small ? ' r44-optional' : ''}`}>
+      {small ? null : <span className="r44-num" aria-hidden="true" />}
       <span className="r44-tt">{title}</span>
       {note ? (
         <span className={`r44-note${note === 'req' ? ' req' : ''}`} aria-label={note === 'req' ? t('reqMark') : undefined}>
           · {t(note === 'req' ? 'r44Req' : 'r44Opt')}
         </span>
       ) : null}
+      {rule ? <span className="r44-note">· {rule}</span> : null}
     </div>
   )
+}
+
+/** Selection rule of an upsell step from the API data ("choose 2", "choose 1–5", "up to 3"). */
+function ruleText(g: string): string {
+  if (!isStep(g)) return ''
+  const min = grpMin(g)
+  const max = grpMax(g)
+  if (min === max) return tf('pickN', { n: max })
+  return min > 0 ? tf('pickRange', { min, max }) : tf('pickMax', { n: max })
 }
 
 function SizeSection({ p, d }: { p: Product; d: Draft }) {
@@ -150,6 +168,101 @@ function Group({ g, d, need, hint }: { g: string; d: Draft; need: boolean; hint:
             </button>
           )
         })}
+      </div>
+    </section>
+  )
+}
+
+/** One option of an upsell step: the v36 enhancement tile, with a stepper when the option may be taken more than once. */
+function StepTile({ g, it, d, full }: { g: string; it: ModItem; d: Draft; full: boolean }) {
+  const a = useEngine(useShallow((s) => ({ pick: s.pick, pickQty: s.pickQty })))
+  const q = exQty(d, g, it.id)
+  const max = exMax(it.id, g)
+  const name = L(it.name)
+  // full = the step has its maximum of different options: a picked option can still go up to its own max
+  const more = q < max && (q > 0 || !full)
+  return (
+    <div className={`r44-ex${q ? ' on' : ''}`} data-ex={it.id}>
+      <div className="r44-ex-img" style={{ height: 'calc(210px * var(--u))' }}>
+        <FoodImg p={{ img: it.img, em: it.em || '🍽' }} cls="absolute inset-0" em="64px" />
+      </div>
+      <div className="r44-ex-b">
+        <div className="hd r44-ex-n">{name}</div>
+        <div className="r44-ex-s">{it.sub ? L(it.sub) : ''}</div>
+        <div className="r44-ex-row">
+          <span className="r44-ex-p hd num">+ {fmt(it.price)}</span>
+          {q > 0 && max > 1 ? (
+            <span className="ob-stp r44-exstp" role="group" aria-label={tf('qtyOfA', { name, n: q })}>
+              <button type="button" data-a="pickQty" className="press ob-m" aria-label={q === 1 ? t('obRemove') : t('obLess')} onClick={() => a.pickQty(g, it.id, -1)}>
+                {q === 1 ? (
+                  <span className="ob-tr">
+                    <Ic n="trash" sw={2.3} />
+                  </span>
+                ) : (
+                  <span className="ob-bar" />
+                )}
+              </button>
+              <span className="ob-sq num" aria-live="polite">
+                {q}
+              </span>
+              <button type="button" data-a="pickQty" className={`press ob-p${more ? '' : ' off'}`} aria-label={t('obMore')} aria-disabled={more ? undefined : true} onClick={() => more && a.pickQty(g, it.id, 1)}>
+                <span className="ob-i">
+                  <Ic n="plus" sw={2.6} />
+                </span>
+              </button>
+            </span>
+          ) : q > 0 ? (
+            <button type="button" data-a="pick" className="press ob" aria-pressed="true" aria-label={t('obRemove')} onClick={() => a.pick(g, it.id)}>
+              <span className="ob-i">
+                <Ic n="check" sw={3} />
+              </span>
+            </button>
+          ) : (
+            <button type="button" data-a="pick" className={`press ob${full && grpMax(g) > 1 ? ' off' : ''}`} aria-label={tf('obAddA', { name })} onClick={() => a.pick(g, it.id)}>
+              <span className="ob-i">
+                <Ic n="plus" sw={2.6} />
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** One upsell step on the product page. Steps after it appear as the guest picks (chain from the API collection). */
+function StepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; need: boolean; hint: string; nudge: () => void }) {
+  const grp = E().mods[g]
+  const full = grpCount(d, g) >= grpMax(g)
+  // Locked until the earlier required step is finished: greyed out; a tap leads the guest to that step.
+  const locked = stepLocked(d, g)
+  return (
+    <section
+      className={`grp r44-grp${need ? ' grp-need' : ''}`}
+      id={`grp-${g}`}
+      role="group"
+      aria-labelledby={`grpl-${g}`}
+      aria-disabled={locked || undefined}
+      data-locked={locked || undefined}
+      style={{ opacity: locked ? 0.38 : 1, filter: locked ? 'grayscale(1)' : undefined, transition: 'opacity 250ms ease, filter 250ms ease' }}
+      onClickCapture={
+        locked
+          ? (e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              nudge()
+            }
+          : undefined
+      }
+    >
+      <R44Head title={<span id={`grpl-${g}`}>{L(grp.label)}</span>} note={grp.req ? 'req' : 'opt'} rule={ruleText(g)} numbered />
+      <div id={`hint-${g}`} className="reqHint r44-hint" role="status" aria-live="polite">
+        {hint}
+      </div>
+      <div className="r44-exg">
+        {grp.items.map((it) => (
+          <StepTile key={it.id} g={g} it={it} d={d} full={full} />
+        ))}
       </div>
     </section>
   )
@@ -565,6 +678,9 @@ function ProductPage({ p, d, xp, editing, nudge, need, hint }: { p: Product; d: 
           ))}
           {opt.map((g) => (
             <Group key={g.id} g={g.id} d={d} need={false} hint="" />
+          ))}
+          {activeSteps(p, d).map((g) => (
+            <StepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
           ))}
           {vu ? <EnhSection xp={xp} d={d} /> : null}
           {vu && xp.menuUpgrade ? (
