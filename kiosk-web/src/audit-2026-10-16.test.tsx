@@ -7,7 +7,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import configRaw from '../public/mock/config.json'
 import { fetchMenu } from './adapters/http/catalogSource'
-import { mapTmkToEngine } from './adapters/http/tmkMapper'
+import { htmlToText, mapTmkToEngine } from './adapters/http/tmkMapper'
 import type { TmkRoot } from './adapters/http/tmk'
 import { createStaticAdapters } from './adapters/static/staticAdapters'
 import { catalogRefresh, toPay } from './app/checkout'
@@ -15,7 +15,8 @@ import { createRuntime } from './app/runtime'
 import type { GuestitConfig } from './domain/types'
 import { addToCart, revalidatePrices } from './engine/cart'
 import { finalizeEngineData } from './engine/data'
-import { grpSet, newDraft, unavailParts, validateDraft } from './engine/draft'
+import { grpSet, newDraft, priceLines, unavailParts, validateDraft } from './engine/draft'
+import { homeHasContent, pname, venueMenu, venueName } from './engine/catalog'
 import { E, setAllergenFilter, setDisabled, setEngine, setLang, setUnavailable } from './engine/state'
 import type { EngineData } from './engine/types'
 import { PaymentController } from './payment/controller'
@@ -333,5 +334,91 @@ describe('F11 — price variants are part of the live price check', () => {
     const changes = revalidatePrices(cart)
     expect(changes).toHaveLength(1)
     expect(changes[0].now - changes[0].old).toBe(999 - 150)
+  })
+})
+
+describe('F09 — product names follow the selected language', () => {
+  const sample = (): TmkRoot => JSON.parse(readFileSync(resolve(process.cwd(), '../failover-handover/docs/reference/api-samples/testmode-2490.json'), 'utf8'))
+  it('A06: a bilingual menu shows the English name after switching, everywhere the name is rendered', () => {
+    const raw = sample()
+    const nlT = raw.TMKData.find((x) => x.Language === 'nl')!
+    const enT = raw.TMKData.find((x) => x.Language === 'en')!
+    const np = nlT.MainCategories[0].SubCategories[0].Products[0]
+    const ep = enT.MainCategories.flatMap((m) => m.SubCategories).flatMap((s) => s.Products).find((p) => p.ProductId === np.ProductId)!
+    np.Name = 'Nederlandse naam'
+    ep.Name = 'English name'
+    const d = mapTmkToEngine(raw, pack(), { img: (u) => u })
+    setEngine(d)
+    const p = d.products.find((x) => x.id === String(np.ProductId))!
+    setLang('nl')
+    expect(pname(p)).toBe('Nederlandse naam')
+    setLang('en')
+    expect(pname(p)).toBe('English name')
+    expect(p.name).toBe('Nederlandse naam') // default-language name kept for KDS / receipt
+    // the cart summary and the price sheet use the same resolution
+    const draft = newDraft(p)
+    grpSet(draft, 'up9_8', d.mods['up9_8'].items[0].id, 1)
+    const { cart } = addToCart([], draft)
+    expect(revalidatePrices(cart)).toEqual([])
+    expect(priceLines(p, draft)[0][0]).toBe('English name')
+    setLang('mk') // not offered by this menu → the engine's fallback (English), never an empty name
+    expect(pname(p)).toBe('English name')
+  })
+})
+
+describe('F08 / F10 — API menus open on a useful screen with one venue identity', () => {
+  const sample = (): TmkRoot => JSON.parse(readFileSync(resolve(process.cwd(), '../failover-handover/docs/reference/api-samples/getfullresources.json'), 'utf8'))
+  it('without promotions or badges the home screen is skipped: start → first category', () => {
+    setEngine(mapTmkToEngine(sample(), pack(), { img: (u) => u }))
+    expect(homeHasContent()).toBe(false)
+    expect(venueMenu()).toBe(true)
+    expect(venueName()).toBe('Tapas Mainstreet')
+    useEngine.getState().startWith('eatin')
+    const s = useEngine.getState()
+    expect(s.screen).toBe('menu')
+    expect(s.cat).toBe(E().cats[0].id)
+    useEngine.getState().home()
+    expect(useEngine.getState().screen).toBe('menu')
+  })
+  it('the brand pack still opens on the home screen', () => {
+    expect(homeHasContent()).toBe(true)
+    expect(venueMenu()).toBe(false)
+    useEngine.getState().startWith('eatin')
+    expect(useEngine.getState().screen).toBe('home')
+  })
+})
+
+describe('F12 — dialogs hold keyboard focus and make the background inert', () => {
+  it('the voucher sheet takes focus, wraps Tab, blocks the background and restores focus on close', async () => {
+    runtime()
+    const opener = document.createElement('button')
+    opener.textContent = 'opener'
+    document.body.appendChild(opener)
+    opener.focus()
+    useEngine.getState().voucher()
+    const { container } = render(<Overlays />)
+    const dialog = container.querySelector('[role="dialog"]')!
+    expect(dialog.contains(document.activeElement)).toBe(true)
+    expect(opener.hasAttribute('inert')).toBe(true)
+    const focusables = [...dialog.querySelectorAll<HTMLElement>('button,input')]
+    focusables[focusables.length - 1].focus()
+    fireEvent.keyDown(document, { key: 'Tab' })
+    expect(document.activeElement).toBe(focusables[0])
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(focusables[focusables.length - 1])
+    await act(async () => {
+      fireEvent.keyDown(document, { key: 'Escape' })
+    })
+    expect(useEngine.getState().sheet).toBeNull()
+    expect(opener.hasAttribute('inert')).toBe(false)
+    expect(document.activeElement).toBe(opener)
+    opener.remove()
+  })
+})
+
+describe('polish — HTML entities in descriptions', () => {
+  it('named and numeric entities are decoded', () => {
+    expect(htmlToText('<p>Stokbroodje fazant pat&eacute; met cranberry&nbsp;compote &amp; ui &#233;n knoflook &#x2013; lekker&hellip;</p>')).toBe('Stokbroodje fazant paté met cranberry compote & ui én knoflook – lekker…')
+    expect(htmlToText('&unknownthing; blijft')).toBe('&unknownthing; blijft')
   })
 })

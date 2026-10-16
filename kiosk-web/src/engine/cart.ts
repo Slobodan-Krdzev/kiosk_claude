@@ -1,6 +1,6 @@
 // Cart model: pure functions over an array of lines (the reference mutates S.cart; we return new arrays).
 
-import { alHidden, byId, modItem, mustId, servingIx, servingOf, servingsOf } from './catalog'
+import { alHidden, byId, modItem, mustId, servingIx, servingOf, servingsOf, pname } from './catalog'
 import { cmsById, priceOf } from './cms'
 import { canMergeCartLine, cfgKey, clampQty, defChoice, exQty, newDraft, unitPrice, validateDraft, validateLineStructure, type Issue } from './draft'
 import { E, L, checkProducts, t } from './state'
@@ -176,8 +176,8 @@ export function syncReward(cart: CartLine[], dismissed: boolean): { cart: CartLi
   const p = brand.reward ? byId(brand.reward.pid) : undefined
   const has = cart.find((l) => l.reward)
   const earned = !!p && !!brand.reward && baseTotal(cart) >= brand.reward.threshold && cart.some((l) => !l.reward) && !alHidden(p) && !checkProducts([p.id]).length
-  if (earned && !has && !dismissed) return { cart: [giftLine(p!), ...cart], change: { added: true, name: p!.name } }
-  if (!earned && has) return { cart: cart.filter((l) => !l.reward), change: { removed: true, name: (p || mustId(has.pid)).name } }
+  if (earned && !has && !dismissed) return { cart: [giftLine(p!), ...cart], change: { added: true, name: pname(p!) } }
+  if (!earned && has) return { cart: cart.filter((l) => !l.reward), change: { removed: true, name: pname(p || mustId(has.pid)) } }
   if (has && cart[0] !== has) return { cart: [has, ...cart.filter((l) => l !== has)], change: null }
   return { cart, change: null }
 }
@@ -194,11 +194,11 @@ export function lineSummaryBody(cart: CartLine[], l: CartLine): string {
     if (l.extraPortion) bits.push(`${t('extraPortion')} · ${v.qtyLabel ? L(v.qtyLabel) : ''}`.replace(/ · $/, ''))
     else if (v.qtyLabel) bits.push(L(v.qtyLabel))
     const src = l.sourceLineId ? line(cart, l.sourceLineId) : undefined
-    bits.push(src ? `${t('xsWith')} ${mustId(src.pid).name}` : t('xsLoose'))
+    bits.push(src ? `${t('xsWith')} ${pname(mustId(src.pid))}` : t('xsLoose'))
     return bits.join(' · ')
   }
   if (l.reward) bits.push('🎁 ' + t('rw_gift'))
-  if (l.menu && l.drink) bits.push(`${t('summaryCombo')} · ${L(d.menuDeal.sideLabel)} + ${mustId(l.drink).name}`)
+  if (l.menu && l.drink) bits.push(`${t('summaryCombo')} · ${L(d.menuDeal.sideLabel)} + ${pname(mustId(l.drink))}`)
   for (const [g, cid] of Object.entries(l.choices || {})) {
     const grp = d.mods[g]
     const it = cid ? modItem(g, cid) : null
@@ -254,7 +254,7 @@ export function revalidatePrices(cart: CartLine[]): PriceChange[] {
   // Lines that are no longer in the menu are reported by validateDraft ('product-missing' / 'invalid-…') and shown as invalid.
   return cart
     .filter(priceable)
-    .map((l) => ({ lid: l.lid, name: mustId(l.pid).name, old: lineUnit(l), now: currentPriceOf(l) }))
+    .map((l) => ({ lid: l.lid, name: pname(mustId(l.pid)), old: lineUnit(l), now: currentPriceOf(l) }))
     .filter((c) => c.old !== c.now)
 }
 
@@ -269,5 +269,5 @@ export function cartProductIds(cart: CartLine[]): string[] {
 }
 
 export function cartClashes(cart: CartLine[]): string[] {
-  return [...new Set(cart.filter((l) => alHidden(byId(l.pid))).map((l) => mustId(l.pid).name))]
+  return [...new Set(cart.filter((l) => alHidden(byId(l.pid))).map((l) => pname(mustId(l.pid))))]
 }

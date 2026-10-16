@@ -20,7 +20,7 @@ import {
   xsLinesOf,
   type RewardChange,
 } from '../engine/cart'
-import { byId, defServingIx, mustId, obBlocked, obNeedsDetail, obSizes, obVarCard, servingsOf } from '../engine/catalog'
+import { byId, defServingIx, homeHasContent, mustId, obBlocked, obNeedsDetail, obSizes, obVarCard, servingsOf } from '../engine/catalog'
 import { cmsById, experienceFor } from '../engine/cms'
 import { cfgKey, clampQty, exQty, exSet, grpSet, newDraft, stepKey, unavailParts, validateDraft, xsConflicts, xsKey, xsPortion, xsRemove, xsSel, xsSelected, xsSet, draftValid } from '../engine/draft'
 import { E, L, checkProducts, hasEngine, setAllergenFilter, setLang as engineSetLang } from '../engine/state'
@@ -328,8 +328,8 @@ export const useEngine = create<EngineState>((set, get) => {
       engineSetLang(lang)
       set({ lang, tagKb: lang === 'mk' ? 'cyr' : 'lat' })
     },
-    startWith: (service) => set({ service, screen: 'home', navDir: 'fwd', homeScroll: 0, lastActivity: Date.now() }),
-    home: () => set({ screen: 'home', navDir: 'fwd' }),
+    startWith: (service) => set(homeHasContent() ? { service, screen: 'home', navDir: 'fwd', homeScroll: 0, lastActivity: Date.now() } : { service, screen: 'menu', cat: firstCat(), filter: 'all', navDir: 'fwd', lastActivity: Date.now() }),
+    home: () => set(homeHasContent() ? { screen: 'home', navDir: 'fwd' } : { screen: 'menu', cat: firstCat(), filter: 'all', navDir: 'fwd' }),
     attract: () => set({ screen: 'attract', navDir: 'back', heroIdx: 0 }),
     otype: (service) => set({ service }),
     goCat: (cat) => set({ screen: 'menu', cat, filter: 'all', navDir: 'fwd' }),

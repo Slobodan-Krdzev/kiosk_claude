@@ -28,7 +28,9 @@ let menuRetry: { source: CatalogSourceConfig; pack: EngineData; timeoutMs: numbe
 function applyMenu(engine: EngineData, config: { defaultLang: Lang }): Lang {
   setEngine(engine)
   applyBrand(engine.brand)
-  brandName = engine.brand.name
+  // One identity everywhere (audit F10): the venue's name on API menus, the brand pack's otherwise.
+  brandName = engine.venue ? engine.venue.name || 'Kiosk' : engine.brand.name
+  document.title = `${brandName} — Self-order kiosk`
   const lang = engine.brand.defaultLanguage || config.defaultLang
   document.documentElement.lang = lang
   return lang

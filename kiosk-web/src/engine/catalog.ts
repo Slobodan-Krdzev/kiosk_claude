@@ -12,6 +12,11 @@ export function mustId(id: string): Product {
   return p
 }
 
+/** Product name in the current language (API menus carry per-language names; the brand pack has one). Audit F09. */
+export function pname(p: Pick<Product, 'name' | 'names'>): string {
+  return (p.names ? L(p.names) : '') || p.name
+}
+
 export function catOf(id: string): Cat | undefined {
   return E().cats.find((c) => c.id === id)
 }
@@ -102,6 +107,18 @@ export type Blocked = 'filter' | 'na' | null
 
 export function obBlocked(p: Product): Blocked {
   return alHidden(p) ? 'filter' : gtcSoldOut(p) ? 'na' : null
+}
+
+/** True when the menu comes from the kiosk API: the venue's identity replaces the brand pack's on every screen (audit F10). */
+export const venueMenu = (): boolean => !!E().venue
+export const venueName = (): string => E().venue?.name || ''
+
+/** Promotions or popular / new products to show on the home screen; without them the kiosk opens on the first category (audit F08). */
+export function homeHasContent(): boolean {
+  const d = E()
+  const promos = (d.brand.promos || []).filter((pr) => byId(pr.pid) && !alHidden(byId(pr.pid)))
+  if (promos.length) return true
+  return visible(d.products.filter((p) => p.badges.includes('pop') || p.badges.includes('new'))).length > 0
 }
 
 export function prodsIn(cat: string): Product[] {

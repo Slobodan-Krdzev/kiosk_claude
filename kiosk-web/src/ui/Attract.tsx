@@ -34,7 +34,7 @@ export function Attract() {
   // and the venue logo (ThemeResponse.LogoImage) replaces the brand logo.
   const venueMode = !!ss
   const venue = E().venue
-  const logo = venueMode && venue?.logoImg ? { src: venue.logoImg, alt: venue.name || b.name, filter: 'drop-shadow(0 6px 24px rgba(0,0,0,.5))' } : { src: b.logoImg, alt: b.name, filter: `${b.logoFilter || 'invert(1) brightness(1.6)'} drop-shadow(0 6px 24px rgba(0,0,0,.5))` }
+  const logo = venueMode && venue?.logoImg ? { src: venue.logoImg, alt: venue.name || '', filter: 'drop-shadow(0 6px 24px rgba(0,0,0,.5))' } : { src: b.logoImg, alt: b.name, filter: `${b.logoFilter || 'invert(1) brightness(1.6)'} drop-shadow(0 6px 24px rgba(0,0,0,.5))` }
 
   // Bottom controls hide after Screensaver.ActivationTime without a touch and come back on the next touch.
   // The revealing touch never starts an order: the controls are not hit-testable while hidden.

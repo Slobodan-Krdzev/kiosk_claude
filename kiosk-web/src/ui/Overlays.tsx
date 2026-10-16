@@ -1,12 +1,13 @@
 import { useShallow } from 'zustand/shallow'
 // Overlays — port of overlays(): sheets (voucher/loyalty, allergens, allergen filter, price) and confirm dialogs, plus toast and connection banner.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useModal } from './useModal'
 import { availBack, availRetry, priceBack, priceConfirm } from '../app/checkout'
 import { getRuntime } from '../app/runtime'
 import { clearSession } from '../app/session'
 import { cartCount, line, lineUnit, xsLinesOf } from '../engine/cart'
-import { alUnknown, byId, composedAllergens, mustId } from '../engine/catalog'
+import { alUnknown, byId, composedAllergens, mustId, pname } from '../engine/catalog'
 import { cmsPidOf } from '../engine/cms'
 import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
@@ -27,9 +28,11 @@ function Scrim({ onClose, children, z = 'z-40' }: { onClose?: () => void; childr
 }
 
 function Sheet({ onClose, label, children }: { onClose: () => void; label?: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useModal(ref, onClose)
   return (
     <Scrim onClose={onClose}>
-      <div className="absolute left-0 right-0 bottom-0 bg-paper rounded-t-[36px] p-12 sheetup" role="dialog" aria-modal="true" aria-label={label} onClick={(e) => e.stopPropagation()}>
+      <div ref={ref} className="absolute left-0 right-0 bottom-0 bg-paper rounded-t-[36px] p-12 sheetup" role="dialog" aria-modal="true" aria-label={label} onClick={(e) => e.stopPropagation()}>
         <div className="w-[72px] h-[6px] rounded-full bg-ink/15 mx-auto mb-9" />
         {children}
       </div>
@@ -37,10 +40,12 @@ function Sheet({ onClose, label, children }: { onClose: () => void; label?: stri
   )
 }
 
-function Dialog({ children, width = 760, pop = true, bg = '.5' }: { children: React.ReactNode; width?: number; pop?: boolean; bg?: string }) {
+function Dialog({ children, width = 760, pop = true, bg = '.5', label }: { children: React.ReactNode; width?: number; pop?: boolean; bg?: string; label?: string }) {
+  const ref = useRef<HTMLDivElement>(null)
+  useModal(ref)
   return (
     <div className="absolute inset-0 z-50 grid place-items-center" style={{ background: `rgb(var(--c-ink)/${bg})` }}>
-      <div className={`bg-paper rounded-[32px] p-12 text-center ${pop ? 'pop' : ''}`} style={{ width }} role="alertdialog" aria-modal="true">
+      <div ref={ref} className={`bg-paper rounded-[32px] p-12 text-center ${pop ? 'pop' : ''}`} style={{ width }} role="alertdialog" aria-modal="true" aria-label={label}>
         {children}
       </div>
     </div>
@@ -136,7 +141,7 @@ function AllergenSheet({ pid }: { pid: string }) {
     <Sheet onClose={close} label={t('allergens')}>
       <div className="hd text-[46px] tracking-[.02em]">{t('allergens')}</div>
       <div className="text-[23px] text-mute font-semibold mt-1.5">
-        {p.name}
+        {pname(p)}
         {p.kcal ? ` · ${p.kcal} ${t('kcal')} ${t('perServing')}` : ''}
       </div>
       <div className="text-[18px] text-mute font-semibold mt-2">{t('alForOrder')}</div>
@@ -207,12 +212,14 @@ function AlFilterSheet() {
 function PriceSheet() {
   const close = useEngine((s) => s.closeSheet)
   const draft = useEngine((s) => s.draft)
+  const ref = useRef<HTMLDivElement>(null)
+  useModal(ref, close)
   if (!draft) return null
   const p = mustId(draft.pid)
   return (
     <>
       <Scrim onClose={close}>{null}</Scrim>
-      <div className="absolute left-0 right-0 bottom-0 z-40 bg-paper rounded-t-[40px] px-10 pt-8 sheetup" role="dialog" aria-modal="true" aria-label={t('priceBreakdown')} style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom,0px))' }}>
+      <div ref={ref} className="absolute left-0 right-0 bottom-0 z-40 bg-paper rounded-t-[40px] px-10 pt-8 sheetup" role="dialog" aria-modal="true" aria-label={t('priceBreakdown')} style={{ paddingBottom: 'calc(28px + env(safe-area-inset-bottom,0px))' }}>
         <div className="flex items-center justify-between">
           <div className="hd text-[40px] tracking-[.02em]">{t('priceBreakdown')}</div>
           <button type="button" data-a="closeSheet" aria-label={t('close')} className="press w-[64px] h-[64px] rounded-full bg-card shadow-soft grid place-items-center" onClick={close}>
@@ -231,17 +238,21 @@ function PriceSheet() {
 
 function IdleDialog() {
   const warnAt = useEngine((s) => s.idleWarnAt)
+  const countdownMs = useEngine((s) => s.config?.idle.countdownMs ?? 15000)
   const a = useEngine(useShallow((s) => ({ idleContinue: s.idleContinue, newOrderReset: s.newOrderReset })))
-  const cfg = E().brand.sessionSettings
-  const [, tick] = useState(0)
+  // The countdown follows config.idle (the same setting useIdle() resets on), not the brand pack.
+  const secsLeft = () => Math.max(0, Math.ceil((countdownMs - (Date.now() - (warnAt || Date.now()))) / 1000))
+  const [left, setLeft] = useState(secsLeft)
   useEffect(() => {
-    const id = setInterval(() => tick((x) => x + 1), 250)
+    const id = setInterval(() => setLeft(secsLeft()), 250)
     return () => clearInterval(id)
-  }, [])
-  const left = Math.max(0, Math.ceil((cfg.inactivityWarningMs - (Date.now() - (warnAt || Date.now()))) / 1000))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warnAt, countdownMs])
+  const ref = useRef<HTMLDivElement>(null)
+  useModal(ref, a.idleContinue)
   return (
     <div className="absolute inset-0 z-50 grid place-items-center idle-scrim" style={{ background: 'rgb(var(--c-ink)/.62)' }}>
-      <div className="bg-paper rounded-[36px] p-12 w-[800px] text-center" role="alertdialog" aria-modal="true" aria-labelledby="idleT">
+      <div ref={ref} className="bg-paper rounded-[36px] p-12 w-[800px] text-center" role="alertdialog" aria-modal="true" aria-labelledby="idleT">
         <div id="idleT" className="hd text-[54px] leading-[1.05] tracking-[.02em]">
           {t('idleT')}
         </div>
@@ -391,9 +402,12 @@ function Toast() {
   const [on, setOn] = useState(false)
   useEffect(() => {
     if (!toast) return
-    setOn(true)
-    const id = setTimeout(() => setOn(false), 1600)
-    return () => clearTimeout(id)
+    const show = setTimeout(() => setOn(true), 0)
+    const hide = setTimeout(() => setOn(false), 1600)
+    return () => {
+      clearTimeout(show)
+      clearTimeout(hide)
+    }
   }, [toast])
   // On home/menu the basket bar carries the note instead (bkNote).
   if (!toast || (screen !== 'cart' && cartCount(useEngine.getState().cart) > 0 && (screen === 'home' || screen === 'menu'))) return null

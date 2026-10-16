@@ -11,7 +11,7 @@ import { E, t, tf } from '../engine/state'
 import { useEngine } from '../store/engine'
 import { usePayState } from '../store/payment'
 import { Ic } from './primitives'
-import { TAG_ILL } from './Tag'
+import { TAG_ILL } from './tagIll'
 
 function Btn({ a, label, primary = true, onClick, disabled }: { a: string; label: string; primary?: boolean; onClick: () => void; disabled?: boolean }) {
   return (

@@ -1,6 +1,7 @@
 // Staff panel (5 taps on the logo, PIN): diagnostics, simulation switches, logs. Styled with the engine utilities.
 
-import { useEffect, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useModal } from './useModal'
 import type { SimSettings } from '../adapters/static/sim'
 import { getRuntime } from '../app/runtime'
 import { numberRange, resolveTagMode } from '../domain/orderTag'
@@ -19,6 +20,8 @@ export function StaffPanel() {
   const [authed, setAuthed] = useState(false)
   const [pin, setPin] = useState('')
   const [wrong, setWrong] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useModal(ref, () => setStaffOpen(false))
   useEffect(() => {
     if (pin.length !== 4 || authed) return
     void getRuntime()
@@ -32,7 +35,7 @@ export function StaffPanel() {
       })
   }, [pin, authed])
   return (
-    <div className="absolute inset-0 z-[600] bg-paper flex flex-col" role="dialog" aria-modal="true">
+    <div ref={ref} className="absolute inset-0 z-[600] bg-paper flex flex-col" role="dialog" aria-modal="true" aria-label="Staff">
       <div className="flex items-center justify-between px-10 py-6 bg-card shadow-soft flex-none">
         <div className="hd text-[40px] tracking-[.03em]">Staff</div>
         <button type="button" className={btn} onClick={() => setStaffOpen(false)}>
@@ -196,13 +199,9 @@ function useSim(): [SimSettings | null, (p: Partial<SimSettings>) => void, () =>
   return [settings, (p) => handle?.sim.set(p), () => handle?.sim.reset()]
 }
 
-function SimPanel() {
-  const [sim, setSim, resetSim] = useSim()
-  const handle = getRuntime().resolved.staticHandle
-  const [, force] = useState(0)
-  if (!sim || !handle) return <div className={card}>Simulation controls are only available on the static adapters.</div>
-  const Sel = <K extends keyof SimSettings>({ k, options }: { k: K; options: string[] }) => (
-    <select className={input} value={String(sim[k])} onChange={(e) => setSim({ [k]: e.target.value } as Partial<SimSettings>)}>
+function SimSelect({ k, options, value, onChange }: { k: keyof SimSettings; options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <select className={input} data-k={k} value={value} onChange={(e) => onChange(e.target.value)}>
       {options.map((o) => (
         <option key={o} value={o}>
           {o}
@@ -210,6 +209,14 @@ function SimPanel() {
       ))}
     </select>
   )
+}
+
+function SimPanel() {
+  const [sim, setSim, resetSim] = useSim()
+  const handle = getRuntime().resolved.staticHandle
+  const [, force] = useState(0)
+  if (!sim || !handle) return <div className={card}>Simulation controls are only available on the static adapters.</div>
+  const sel = (k: keyof SimSettings, options: string[]) => <SimSelect k={k} options={options} value={String(sim[k])} onChange={(v) => setSim({ [k]: v } as Partial<SimSettings>)} />
   const row = (label: string, el: React.ReactNode) => (
     <label className="flex items-center justify-between gap-4">
       <span>{label}</span>
@@ -221,17 +228,17 @@ function SimPanel() {
       <div className="col-span-2 rounded-[20px] bg-gold/25 p-5 text-[19px] font-semibold">Simulation only. Nothing here is evidence of production behaviour.</div>
       <section className={card}>
         <div className="hd text-[26px]">Terminal</div>
-        {row('Start result', <Sel k="paymentResult" options={['approved', 'declined', 'cancelled', 'timeout', 'terminal-offline', 'unknown', 'reject']} />)}
-        {row('Status lookup', <Sel k="statusResult" options={['approved', 'not-charged', 'unknown']} />)}
-        {row('Cancel result', <Sel k="cancelResult" options={['cancelled', 'approved', 'unknown']} />)}
+        {row('Start result', sel('paymentResult', ['approved', 'declined', 'cancelled', 'timeout', 'terminal-offline', 'unknown', 'reject']))}
+        {row('Status lookup', sel('statusResult', ['approved', 'not-charged', 'unknown']))}
+        {row('Cancel result', sel('cancelResult', ['cancelled', 'approved', 'unknown']))}
         {row('Delay (ms)', <input className={input} type="number" min={300} step={500} value={sim.paymentDelayMs} onChange={(e) => setSim({ paymentDelayMs: Number(e.target.value) || 300 })} />)}
       </section>
       <section className={card}>
         <div className="hd text-[26px]">POS / printer / health</div>
-        {row('POS submit', <Sel k="posResult" options={['ok', 'fail', 'no-orderno']} />)}
-        {row('Printer', <Sel k="printer" options={['ok', 'fail']} />)}
-        {row('Health', <Sel k="health" options={['ok', 'down']} />)}
-        {row('Connectivity', <Sel k="connectivity" options={['local-primary', 'local-secondary', 'cloud', 'reconnecting', 'no-authority']} />)}
+        {row('POS submit', sel('posResult', ['ok', 'fail', 'no-orderno']))}
+        {row('Printer', sel('printer', ['ok', 'fail']))}
+        {row('Health', sel('health', ['ok', 'down']))}
+        {row('Connectivity', sel('connectivity', ['local-primary', 'local-secondary', 'cloud', 'reconnecting', 'no-authority']))}
       </section>
       <section className={card}>
         <div className="hd text-[26px]">Hang (never answer → client timeout)</div>

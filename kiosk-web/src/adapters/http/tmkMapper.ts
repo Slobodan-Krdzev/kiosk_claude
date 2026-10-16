@@ -58,17 +58,27 @@ export interface TmkMapOptions {
 
 export const cents = (euros: number | null | undefined): number => Math.round((Number(euros) || 0) * 100)
 
+// Named HTML entities seen in menu texts: Latin-1 (160–255, in code-point order) plus the usual typographic ones.
+const LATIN1 = 'nbsp iexcl cent pound curren yen brvbar sect uml copy ordf laquo not shy reg macr deg plusmn sup2 sup3 acute micro para middot cedil sup1 ordm raquo frac14 frac12 frac34 iquest Agrave Aacute Acirc Atilde Auml Aring AElig Ccedil Egrave Eacute Ecirc Euml Igrave Iacute Icirc Iuml ETH Ntilde Ograve Oacute Ocirc Otilde Ouml times Oslash Ugrave Uacute Ucirc Uuml Yacute THORN szlig agrave aacute acirc atilde auml aring aelig ccedil egrave eacute ecirc euml igrave iacute icirc iuml eth ntilde ograve oacute ocirc otilde ouml divide oslash ugrave uacute ucirc uuml yacute thorn yuml'.split(' ')
+const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", euro: '€', hellip: '…', ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’', ldquo: '“', rdquo: '”', bull: '•', trade: '™', OElig: 'Œ', oelig: 'œ' }
+LATIN1.forEach((n, i) => (ENTITIES[n] = String.fromCharCode(160 + i)))
+
+/** Decode numeric and named HTML entities (`pat&eacute;` → `paté`); unknown names are left as they are. */
+export function decodeEntities(s: string): string {
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(Number(d)))
+    .replace(/&([A-Za-z][A-Za-z0-9]*);/g, (m, n) => ENTITIES[n] ?? m)
+}
+
 /** Description HTML → plain text (the kiosk never injects API HTML). */
 export function htmlToText(html: string | null | undefined): string {
-  const txt = String(html || '')
-    .replace(/<(br|\/p|\/h\d|\/li|\/div)\s*\/?>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
+  const txt = decodeEntities(
+    String(html || '')
+      .replace(/<(br|\/p|\/h\d|\/li|\/div)\s*\/?>/gi, '\n')
+      .replace(/<[^>]*>/g, ''),
+  )
+    .replace(/\u00a0/g, ' ')
     .replace(/[ \t]+/g, ' ')
     .replace(/\s*\n\s*/g, '\n')
     .trim()
@@ -238,10 +248,12 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
 
       const steps = p.HasUpsaleCollection && p.UpsaleCollectionId != null ? collectionSteps(p.UpsaleCollectionId) : []
       const desc = descOf(p)
+      const names = tr((x) => x.prod.get(p.ProductId)?.name.trim(), p.Name.trim())
       products.push({
         id: pid,
         cat: cid,
         name: p.Name.trim(),
+        ...(typeof names === 'string' ? {} : { names }),
         price: cents(p.Price),
         badges: [...badges],
         img: img([p.ProductDetails?.ProductPictureUrl, p.SmallPictureUrl].find(isPicture)),

@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/shallow'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { baseTotal, cartCount, cartTotal, rewardClaimed, rewardLeft } from '../engine/cart'
-import { alHidden, byId, catLabel, catOf, obVarCard, prodsInCards, visible } from '../engine/catalog'
+import { alHidden, byId, catLabel, catOf, homeHasContent, obVarCard, pname, prodsInCards, venueMenu, venueName, visible } from '../engine/catalog'
 import { cmsAddable, cmsFinishBlock, obwMode, presentationFor } from '../engine/cms'
 import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
@@ -59,10 +59,13 @@ export function Rail() {
   )
 
   const sb = b.sidebar
+  // API menu: the venue's logo and name, no brand photo / taglines (audit F10).
+  const venue = venueMenu()
+  const logo = venue ? E().venue!.logoImg : b.logoImg
   return (
     <nav id="railSide" className="flex-none relative z-20 flex flex-col text-cream overflow-hidden" style={{ width: b.layout.sidebarWidth, boxShadow: '16px 0 40px -18px rgba(20,17,12,.38)' }}>
-      <div className="absolute inset-0" style={{ background: sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
-        {sb.backgroundType === 'image' ? (
+      <div className="absolute inset-0" style={{ background: !venue && sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
+        {!venue && sb.backgroundType === 'image' ? (
           <img
             src={SIDEBAR_FALLBACK}
             alt=""
@@ -74,13 +77,13 @@ export function Rail() {
         {(sb.overlayOpacity ?? 0) > 0 ? <div className="absolute inset-0" style={{ background: sb.overlayColor, opacity: sb.overlayOpacity }} /> : null}
       </div>
       <div className="relative z-10 flex flex-col h-full">
-        <button type="button" data-a="attract" aria-label={b.name} className="press pt-8 pb-4 px-4 grid place-items-center flex-none" onClick={a.attract}>
-          <img src={b.logoImg} alt={b.name} style={{ height: 52, objectFit: 'contain', filter: b.logoFilter || 'invert(1) brightness(1.7)' }} />
-          <span className="hd text-[11px] tracking-[.4em] text-cream/80 mt-2">– {b.copy.logoTagline} –</span>
+        <button type="button" data-a="attract" aria-label={venue ? venueName() || t('navHome') : b.name} className="press pt-8 pb-4 px-4 grid place-items-center flex-none" onClick={a.attract}>
+          {logo ? <img src={logo} alt={venue ? venueName() : b.name} style={{ height: 52, maxWidth: '100%', objectFit: 'contain', filter: venue ? 'drop-shadow(0 2px 8px rgba(0,0,0,.6))' : b.logoFilter || 'invert(1) brightness(1.7)' }} /> : <span className="hd text-[22px] tracking-[.1em]">{venueName()}</span>}
+          {venue ? null : <span className="hd text-[11px] tracking-[.4em] text-cream/80 mt-2">– {b.copy.logoTagline} –</span>}
         </button>
         <div id="railNav" className="relative flex-none" ref={navRef}>
           <div id="railInd" ref={indRef} />
-          {row('home', 'home', {}, homeish, 'home', t('navHome'), a.home)}
+          {homeHasContent() ? row('home', 'home', {}, homeish, 'home', t('navHome'), a.home) : null}
           {b.features.loyalty ? row('rewards', 'cat', { 'data-cat': 'rewards' }, cat === 'rewards' && screen === 'menu', 'gift', t('lty_nav'), () => a.goCat('rewards')) : null}
           <div className="text-[14px] font-bold leading-[20px] tracking-[3px] uppercase pl-[22px] pt-4 pb-2 flex-none" style={{ color: 'rgb(var(--c-cream) / .58)' }}>
             {t('menuLbl')}
@@ -88,6 +91,7 @@ export function Rail() {
           {E().cats.map((c) => row(c.id, 'cat', { 'data-cat': c.id }, cat === c.id && screen === 'menu', c.icon, catLabel(c.id), () => a.goCat(c.id), !!c.two))}
         </div>
         <div className="flex-1" />
+        {venue ? null : (
         <div
           className="flex-none text-center pb-7"
           style={{ fontFamily: 'var(--f-accent)', fontSize: 30, lineHeight: 1.1, color: 'rgb(var(--c-cream))', transform: 'rotate(-4deg)', textShadow: '0 2px 12px rgba(0,0,0,.5)' }}
@@ -102,6 +106,7 @@ export function Rail() {
             ))}{' '}
           {b.copy.subIcon != null ? b.copy.subIcon : '🌿'}
         </div>
+        )}
       </div>
     </nav>
   )
@@ -135,7 +140,7 @@ export function AlFilterBtn() {
 function TopBar() {
   return (
     <div className="flex items-center justify-between px-5 pt-7 flex-none topbar">
-      <div className="text-[16px] font-semibold leading-[22px] tracking-[4px] uppercase text-mute">{E().brand.copy.tagline}</div>
+      <div className="text-[16px] font-semibold leading-[22px] tracking-[4px] uppercase text-mute">{venueMenu() ? venueName() : E().brand.copy.tagline}</div>
       <div className="flex items-center gap-3">
         <AlFilterBtn />
         <LangPills />
@@ -246,18 +251,22 @@ export function HomeMain() {
       <h1 className="hd text-[72px] leading-[72px] tracking-[1px] px-5 mt-4 flex-none">{t('homeT')}</h1>
       <div className="scroller flex-1 px-5 pt-7 pb-[220px]" ref={ref}>
         {P0 ? <PromoCard pr={P0} big /> : null}
-        <H2 txt={t('cat_popular')} seeAllCat="popular" />
-        <div className="grid" style={grid}>
-          {pops.map((p) => (
-            <ProductCard key={p.id} p={p} />
-          ))}
-        </div>
+        {pops.length ? (
+          <>
+            <H2 txt={t('cat_popular')} seeAllCat="popular" />
+            <div className="grid" style={grid}>
+              {pops.map((p) => (
+                <ProductCard key={p.id} p={p} />
+              ))}
+            </div>
+          </>
+        ) : null}
         <div className="grid grid-cols-2 gap-5 mt-10">
           {rest.map((pr) => (
             <PromoCard key={pr.pid} pr={pr} big={false} />
           ))}
         </div>
-        <H2 txt={t('newIn')} seeAllCat="new" />
+        {news.length ? <H2 txt={t('newIn')} seeAllCat="new" /> : null}
         <div className="grid" style={grid}>
           {news.map((p) => (
             <ProductCard key={p.id} p={p} />
@@ -300,11 +309,11 @@ function CompStrip({ cat }: { cat: string }) {
               <div className="rounded-xl overflow-hidden">
                 <FoodImg p={p} cls="h-[104px] w-full" em="48px" />
               </div>
-              <div className="hd text-[20px] leading-[22px] tracking-[.3px] truncate mt-2.5">{p.name}</div>
+              <div className="hd text-[20px] leading-[22px] tracking-[.3px] truncate mt-2.5">{pname(p)}</div>
             </button>
             <div className="flex items-center justify-between gap-2 mt-2">
               <span className="num text-[19px] font-extrabold tracking-[-0.2px] text-ink/85 truncate">+ {fmt(p.price)}</span>
-              <button type="button" data-a="quickAdd" aria-label={tf('addA', { name: p.name })} className="press qadd w-[56px] h-[56px] rounded-full bg-jade text-white grid place-items-center flex-none" onClick={() => a.quickAdd(p.id)}>
+              <button type="button" data-a="quickAdd" aria-label={tf('addA', { name: pname(p) })} className="press qadd w-[56px] h-[56px] rounded-full bg-jade text-white grid place-items-center flex-none" onClick={() => a.quickAdd(p.id)}>
                 <span className="qic w-6 h-6 pointer-events-none">
                   <span className="qic-p">
                     <Ic n="plus" sw={2.8} />
@@ -393,35 +402,39 @@ export function MenuMain() {
   const b = E().brand
   const c = catOf(cat)
   const filtRef = useRef<HTMLDivElement>(null)
-  const [ind, setInd] = useState<{ left: number; width: number } | null>(null)
+  const indRef = useRef<HTMLDivElement>(null)
+  // The indicator follows the active filter pill: a DOM measurement after layout, written straight to the element.
   useLayoutEffect(() => {
-    const wrap = filtRef.current
-    if (!wrap) {
-      setInd(null)
-      return
-    }
-    const btn = wrap.querySelector<HTMLElement>(`[data-f="${filter}"]`)
-    setInd(btn ? { left: btn.offsetLeft, width: btn.offsetWidth } : null)
+    const ind = indRef.current
+    const btn = filtRef.current?.querySelector<HTMLElement>(`[data-f="${filter}"]`)
+    if (!ind) return
+    if (btn) {
+      ind.style.opacity = '1'
+      ind.style.left = btn.offsetLeft + 'px'
+      ind.style.width = btn.offsetWidth + 'px'
+    } else ind.style.opacity = '0'
   }, [filter, cat])
 
   if (cat === 'rewards') return <RewardsMain />
   return (
     <>
       <TopBar />
-      <div className="absolute right-5 top-[168px] text-right hd text-[15px] tracking-[.34em] text-mute/70" style={{ lineHeight: 2.1 }}>
-        {b.copy.sideNote.split('\n').map((l, i) => (
-          <span key={i}>
-            {i > 0 ? <br /> : null}
-            {l}
-          </span>
-        ))}
-      </div>
+      {venueMenu() ? null : (
+        <div className="absolute right-5 top-[168px] text-right hd text-[15px] tracking-[.34em] text-mute/70" style={{ lineHeight: 2.1 }}>
+          {b.copy.sideNote.split('\n').map((l, i) => (
+            <span key={i}>
+              {i > 0 ? <br /> : null}
+              {l}
+            </span>
+          ))}
+        </div>
+      )}
       <h1 className="hd text-[72px] leading-[72px] tracking-[1px] px-5 mt-4 flex-none">{cat === 'new' ? t('newIn') : catLabel(cat)}</h1>
       <div className="cat-sub text-[24px] text-mute font-semibold px-5 mt-2 flex-none">{L(E().catsub[cat] || E().catsub.popular)}</div>
       {c?.filters ? (
         <div className="px-5 mt-6 flex-none">
           <div id="filtWrap" className="relative inline-flex gap-3.5" ref={filtRef}>
-            <div id="filtInd" style={ind ? { opacity: 1, left: ind.left, width: ind.width } : { opacity: 0 }} />
+            <div id="filtInd" ref={indRef} style={{ opacity: 0 }} />
             {['all', ...c.filters].map((f) => (
               <button
                 key={f}
@@ -495,7 +508,7 @@ function RewardPill() {
   return (
     <div className="flex justify-center mb-3">
       <div className="pointer-events-auto h-[52px] px-6 rounded-full bg-card shadow-soft flex items-center gap-4">
-        <span className="text-[19px] font-bold text-ink/80">{tf('rw_prog', { amt: fmt(rewardLeft(cart)), name: p.name })}</span>
+        <span className="text-[19px] font-bold text-ink/80">{tf('rw_prog', { amt: fmt(rewardLeft(cart)), name: pname(p) })}</span>
         <span className="w-[150px] h-[8px] rounded-full bg-line overflow-hidden">
           <span className="block h-full bg-gold" style={{ width: `${Math.min(100, (baseTotal(cart) / b.reward.threshold) * 100)}%` }} />
         </span>
@@ -513,9 +526,12 @@ export function BottomBar() {
   const n = cartCount(cart)
   useEffect(() => {
     if (!note) return
-    setNoteOn(true)
-    const id = setTimeout(() => setNoteOn(false), Math.max(0, (E().brand.motion.addNote ?? 900) - (E().brand.motion.fieldXfade ?? 160)))
-    return () => clearTimeout(id)
+    const show = setTimeout(() => setNoteOn(true), 0)
+    const hide = setTimeout(() => setNoteOn(false), Math.max(0, (E().brand.motion.addNote ?? 900) - (E().brand.motion.fieldXfade ?? 160)))
+    return () => {
+      clearTimeout(show)
+      clearTimeout(hide)
+    }
   }, [note])
   if (n === 0) return null
   return (

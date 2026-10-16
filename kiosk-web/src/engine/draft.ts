@@ -1,6 +1,6 @@
 // Draft (product configuration) model: creation, pricing, validation. Port of the v36 engine.
 
-import { alHidden, byId, mustId, modItem, servingOf, servingsOf, servingIx } from './catalog'
+import { alHidden, byId, mustId, modItem, servingOf, servingsOf, servingIx, pname } from './catalog'
 import { cmsById, drinkUp, priceOf } from './cms'
 import { E, L, checkProducts, t, tf } from './state'
 import { MAX_LINE_QTY, type CrossSellSel, type Draft, type ModGroup, type Product } from './types'
@@ -213,13 +213,13 @@ export const menuTotalOf = (p: Product, d: Draft): number => {
 /** Full itemised calculation for the price sheet: [label, cents, isAddition]. */
 export function priceLines(p: Product, d: Draft): [string, number, boolean][] {
   const d0 = E()
-  const rows: [string, number, boolean][] = [[p.name, p.price, false]]
+  const rows: [string, number, boolean][] = [[pname(p), p.price, false]]
   const sv = servingOf(p, d)
   if (sv && sv.price !== p.price) rows.push([L(sv.short), sv.price - p.price, true])
   if (d.menu) {
     rows.push([L(d0.upsell.menuUpgrade.title), d0.menuDeal.price, true])
     const up = drinkUp(d.drink)
-    if (up && d.drink) rows.push([mustId(d.drink).name, up, true])
+    if (up && d.drink) rows.push([pname(mustId(d.drink)), up, true])
   }
   for (const [g, cid] of Object.entries(d.choices || {})) {
     if (!cid) continue
@@ -353,13 +353,13 @@ export function unavailParts(d: Draft): UnavailPart[] {
   const na = new Set(checkProducts(includedPids(d)))
   const out: UnavailPart[] = []
   const md = E().menuDeal
-  if (na.has(d.pid)) out.push({ pid: d.pid, role: 'main', name: mustId(d.pid).name })
-  if (d.menu && na.has(md.side)) out.push({ pid: md.side, role: 'menu-side', name: mustId(md.side).name, fix: 'menu' })
-  if (d.menu && d.drink && na.has(d.drink)) out.push({ pid: d.drink, role: 'menu-drink', name: mustId(d.drink).name, fix: 'drink' })
+  if (na.has(d.pid)) out.push({ pid: d.pid, role: 'main', name: pname(mustId(d.pid)) })
+  if (d.menu && na.has(md.side)) out.push({ pid: md.side, role: 'menu-side', name: pname(mustId(md.side)), fix: 'menu' })
+  if (d.menu && d.drink && na.has(d.drink)) out.push({ pid: d.drink, role: 'menu-drink', name: pname(mustId(d.drink)), fix: 'drink' })
   ;(d.crossSells || []).forEach((x) => {
     const v = cmsById(x.id)
     const pid = v?.pid
-    if (pid && na.has(pid)) out.push({ pid, role: 'cross-sell', id: x.id, name: mustId(pid).name, fix: 'xs' })
+    if (pid && na.has(pid)) out.push({ pid, role: 'cross-sell', id: x.id, name: pname(mustId(pid)), fix: 'xs' })
   })
   stepOptionPids(d).forEach(([g, id, pid]) => {
     if (na.has(pid)) out.push({ pid, role: 'option', id, group: g, name: L(modItem(g, id).name), fix: 'option' })

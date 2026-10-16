@@ -25,7 +25,9 @@ export interface Allergens {
 export interface Product {
   id: string
   cat: string
+  /** Default-language name (also used for KDS / receipt). Display uses pname(): names in the current language. */
   name: string
+  names?: L10n
   price: number
   servings?: Serving[]
   kcal?: number

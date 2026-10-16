@@ -2,7 +2,7 @@ import { useShallow } from 'zustand/shallow'
 // Product detail page (R44 layout) + customize step. Ports of renderR44(), r44*(), vuMenuBlock(), vuDrinksBlock(), xsSection(), SCR.customize, stepDock().
 
 import { useEffect, useRef, useState } from 'react'
-import { byId, mustId, servingIx, servingsOf } from '../engine/catalog'
+import { byId, mustId, pname, servingIx, servingsOf } from '../engine/catalog'
 import { cmsById, drinkUp, priceOf } from '../engine/cms'
 import {
   activeSteps,
@@ -377,7 +377,7 @@ function DrinkUpCard({ v, d }: { v: CmsItem; d: Draft }) {
         </span>
       </div>
       <div className="p-5 pt-4 flex-1 flex flex-col w-full">
-        <div className="hd text-[26px] leading-[28px] tracking-[.03em]">{dr.name}</div>
+        <div className="hd text-[26px] leading-[28px] tracking-[.03em]">{pname(dr)}</div>
         {v.description ? <div className="text-[18px] text-mute font-medium leading-[23px] clamp2 mt-1">{L(v.description)}</div> : null}
         <div className="num text-[26px] font-extrabold mt-2">+ {fmt(priceOf(v))}</div>
         <span className="vu-cta vu-ctaS h-[68px] rounded-full grid text-[19px] font-bold mt-3">
@@ -401,7 +401,7 @@ function DrinkInclChip({ id, d }: { id: string; d: Draft }) {
   return (
     <button type="button" data-a="pickDrink" aria-pressed={on} className={`press drink-chip flex items-center gap-4 rounded-[18px] text-left ${on ? 'on' : ''}`} onClick={() => pickDrink(id)}>
       <span className="drink-chip-img flex-none">{dr.img ? <img src={dr.img} alt="" loading="lazy" decoding="async" onError={(e) => e.currentTarget.remove()} /> : <span className="text-[30px]">{dr.em}</span>}</span>
-      <span className="flex-1 min-w-0 text-[21px] font-semibold leading-[25px]">{dr.name}</span>
+      <span className="flex-1 min-w-0 text-[21px] font-semibold leading-[25px]">{pname(dr)}</span>
       <span className="drink-ck flex-none w-9 h-9 rounded-full grid place-items-center" aria-hidden="true">
         <span className="w-5 h-5">
           <Ic n="check" sw={3.2} />
@@ -441,7 +441,7 @@ function DrinksBlock({ d, vDrinks }: { d: Draft; vDrinks: CmsItem[] }) {
       <div id="drinkPicked" className="mt-6 rounded-[20px] bg-card shadow-soft px-6 py-5 flex items-center gap-5" role="status" aria-live="polite">
         <div className="flex-1 min-w-0">
           <div id="drinkPickedName" className="text-[22px] font-bold truncate">
-            {tf('drinkPickedT', { name: picked ? picked.name : '—' })}
+            {tf('drinkPickedT', { name: picked ? pname(picked) : '—' })}
           </div>
           <div className="text-[18px] text-mute font-medium mt-0.5">{t('drinkPickedS')}</div>
         </div>
@@ -667,7 +667,7 @@ function ProductPage({ p, d, xp, editing, nudge, need, hint }: { p: Product; d: 
               <HeroShot p={p} em="120px" />
             </div>
             <div className="r44-intro-t">
-              <h1 className="hd r44-name">{p.name}</h1>
+              <h1 className="hd r44-name">{pname(p)}</h1>
               <p className="r44-desc">{L(p.desc)}</p>
               <div className="hd r44-lbl" id="r44SizeLbl">
                 {sizes ? tf('r44SelSize', { size: L(sv![servingIx(p, d)].short) }) : t('r44Price')}
@@ -776,7 +776,7 @@ function CustomizeStep({ p, d, xp }: { p: Product; d: Draft; xp: Experience }) {
           </span>
           {t('back')}
         </button>
-        <div className="flex-1 min-w-0 text-center hd text-[40px] tracking-[.04em] truncate px-3">{p.name}</div>
+        <div className="flex-1 min-w-0 text-center hd text-[40px] tracking-[.04em] truncate px-3">{pname(p)}</div>
         <div className="min-w-[190px] text-right" aria-live="polite">
           <span id="pdpTot" className="bkv num text-[34px] font-extrabold text-pbright">
             <span className="bkv-c">{fmt(pdpTotal(d))}</span>
@@ -786,7 +786,7 @@ function CustomizeStep({ p, d, xp }: { p: Product; d: Draft; xp: Experience }) {
       <div className="pdp-sheet">
         <div className="px-10 pt-6 pb-3 flex-none">
           <h1 className="hd text-[56px] tracking-[.02em]">{t('customize')}</h1>
-          <div className="text-[22px] text-mute font-medium mt-1">{p.name}</div>
+          <div className="text-[22px] text-mute font-medium mt-1">{pname(p)}</div>
         </div>
         <div className="scroller flex-1 px-10 pt-4 pb-[200px]">
           {(p.mods || []).map((g) => {
@@ -926,7 +926,7 @@ export function Pdp() {
     timer.current = setTimeout(() => setNeed(null), E().brand.motion.reqHighlight ?? 1400)
   }
   return (
-    <div id="pdp" className={`pdp pdp-r44 ${vu ? 'pdp-vu' : 'pdp-mod'}`} role="dialog" aria-modal="true" aria-label={p.name}>
+    <div id="pdp" className={`pdp pdp-r44 ${vu ? 'pdp-vu' : 'pdp-mod'}`} role="dialog" aria-modal="true" aria-label={pname(p)}>
       <div className="pdp-scrim" aria-hidden="true" />
       {step === 'customize' ? <CustomizeStep p={p} d={draft} xp={xp} /> : <ProductPage p={p} d={draft} xp={xp} editing={!!editing} nudge={nudge} need={need} hint={hint} />}
     </div>

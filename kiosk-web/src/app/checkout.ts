@@ -11,7 +11,7 @@ import { E, L, setDisabled, setUnavailable } from '../engine/state'
 import type { CartLine, Product } from '../engine/types'
 import { PAY_ACTIVE, PAY_UNCERTAIN } from '../payment/states'
 import { useEngine } from '../store/engine'
-import { tagModeFor, type TagState } from '../ui/Tag'
+import { tagModeFor, type TagState } from './tag'
 import { getRuntime } from './runtime'
 
 let paying = false
