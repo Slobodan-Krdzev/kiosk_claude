@@ -8,8 +8,16 @@ and `kiosk-api-documentation.md`.
 `withLiveAdapters` on API menus, snapshot fields added (`basePriceCents`, `image`, `plu`, option `productId` /
 `name` / `priceCents`), `PaymentStartRequest.snapshot`. Tests: `tmkOrder.test.ts` (16: payload from menu 2490,
 every response row, cancel race, timeout, and the whole controller run for approve / cancel / unknown / printing
-problem / late approval). **No request was sent to the dev backend**: an order POST starts a real terminal
-payment, so the live run waits for question 4. Classification per §6. Deviations 37–40, dependencies B4, B7, B8.
+problem / late approval). Classification per §6. Deviations 37–40, dependencies B4, B7, B8.
+
+**Live 2026-10-16 (authorised by Alex):** two orders sent from Chrome to the dev backend. Both answered
+**HTTP 409 with the JSON string `"Printing problem"` about one second after the POST** — not the documented
+`{ IsSuccess, ResponseMessage }` object, and too fast for any terminal interaction. `classify()` now reads the
+message from a non-2xx body as the old kiosk effectively did, and treats "Printing problem" **without an order
+number as UNKNOWN, not as paid** (§4 row corrected). Neither the success nor the `Aborted` path was reached:
+both stay `NOT_VERIFIED_ON_REAL_INFRA`. Details: `api-samples/CreateKioskOrderWithPinPayment-live-2026-10-16.md`.
+Decision needed: implement the old kiosk's "continue without receipt" → same order with `?skip=true` (same
+`OrderGuid`), or wait for B4 / a printer on dev.
 
 ## 1. The two shapes
 
@@ -85,7 +93,7 @@ rejects (B1).
 | --- | --- | --- |
 | 2xx, `IsSuccess: true` | `approved`, `txRef = Data.IdOrder`; order no = `Data.AdditionalData` | approved → submitting (instant) → **done** with the order number, receipt printed |
 | 2xx, `IsSuccess: false`, `ResponseMessage: "Aborted"` | `cancelled` | cancelled, nothing charged, back to the cart |
-| 2xx, `IsSuccess: false`, `ResponseMessage: "Printing problem"` | **depends on the answer to Q2.** If the payment is captured and the order stored: `approved` with the order number, `printed: false` → done + "receipt could not be printed". If the order is not stored: `approved` without order number → `recovery-required` ("paid, order pending"); *Resend* re-POSTs with `skip=true` and the same `OrderGuid` — only once B4 is confirmed | |
+| "Printing problem" — in practice **HTTP 409 with the string as body**, ~1 s after the POST (live 2026-10-16) | with an order number: `approved`, `printed: false` → done + "receipt could not be printed"; without one: **UNKNOWN** (it arrived before any terminal contact, so it is not treated as paid). The old kiosk's *Resend* with `skip=true` and the same `OrderGuid` is not implemented until Q2 / B4 are answered | "payment outcome unknown, check status / assistance" |
 | 2xx, `IsSuccess: false`, any other message | **UNKNOWN** (`timeout` state) until the backend's message catalogue says which messages mean "nothing charged" (declined card, terminal offline, terminal timeout) → then `declined` / `terminal-offline` | "payment outcome unknown, check status / assistance" |
 | non-2xx | UNKNOWN | the kiosk cannot tell whether the terminal ran |
 | network error / `AbortController` timeout | UNKNOWN; a late answer is still applied once (`approveOnce`) | |

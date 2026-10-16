@@ -134,11 +134,17 @@ describe('response → outcome (order-payment-integration.md §4)', () => {
     expect(classify(200, SUCCESS, '')).toMatchObject({ kind: 'approved', orderNo: '57', idOrder: '123456', printed: true })
     expect(classify(200, { IsSuccess: false, ResponseMessage: MSG_ABORTED }, '')).toMatchObject({ kind: 'cancelled' })
     expect(classify(200, { IsSuccess: false, ResponseMessage: MSG_PRINTING, Data: { AdditionalData: 58, IdOrder: 1 } }, '')).toMatchObject({ kind: 'approved', orderNo: '58', printed: false })
-    expect(classify(200, { IsSuccess: false, ResponseMessage: MSG_PRINTING }, '')).toMatchObject({ kind: 'approved', orderNo: null, printed: false })
+    expect(classify(200, { IsSuccess: false, ResponseMessage: MSG_PRINTING }, '')).toMatchObject({ kind: 'unknown', message: MSG_PRINTING })
     expect(classify(200, { IsSuccess: false, ResponseMessage: 'Card declined' }, '')).toMatchObject({ kind: 'unknown', message: 'order: Card declined' })
     expect(classify(200, { IsSuccess: false }, '')).toMatchObject({ kind: 'unknown' })
-    expect(classify(500, null, '{"Message":"An error has occurred."}')).toMatchObject({ kind: 'unknown', message: expect.stringContaining('HTTP 500') })
+    expect(classify(500, { Message: 'An error has occurred.' }, '{"Message":"An error has occurred."}')).toMatchObject({ kind: 'unknown', message: 'order: HTTP 500 An error has occurred.' })
     expect(classify(200, null, 'not json')).toMatchObject({ kind: 'unknown' })
+    // As the dev backend really answers (live run 2026-10-16): the message is the body of a non-2xx answer.
+    expect(classify(409, 'Printing problem', '"Printing problem"')).toMatchObject({ kind: 'unknown', message: MSG_PRINTING })
+    expect(classify(409, 'Printing problem \r\n', '"Printing problem \\r\\n"')).toMatchObject({ kind: 'unknown', message: MSG_PRINTING })
+    expect(classify(409, 'Aborted', '"Aborted"')).toMatchObject({ kind: 'cancelled' })
+    expect(classify(409, 'Terminal busy', '"Terminal busy"')).toMatchObject({ kind: 'unknown', message: 'order: HTTP 409 Terminal busy' })
+    expect(classify(409, { IsSuccess: true, Data: { AdditionalData: '5' } }, '')).toMatchObject({ kind: 'unknown' }) // success is only a 2xx success
   })
 })
 
@@ -227,7 +233,7 @@ describe('TmkOrderPayment', () => {
     expect(c.posts()).toHaveLength(1) // never re-sent on its own
   })
 
-  it('"Printing problem": approved; with an order number → done but not printed; without → submit refuses (paid, order pending)', async () => {
+  it('"Printing problem": with an order number → approved, not printed; without → start rejects (UNKNOWN, as the dev backend answers it)', async () => {
     const a = api()
     const op = adapter(a)
     const p = start(op, 'ATT8')
@@ -241,9 +247,10 @@ describe('TmkOrderPayment', () => {
     const op2 = adapter(b)
     const p2 = start(op2, 'ATT9')
     await Promise.resolve()
-    b.answer(ok({ IsSuccess: false, ResponseMessage: MSG_PRINTING }))
-    expect(await p2).toEqual({ result: 'approved' })
-    await expect(op2.submit({ idempotencyKey: 'k', orderId: 'K1', attemptId: 'ATT9', txRef: 't', snapshot: snap() })).rejects.toThrow('printing-problem-no-order')
+    b.answer(ok('"Printing problem"', 409)) // exactly what kioskapi.dev answered on 2026-10-16
+    await expect(p2).rejects.toThrow('Printing problem')
+    expect(await op2.status({ attemptId: 'ATT9', orderId: 'K1' })).toEqual({ result: 'unknown' })
+    await expect(op2.submit({ idempotencyKey: 'k', orderId: 'K1', attemptId: 'ATT9', txRef: 't', snapshot: snap() })).rejects.toThrow(/no accepted order/)
   })
 
   it('is selected on API menus only: payment, POS and printer are the same instance; test mode keeps the simulation', () => {
@@ -337,21 +344,20 @@ describe('through the payment controller', () => {
     c.dispose()
   })
 
-  it('"Printing problem" without an order number: paid, order pending → recovery-required, resend refused until B4', async () => {
+  it('HTTP 409 "Printing problem" without an order number (dev backend, 2026-10-16): UNKNOWN, record kept, no re-POST, never marked paid', async () => {
     const a = api()
     const { c, store } = controller(a)
     const p = c.start(input())
     await flush()
-    a.answer(ok({ IsSuccess: false, ResponseMessage: MSG_PRINTING }))
+    a.answer(ok('"Printing problem"', 409))
     await p
     await flush()
-    expect(c.state.status).toBe('recovery-required')
-    expect(c.state.paymentConfirmed).toBe(true)
-    expect(c.state.lastError).toContain('printing-problem-no-order')
+    expect(c.state.status).toBe('timeout')
+    expect(c.state.paymentConfirmed).toBe(false)
     expect(store.read().kind).toBe('ok')
-    await c.submitRetry()
-    expect(c.state.status).toBe('recovery-required')
-    expect(a.posts()).toHaveLength(1) // no blind re-POST
+    await c.lookup()
+    expect(c.state.status).toBe('timeout')
+    expect(a.posts()).toHaveLength(1) // the old kiosk re-POSTed with skip=true here; the kiosk waits for B4 / question 2
     c.dispose()
   })
 

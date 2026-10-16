@@ -186,9 +186,7 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
   async submit(req: PosSubmitRequest): Promise<PosSubmitResult> {
     const o = this.outcomes.get(req.attemptId)
     if (!o || o.kind !== 'approved') throw new Error(`order: no accepted order for attempt ${req.attemptId}`)
-    // "Printing problem" without an order number: paid, order not confirmed. Resending with skip=true needs the
-    // backend to de-duplicate on OrderGuid (B4) — until then this stays in recovery-required for staff.
-    if (!o.orderNo) throw new Error(o.message === MSG_PRINTING ? 'printing-problem-no-order' : 'no-orderno')
+    if (!o.orderNo) throw new Error('no-orderno')
     return { orderNo: o.orderNo, duplicate: false }
   }
 
@@ -213,9 +211,9 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
     try {
       const res = await this.fetchFn(this.orderUrl(skip), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal })
       const text = await res.text()
-      let json: TmkOrderResponse | null = null
+      let json: unknown = null
       try {
-        json = text ? (JSON.parse(text) as TmkOrderResponse) : null
+        json = text ? JSON.parse(text) : null
       } catch {
         json = null
       }
@@ -231,19 +229,30 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
   }
 }
 
-/** HTTP status + body → outcome. Exported for the tests; every row of order-payment-integration.md §4 is here. */
-export function classify(status: number, json: TmkOrderResponse | null, text: string): Outcome {
+const str = (v: unknown): string | null => (v != null && String(v).trim() ? String(v).trim() : null)
+
+/**
+ * HTTP status + body → outcome. Exported for the tests; every row of order-payment-integration.md §4 is here.
+ * The old kiosk turned every non-2xx answer into `{ IsSuccess: false, ResponseMessage: <body> }` before matching
+ * the two known messages — and that is how the dev backend actually speaks: "Printing problem" arrived as
+ * **HTTP 409 with the JSON string `"Printing problem"` as body** (live run 2026-10-16, api-samples/README.md).
+ * So the message is taken from `ResponseMessage`, a bare string body, or `Message`, whatever the status.
+ */
+export function classify(status: number, json: unknown, text: string): Outcome {
   const none: Outcome = { kind: 'unknown', orderNo: null, idOrder: null, printed: false, message: null }
-  if (status < 200 || status >= 300) return { ...none, message: `order: HTTP ${status} ${text.slice(0, 200)}` }
-  if (!json || typeof json !== 'object') return { ...none, message: 'order: empty or non-JSON answer' }
-  const orderNo = json.Data?.AdditionalData != null && String(json.Data.AdditionalData).trim() ? String(json.Data.AdditionalData).trim() : null
-  const idOrder = json.Data?.IdOrder != null && String(json.Data.IdOrder).trim() ? String(json.Data.IdOrder).trim() : null
-  const message = typeof json.ResponseMessage === 'string' ? json.ResponseMessage : null
-  if (json.IsSuccess === true) return { kind: 'approved', orderNo, idOrder, printed: true, message }
+  const obj: TmkOrderResponse | null = json && typeof json === 'object' ? (json as TmkOrderResponse) : null
+  const ok = status >= 200 && status < 300
+  const message = obj ? (typeof obj.ResponseMessage === 'string' ? str(obj.ResponseMessage) : str((obj as { Message?: unknown }).Message)) : typeof json === 'string' ? str(json) : str(text)
+  const orderNo = str(obj?.Data?.AdditionalData)
+  const idOrder = str(obj?.Data?.IdOrder)
+  if (ok && obj?.IsSuccess === true) return { kind: 'approved', orderNo, idOrder, printed: true, message }
   if (message === MSG_ABORTED) return { kind: 'cancelled', orderNo: null, idOrder: null, printed: false, message }
-  // "Printing problem": the terminal ran; the card is treated as charged (never ask the guest to pay again).
-  // Whether the order was stored is the backend's answer (question 2): an order number makes it done + "not printed",
-  // no order number leaves it paid-but-pending (see submit()).
-  if (message === MSG_PRINTING) return { kind: 'approved', orderNo, idOrder, printed: false, message }
+  // "Printing problem": on the dev backend this came back in ~1 s, before any terminal contact could have happened
+  // (live runs 2026-10-16), so it must NOT count as paid. With an order number the order exists (→ done, receipt
+  // failed); without one the outcome is UNKNOWN until the backend says what state the payment is in (question 2)
+  // and whether a resend with skip=true is de-duplicated (B4). The old kiosk re-POSTed here; the kiosk does not.
+  if (message === MSG_PRINTING) return orderNo ? { kind: 'approved', orderNo, idOrder, printed: false, message } : { ...none, message: MSG_PRINTING }
+  if (!ok) return { ...none, message: `order: HTTP ${status} ${message ?? ''}`.trim() }
+  if (!obj) return { ...none, message: 'order: empty or non-JSON answer' }
   return { ...none, message: `order: ${message || 'IsSuccess false without message'}` }
 }
