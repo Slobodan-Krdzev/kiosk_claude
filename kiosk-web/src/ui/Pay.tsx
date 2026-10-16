@@ -1,21 +1,38 @@
 // Payment + success — port of SCR.pay, driven by our PaymentController state.
 
 import { useEffect, useState } from 'react'
-import { startPay } from '../app/checkout'
+import { retryPay } from '../app/checkout'
 import { getRuntime } from '../app/runtime'
 import { clearSession } from '../app/session'
+import { canSubmitWrites } from '../domain/connectivity'
 import { cartTotal } from '../engine/cart'
 import { fmt } from '../engine/money'
 import { E, t, tf } from '../engine/state'
 import { useEngine } from '../store/engine'
 import { usePayState } from '../store/payment'
 import { Ic } from './primitives'
-import { TAG_ILL } from './Tag'
+import { TAG_ILL } from './tagIll'
 
-function Btn({ a, label, primary = true, onClick }: { a: string; label: string; primary?: boolean; onClick: () => void }) {
+function Btn({ a, label, primary = true, onClick, disabled }: { a: string; label: string; primary?: boolean; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" data-a={a} onClick={onClick} className={`press h-[88px] px-10 rounded-full ${primary ? 'bg-jade text-white hd text-[24px] tracking-[.1em]' : 'bg-card shadow-soft text-[23px] font-bold'}`}>
+    <button type="button" data-a={a} onClick={onClick} disabled={disabled} aria-disabled={disabled || undefined} className={`press h-[88px] px-10 rounded-full ${primary ? 'bg-jade text-white hd text-[24px] tracking-[.1em]' : 'bg-card shadow-soft text-[23px] font-bold'}${disabled ? ' opacity-40' : ''}`}>
       {label}
+    </button>
+  )
+}
+
+/**
+ * Staff entry (PIN-protected panel) on every payment and recovery screen, so a stuck transaction can be
+ * investigated on the device without reloading or clearing storage. Audit F04 (2026-10-16).
+ */
+function StaffEntry() {
+  const setStaffOpen = useEngine((s) => s.setStaffOpen)
+  return (
+    <button type="button" data-a="staffOpen" aria-label={t('staffEntry')} className="press absolute left-8 bottom-8 h-[56px] px-5 rounded-full bg-card shadow-soft text-[17px] font-bold text-mute flex items-center gap-2" onClick={() => setStaffOpen(true)}>
+      <span className="w-5 h-5">
+        <Ic n="info" sw={2.2} />
+      </span>
+      {t('staffEntry')}
     </button>
   )
 }
@@ -110,21 +127,37 @@ function Done() {
 }
 
 export function Pay() {
+  return (
+    <div className="flex-1 flex flex-col relative min-h-0">
+      <PayPanel />
+      <StaffEntry />
+    </div>
+  )
+}
+
+function PayPanel() {
   const pay = usePayState()
   const cart = useEngine((s) => s.cart)
+  const conn = useEngine((s) => s.conn)
+  const checking = useEngine((s) => s.checking)
   const setScreen = useEngine((s) => s.setScreen)
   const ctrl = () => getRuntime().controller
   const st = pay.status
   if (st === 'done') return <Done />
   const amount = pay.snapshot ? pay.snapshot.totals.totalCents : cartTotal(cart)
   const meta = pay.txRef && st !== 'idle' ? `${t('payAttempt')} ${pay.attempt} · ${pay.txRef}` : undefined
+  // A new charge attempt needs the writable authority and runs the full preflight (retryPay → toPay).
+  const retryOk = canSubmitWrites(conn) && !checking
   const back = () => {
     ctrl().backToCart()
     setScreen('cart')
   }
+  // Identifiers staff need to reconcile the transaction at the POS / terminal.
   const ref = (
     <span className="num font-extrabold">
       {t('payRef')}: {pay.recoveryRef || '—'}
+      {pay.orderId ? ` · ${pay.orderId}` : ''}
+      {pay.attempt ? ` · ${t('payAttempt')} ${pay.attempt}` : ''}
       {pay.txRef ? ' · ' + pay.txRef : ''}
     </span>
   )
@@ -161,7 +194,7 @@ export function Pay() {
         body={t('payDeclinedB')}
         actions={
           <>
-            <Btn a="payRetry" label={t('payRetry')} onClick={() => void startPay()} />
+            <Btn a="payRetry" label={t('payRetry')} onClick={() => void retryPay()} disabled={!retryOk} />
             <Btn a="cancelPay" label={t('payBack')} primary={false} onClick={back} />
           </>
         }
@@ -177,7 +210,7 @@ export function Pay() {
         body={t('payOfflineB')}
         actions={
           <>
-            <Btn a="payRetry" label={t('payReconnect')} onClick={() => void startPay()} />
+            <Btn a="payRetry" label={t('payReconnect')} onClick={() => void retryPay()} disabled={!retryOk} />
             <Btn a="cancelPay" label={t('payBack')} primary={false} onClick={back} />
           </>
         }
@@ -195,7 +228,7 @@ export function Pay() {
         body={t('payDeclinedB')}
         actions={
           <>
-            <Btn a="payRetry" label={t('payRetry')} onClick={() => void startPay()} />
+            <Btn a="payRetry" label={t('payRetry')} onClick={() => void retryPay()} disabled={!retryOk} />
             <Btn a="cancelPay" label={t('payBack')} primary={false} onClick={back} />
           </>
         }

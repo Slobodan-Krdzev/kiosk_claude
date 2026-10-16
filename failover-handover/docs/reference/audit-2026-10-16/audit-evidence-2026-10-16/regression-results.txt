@@ -1,0 +1,256 @@
+
+ RUN  v5.0.4 /private/tmp/guestit-audit-20261016/kiosk-web
+
+stdout | src/audit.latest.test.tsx > A04 declined retry must refresh availability before starting another attempt
+[kiosk] pay.state {"from":"idle","to":"connecting","status":"connecting","orderId":"K1N5TMI-mvas8dpp-37fb5430","attemptId":"K1N5TMI-mvas8dpp-37fb5430-A1-okce0r"}
+
+stdout | src/audit.latest.test.tsx > A04 declined retry must refresh availability before starting another attempt
+[kiosk] pay.state {"from":"connecting","to":"waiting-for-card","status":"waiting-for-card","orderId":"K1N5TMI-mvas8dpp-37fb5430","attemptId":"K1N5TMI-mvas8dpp-37fb5430-A1-okce0r"}
+[kiosk] pay.state {"from":"waiting-for-card","to":"processing","status":"processing","orderId":"K1N5TMI-mvas8dpp-37fb5430","attemptId":"K1N5TMI-mvas8dpp-37fb5430-A1-okce0r"}
+[kiosk] pay.state {"from":"processing","to":"declined","status":"declined","orderId":"K1N5TMI-mvas8dpp-37fb5430","attemptId":"K1N5TMI-mvas8dpp-37fb5430-A1-okce0r"}
+
+ × src/audit.latest.test.tsx > A01 must not submit an order after unknown payment recovery 27ms
+   → expected [ { …(5) } ] to have a length of +0 but got 1
+ × src/audit.latest.test.tsx > A02 must expose a staff recovery control on assistance 21ms
+   → expected 0 to be greater than 0
+ × src/audit.latest.test.tsx > A03 must stop if authority is lost during checkout preflight 4ms
+   → expected "start" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st start call:
+
+    Array [
+      Object {
+        "lang": "nl",
+        "lines": Array [
+          Object {
+            "choices": Array [
+              Object {
+                "groupId": "gyozaN",
+                "optionIds": Array [
+                  "g4",
+                ],
+              },
+            ],
+            "extras": Array [],
+            "groupId": "G3",
+            "kind": "item",
+            "lineId": "L3",
+            "lineTotalCents": 550,
+            "productId": "gyoza",
+            "productName": "Gyoza",
+            "qty": 1,
+            "removes": Array [],
+            "servingId": "",
+            "servingName": "",
+            "unitPriceCents": 550,
+          },
+        ],
+        "loyalty": null,
+        "pricedWith": Object {
+          "catalogVersion": 36,
+        },
+        "service": "takeaway",
+        "tag": null,
+        "totals": Object {
+          "count": 1,
+          "discountCents": 0,
+          "subtotalCents": 550,
+          "totalCents": 550,
+        },
+      },
+    ]
+
+
+Number of calls: 1
+
+ × src/audit.latest.test.tsx > A04 declined retry must refresh availability before starting another attempt 73ms
+   → expected "vi.fn()" to be called at least once
+ × src/audit.latest.test.tsx > A05 must reject an unavailable selected API upsell product 30ms
+   → expected 0 to be greater than 0
+ × src/audit.latest.test.tsx > A06 product names must use API translations when switching language 23ms
+   → expected 'Nederlandse naam' to be 'English name' // Object.is equality
+ × src/audit.latest.test.tsx > A07 late loyalty response must not attach previous guest to a new order 18ms
+   → expected { id: 'previous-guest', …(2) } to be null
+ × src/audit.latest.test.tsx > A08 must detect updated premium price variants during checkout refresh 2ms
+   → expected 0 to be greater than 0
+ ✓ src/audit.latest.test.tsx > R6 regression: a sold-out included menu drink is rejected 2ms
+ ✓ src/audit.latest.test.tsx > R8 regression: editing parent quantity scales the integrated meal price 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/audit.latest.test.tsx > A01 must not submit an order after unknown payment recovery
+AssertionError: expected [ { …(5) } ] to have a length of +0 but got 1
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/audit.latest.test.tsx:54:27
+     52|  const first=ctrl();void first.c.start(snapshotInput());first.c.dispos…
+     53|  const next=ctrl(first.store);await next.c.restore();expect(next.c.sta…
+     54|  expect(next.pos.submits).toHaveLength(0)
+       |                           ^
+     55| })
+     56| it('A02 must expose a staff recovery control on assistance',async()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/audit.latest.test.tsx > A02 must expose a staff recovery control on assistance
+AssertionError: expected 0 to be greater than 0
+ ❯ src/audit.latest.test.tsx:58:49
+     56| it('A02 must expose a staff recovery control on assistance',async()=>{
+     57|  const c=ctrl();c.store.seed('invalid');await c.c.restore();attachPayS…
+     58|  expect(screen.queryAllByRole('button').length).toBeGreaterThan(0)
+       |                                                 ^
+     59| })
+     60| it('A03 must stop if authority is lost during checkout preflight',asyn…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/audit.latest.test.tsx > A03 must stop if authority is lost during checkout preflight
+AssertionError: expected "start" to not be called at all, but actually been called 1 times
+
+Received:
+
+  1st start call:
+
+    Array [
+      Object {
+        "lang": "nl",
+        "lines": Array [
+          Object {
+            "choices": Array [
+              Object {
+                "groupId": "gyozaN",
+                "optionIds": Array [
+                  "g4",
+                ],
+              },
+            ],
+            "extras": Array [],
+            "groupId": "G3",
+            "kind": "item",
+            "lineId": "L3",
+            "lineTotalCents": 550,
+            "productId": "gyoza",
+            "productName": "Gyoza",
+            "qty": 1,
+            "removes": Array [],
+            "servingId": "",
+            "servingName": "",
+            "unitPriceCents": 550,
+          },
+        ],
+        "loyalty": null,
+        "pricedWith": Object {
+          "catalogVersion": 36,
+        },
+        "service": "takeaway",
+        "tag": null,
+        "totals": Object {
+          "count": 1,
+          "discountCents": 0,
+          "subtotalCents": 550,
+          "totalCents": 550,
+        },
+      },
+    ]
+
+
+Number of calls: 1
+
+ ❯ src/audit.latest.test.tsx:64:20
+     62|  const start=vi.spyOn(rt.controller,'start').mockResolvedValue(false)
+     63|  const p=toPay();useEngine.getState().setConn({kind:'no-authority',rea…
+     64|  expect(start).not.toHaveBeenCalled()
+       |                    ^
+     65| })
+     66| it('A04 declined retry must refresh availability before starting anoth…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/audit.latest.test.tsx > A04 declined retry must refresh availability before starting another attempt
+AssertionError: expected "vi.fn()" to be called at least once
+ ❯ src/audit.latest.test.tsx:70:16
+     68|  const check=vi.spyOn(rt.adapters.availability,'check');vi.spyOn(rt.co…
+     69|  render(<Pay />);await act(async()=>{fireEvent.click(screen.getByRole(…
+     70|  expect(check).toHaveBeenCalled()
+       |                ^
+     71| })
+     72| it('A05 must reject an unavailable selected API upsell product',()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/audit.latest.test.tsx > A05 must reject an unavailable selected API upsell product
+AssertionError: expected 0 to be greater than 0
+ ❯ src/audit.latest.test.tsx:76:66
+     74|  const p=d.products.find(p=>p.id==='469180')!,draft=newDraft(p),g='up9…
+     75|  expect(item.pid).toBeTruthy();grpSet(draft,g,item.id,1);expect(valida…
+     76|  setUnavailable([item.pid!]);expect(validateDraft(draft).length).toBeG…
+       |                                                                  ^
+     77| })
+     78| it('A06 product names must use API translations when switching languag…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  src/audit.latest.test.tsx > A06 product names must use API translations when switching language
+AssertionError: expected 'Nederlandse naam' to be 'English name' // Object.is equality
+
+Expected: "English name"
+Received: "Nederlandse naam"
+
+ ❯ src/audit.latest.test.tsx:84:67
+     82|  expect(ep).toBeTruthy();np.Name='Nederlandse naam';ep.Name='English n…
+     83|  const d=mapTmkToEngine(raw,pack(),{img:u=>u});setEngine(d);setLang('e…
+     84|  expect(L(d.products.find(p=>p.id===String(np.ProductId))!.name)).toBe…
+       |                                                                   ^
+     85| })
+     86| it('A07 late loyalty response must not attach previous guest to a new …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  src/audit.latest.test.tsx > A07 late loyalty response must not attach previous guest to a new order
+AssertionError: expected { id: 'previous-guest', …(2) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "id": "previous-guest",
+  "name": "Audit guest",
+  "points": 1,
+}
+
+ ❯ src/audit.latest.test.tsx:93:38
+     91|  await act(async()=>{useEngine.getState().newOrderReset()})
+     92|  await act(async()=>{pending.resolve({id:'previous-guest',name:'Audit …
+     93|  expect(useEngine.getState().member).toBeNull()
+       |                                      ^
+     94| })
+     95|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  src/audit.latest.test.tsx > A08 must detect updated premium price variants during checkout refresh
+AssertionError: expected 0 to be greater than 0
+ ❯ src/audit.latest.test.tsx:100:63
+     98|  const cart=addToCart([],draft).cart
+     99|  rt.adapters.catalog.current=async()=>({version:37,prices:{},variants:…
+    100|  await catalogRefresh();expect(revalidatePrices(cart).length).toBeGrea…
+       |                                                               ^
+    101| })
+    102| it('R6 regression: a sold-out included menu drink is rejected',()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  8 failed | 2 passed (10)
+   Start at  11:45:43
+   Duration  1.56s (environment 60%, tests 15%, transform 10%, setup 9%, import 6%)
+

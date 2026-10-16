@@ -9,7 +9,7 @@ import {
   addToCart,
   applyEdit,
   bumpIds,
-  cartCount,
+
   hasLinked,
   line,
   obLine,
@@ -20,7 +20,7 @@ import {
   xsLinesOf,
   type RewardChange,
 } from '../engine/cart'
-import { byId, defServingIx, mustId, obBlocked, obNeedsDetail, obSizes, obVarCard, servingsOf } from '../engine/catalog'
+import { byId, defServingIx, homeHasContent, lineMax, mustId, obBlocked, obNeedsDetail, obSizes, obVarCard, pname, servingsOf } from '../engine/catalog'
 import { cmsById, experienceFor } from '../engine/cms'
 import { cfgKey, clampQty, exQty, exSet, grpSet, newDraft, stepKey, unavailParts, validateDraft, xsConflicts, xsKey, xsPortion, xsRemove, xsSel, xsSelected, xsSet, draftValid } from '../engine/draft'
 import { E, L, checkProducts, hasEngine, setAllergenFilter, setLang as engineSetLang } from '../engine/state'
@@ -33,16 +33,37 @@ export type Confirm =
   | null
   | 'idle'
   | 'availFail'
+  | 'authChanged'
   | 'crash'
   | 'cancel'
   | 'discard'
   | 'discardStep'
   | { type: 'priceChanged'; changes: { lid: string; name: string; old: number; now: number }[]; shown: string; again?: boolean }
   | { type: 'delLinked'; lid: string }
+  /** The live availability check said "sold out" when the guest tapped a product (kiosk-product-checks.md §2). */
+  | { type: 'soldOut'; name: string }
+
+/**
+ * Live availability gate (old kiosk: `checkProductAvailable` on tap / info / detail add). Installed by the app;
+ * resolves 'ok' | 'soldOut' | 'unknown'. The store asks it once per product per guest session, before the first
+ * add or product-page open; later increments of the same product are not re-checked (checkout re-checks the cart).
+ */
+export type AvailabilityGate = (pid: string) => Promise<'ok' | 'soldOut' | 'unknown'>
+let gate: AvailabilityGate | null = null
+/** Products already confirmed available in this guest session (cleared by newOrderReset and when the gate changes). */
+const verified = new Set<string>()
+export function setAvailabilityGate(g: AvailabilityGate | null): void {
+  gate = g
+  verified.clear()
+}
 
 export interface EngineState {
   ready: boolean
   bootError: string | null
+  /** The remote menu failed after the payment controller was restored: recovery runs, guests cannot order. */
+  menuError: string | null
+  /** Guest session generation: bumped on every reset. Async replies for an older generation are discarded (audit F07). */
+  sessionGen: number
   config: GuestitConfig | null
   lang: Lang
   service: Service | null
@@ -75,6 +96,10 @@ export interface EngineState {
   // misc
   heroIdx: number
   checking: boolean
+  /** Product whose live availability check is in flight (card shows a waiting state; taps are ignored meanwhile). */
+  availPending: string | null
+  /** Bumped when the sold-out set changed, so product lists and cards re-render. */
+  availVersion: number
   gtcKey: string | null
   servingSel: Record<string, number>
   note: { text: string; at: number } | null
@@ -90,6 +115,7 @@ export interface EngineState {
   // boot
   setReady(config: GuestitConfig, lang: Lang): void
   setBootError(msg: string): void
+  setMenuError(msg: string | null): void
   setConn(c: ConnectionState): void
   setStaffOpen(open: boolean): void
   setMember(m: LoyaltyMember | null): void
@@ -142,6 +168,8 @@ export interface EngineState {
   discardEdit(): void
   fixXs(id: string): void
   fixMenu(): void
+  /** Remove a sold-out upsell option from the draft (audit F06). */
+  fixOption(g: string, id: string): void
   addOrder(): void
 
   // cart
@@ -165,6 +193,8 @@ export interface EngineState {
   voucher(): void
   setConfirm(c: Confirm): void
   setChecking(b: boolean): void
+  /** The sold-out set changed outside the store (checkout refresh, live check): re-render lists. */
+  availChanged(): void
   setScreen(s: Screen): void
   setCart(cart: CartLine[]): void
 
@@ -219,6 +249,7 @@ function resetFields() {
     tagKb: 'lat' as const,
     heroIdx: 0,
     checking: false,
+    availPending: null,
     gtcKey: null,
     servingSel: {} as Record<string, number>,
     note: null,
@@ -291,13 +322,85 @@ export const useEngine = create<EngineState>((set, get) => {
     fn(next)
     set({ draft: next, lastActivity: Date.now() })
   }
+  /**
+   * Run `then` once the product is known to be available. Without a gate (static simulation) or for a product
+   * already verified this session it runs at once. One check at a time; a reply for an older guest session is
+   * discarded (rule 14). Sold out → dialog, card disappears (the engine hides sold-out products, as the old kiosk
+   * did); unknown → "could not check, try again" toast and nothing is added.
+   */
+  const guarded = (p: Product, then: () => void) => {
+    if (!gate || verified.has(p.id)) {
+      then()
+      return
+    }
+    if (get().availPending) return
+    const gen = get().sessionGen
+    set({ availPending: p.id, lastActivity: Date.now() })
+    void gate(p.id).then(
+      (r) => {
+        const s = get()
+        if (s.sessionGen !== gen) return
+        set({ availPending: null, availVersion: s.availVersion + 1 })
+        if (r === 'ok') {
+          verified.add(p.id)
+          then()
+        } else if (r === 'soldOut') set({ confirm: { type: 'soldOut', name: pname(p) }, gtcKey: null })
+        else obToast(tSafe('availUnknown'))
+      },
+      () => {
+        const s = get()
+        if (s.sessionGen !== gen) return
+        set({ availPending: null })
+        obToast(tSafe('availUnknown'))
+      },
+    )
+  }
+  const openProductNow: EngineState['openProduct'] = (p, { menu = false, editing = null, draft = null, from } = {}) => {
+    const s = get()
+    const d = draft || newDraft(p, { menu })
+    set({
+      pid: p.id,
+      from: from || (s.screen === 'home' ? 'home' : s.screen === 'cart' ? 'cart' : 'menu'),
+      draft: d,
+      editing,
+      sheet: null,
+      confirm: null,
+      draft0: cfgKey(d) + '|' + d.qty + '|' + xsKey(d),
+      pdpOpen: true,
+      pdpStep: 'product',
+      custom0: null,
+      customRestore: null,
+      lastActivity: Date.now(),
+    })
+  }
+  const addOrderNow = (p: Product) => {
+    const s = get()
+    const d = s.draft
+    if (!d || s.pid !== p.id) return
+    const clean: Draft = { ...d }
+    delete clean._more
+    delete clean._xsAsk
+    if (s.editing) {
+      const next = applyEdit(s.cart, s.editing, clean)
+      setCartV(withReward(next), { editing: null, draft: null, draft0: null })
+      set({ from: 'cart' })
+      get().closeProduct()
+      return
+    }
+    addDraft(clean, p)
+    get().closeProduct()
+    set({ note: { text: tSafe('vuAdded'), at: Date.now() } })
+  }
 
   return {
     ready: false,
     bootError: null,
+    menuError: null,
+    sessionGen: 0,
     config: null,
     lang: 'nl',
     cartVersion: 0,
+    availVersion: 0,
     conn: INITIAL_CONN,
     staffOpen: false,
     lastActivity: Date.now(),
@@ -305,9 +408,11 @@ export const useEngine = create<EngineState>((set, get) => {
 
     setReady: (config, lang) => {
       engineSetLang(lang)
+      verified.clear()
       set({ ready: true, config, lang, cat: firstCat() })
     },
     setBootError: (msg) => set({ bootError: msg }),
+    setMenuError: (menuError) => set({ menuError }),
     setConn: (conn) => set({ conn }),
     setStaffOpen: (open) => set({ staffOpen: open }),
     setMember: (member) => set({ member }),
@@ -317,8 +422,8 @@ export const useEngine = create<EngineState>((set, get) => {
       engineSetLang(lang)
       set({ lang, tagKb: lang === 'mk' ? 'cyr' : 'lat' })
     },
-    startWith: (service) => set({ service, screen: 'home', navDir: 'fwd', homeScroll: 0, lastActivity: Date.now() }),
-    home: () => set({ screen: 'home', navDir: 'fwd' }),
+    startWith: (service) => set(homeHasContent() ? { service, screen: 'home', navDir: 'fwd', homeScroll: 0, lastActivity: Date.now() } : { service, screen: 'menu', cat: firstCat(), filter: 'all', navDir: 'fwd', lastActivity: Date.now() }),
+    home: () => set(homeHasContent() ? { screen: 'home', navDir: 'fwd' } : { screen: 'menu', cat: firstCat(), filter: 'all', navDir: 'fwd' }),
     attract: () => set({ screen: 'attract', navDir: 'back', heroIdx: 0 }),
     otype: (service) => set({ service }),
     goCat: (cat) => set({ screen: 'menu', cat, filter: 'all', navDir: 'fwd' }),
@@ -335,16 +440,18 @@ export const useEngine = create<EngineState>((set, get) => {
     quickAdd: (pid) => {
       const p = byId(pid)
       if (!p || obBlocked(p)) return
-      if (quickLocked(pid)) return
       if (obNeedsDetail(p)) {
         get().openProduct(p)
         return
       }
-      const d = newDraft(p)
-      if (servingsOf(p)) d.serving = servingSelOf(pid)
-      addDraft(d, p)
-      get().gtcExpand(pid)
-      obToast(tfSafe('obAdded', { name: p.name }))
+      if (quickLocked(pid)) return
+      guarded(p, () => {
+        const d = newDraft(p)
+        if (servingsOf(p)) d.serving = servingSelOf(pid)
+        addDraft(d, p)
+        get().gtcExpand(pid)
+        obToast(tfSafe('obAdded', { name: pname(p) }))
+      })
     },
     cardInc: (pid, wide) => {
       const p = byId(pid)
@@ -352,7 +459,7 @@ export const useEngine = create<EngineState>((set, get) => {
       gtcArm(pid)
       const l = obLine(get().cart, p, wide, servingSelOf(pid))
       if (l) {
-        if (l.qty >= 20) return
+        if (l.qty >= lineMax(p)) return
         setCartV(withReward(setLineQty(get().cart, l.lid, l.qty + 1)))
         return
       }
@@ -387,11 +494,13 @@ export const useEngine = create<EngineState>((set, get) => {
       if (!(ix >= 0 && ix < sv.length)) return
       if (quickLocked(pid + ':' + ix)) return
       set((s) => ({ servingSel: { ...s.servingSel, [pid]: ix } }))
-      const d = newDraft(p)
-      d.serving = ix
-      addDraft(d, p)
-      get().gtcExpand(pid)
-      obToast(tfSafe('obAdded', { name: `${p.name} (${L(sv[ix].short)})` }))
+      guarded(p, () => {
+        const d = newDraft(p)
+        d.serving = ix
+        addDraft(d, p)
+        get().gtcExpand(pid)
+        obToast(tfSafe('obAdded', { name: `${pname(p)} (${L(sv[ix].short)})` }))
+      })
     },
     pickServing: (pid, ix, ctx) => {
       const p = byId(pid)
@@ -414,23 +523,10 @@ export const useEngine = create<EngineState>((set, get) => {
     },
 
     // ---------- product page ----------
-    openProduct: (p, { menu = false, editing = null, draft = null, from } = {}) => {
-      const s = get()
-      const d = draft || newDraft(p, { menu })
-      set({
-        pid: p.id,
-        from: from || (s.screen === 'home' ? 'home' : s.screen === 'cart' ? 'cart' : 'menu'),
-        draft: d,
-        editing,
-        sheet: null,
-        confirm: null,
-        draft0: cfgKey(d) + '|' + d.qty + '|' + xsKey(d),
-        pdpOpen: true,
-        pdpStep: 'product',
-        custom0: null,
-        customRestore: null,
-        lastActivity: Date.now(),
-      })
+    openProduct: (p, opts = {}) => {
+      // Opening from a card asks the live check first (old kiosk: info / detail open); editing a cart line does not.
+      if (opts.editing || opts.draft) openProductNow(p, opts)
+      else guarded(p, () => openProductNow(p, opts))
     },
     closeProduct: () => {
       const s = get()
@@ -512,7 +608,7 @@ export const useEngine = create<EngineState>((set, get) => {
       }),
     draftQty: (delta) =>
       mutateDraft((d) => {
-        d.qty = clampQty(d.qty + delta)
+        d.qty = clampQty(d.qty + delta, lineMax(byId(d.pid)))
       }),
     openCustomize: () => {
       const d = get().draft
@@ -550,6 +646,10 @@ export const useEngine = create<EngineState>((set, get) => {
       set({ confirm: null })
       get().closeProduct()
     },
+    fixOption: (g, id) =>
+      mutateDraft((d) => {
+        grpSet(d, g, id, 0)
+      }),
     fixXs: (id) =>
       mutateDraft((d) => {
         xsRemove(d, id)
@@ -565,22 +665,13 @@ export const useEngine = create<EngineState>((set, get) => {
       if (!draftValid(d)) return
       if (validateDraft(d).some((i) => i.code.startsWith('unavailable'))) return
       const p = mustId(s.pid)
-      const clean: Draft = { ...d }
-      delete clean._more
-      delete clean._xsAsk
-      if (s.editing) {
-        const next = applyEdit(s.cart, s.editing, clean)
-        setCartV(withReward(next), { editing: null, draft: null, draft0: null })
-        set({ from: 'cart' })
-        get().closeProduct()
+      if (p.infoOnly) return
+      // Detail-page add runs the live check too (old kiosk MealInfo add); a product opened through a card is already verified.
+      if (!s.editing) {
+        guarded(p, () => addOrderNow(p))
         return
       }
-      const lineAdded = addDraft(clean, p)
-      void lineAdded
-      const n = cartCount(get().cart)
-      void n
-      get().closeProduct()
-      set({ note: { text: tSafe('vuAdded'), at: Date.now() } })
+      addOrderNow(p)
     },
 
     // ---------- cart ----------
@@ -592,7 +683,7 @@ export const useEngine = create<EngineState>((set, get) => {
         get().delLine(lid)
         return
       }
-      if (next > 20) return
+      if (next > lineMax(byId(l.pid))) return
       setCartV(withReward(setLineQty(get().cart, lid, next)))
     },
     delLine: (lid) => {
@@ -673,6 +764,7 @@ export const useEngine = create<EngineState>((set, get) => {
     voucher: () => set({ sheet: 'voucher' }),
     setConfirm: (confirm) => set({ confirm }),
     setChecking: (checking) => set({ checking }),
+    availChanged: () => set((s) => ({ availVersion: s.availVersion + 1 })),
     setScreen: (screen) => set({ screen }),
     setCart: (cart) => setCartV(cart),
 
@@ -700,8 +792,9 @@ export const useEngine = create<EngineState>((set, get) => {
     newOrderReset: () => {
       if (gtcTimer) clearTimeout(gtcTimer)
       setAllergenFilter(new Set())
+      verified.clear()
       const s = get()
-      set({ ...resetFields(), lang: s.config?.defaultLang ?? s.lang, cartVersion: s.cartVersion + 1, lastActivity: Date.now() })
+      set({ ...resetFields(), lang: s.config?.defaultLang ?? s.lang, cartVersion: s.cartVersion + 1, sessionGen: s.sessionGen + 1, lastActivity: Date.now() })
       engineSetLang(s.config?.defaultLang ?? s.lang)
     },
     hydrate: (h) => {

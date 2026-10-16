@@ -179,6 +179,10 @@ export interface Timeouts {
   print: number
   availability: number
   health: number
+  /** Remote menu (getfullresources) at boot; a hanging menu service must never block payment recovery. */
+  menuLoad?: number
+  /** Loyalty identification from the voucher sheet. */
+  loyalty?: number
 }
 
 export interface GuestitConfig {
@@ -208,6 +212,8 @@ export interface CatalogSourceConfig {
   /** Test-mode menu endpoint; ?menu=<menuId> is appended. */
   testUrl: string
   menuId: number
+  /** Venue design file (badges, icons, cross-sells … keyed by API ids); default `venue/<menuId>.json` under the page base. */
+  designUrl?: string
 }
 
 // ---------- Order snapshot (frozen at payment start) ----------

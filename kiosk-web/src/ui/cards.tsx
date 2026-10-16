@@ -2,10 +2,10 @@ import { useShallow } from 'zustand/shallow'
 // Product cards (visual, compact, wide) and the R44 order button / inline stepper.
 
 import { obConfigs, obLine, obQty, obSizeQty, lineSummary } from '../engine/cart'
-import { alHidden, obBlocked, obHasReq, obNeedsDetail, obSizes, obVarCard, servingsOf, defServingIx } from '../engine/catalog'
+import { alHidden, lineMax, obBlocked, obHasReq, obNeedsDetail, obSizes, obVarCard, pname, servingsOf, defServingIx } from '../engine/catalog'
 import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
-import { MAX_LINE_QTY, type Product } from '../engine/types'
+import type { Product } from '../engine/types'
 import { useEngine } from '../store/engine'
 import { Badges, FoodImg, Ic } from './primitives'
 
@@ -17,7 +17,7 @@ function useServingSel(pid: string): number {
   return Number.isInteger(sel) ? Math.max(0, Math.min(sv.length - 1, sel)) : defServingIx(p)
 }
 
-export function cardPrice(p: Product, sel: number): number {
+function cardPrice(p: Product, sel: number): number {
   const sv = servingsOf(p)
   return sv ? sv[sel].price : p.price
 }
@@ -28,14 +28,24 @@ export function CardCtl({ p, size = 72, wide = false }: { p: Product; size?: num
   const gtcKey = useEngine((s) => s.gtcKey)
   const a = useEngine(useShallow((s) => ({ quickAdd: s.quickAdd, cardInc: s.cardInc, cardDec: s.cardDec, gtcExpand: s.gtcExpand, openProduct: s.openProduct })))
   const sel = useServingSel(p.id)
+  const pending = useEngine((s) => s.availPending) === p.id
   const row = size === 56
   const bl = obBlocked(p)
   const n = obQty(cart, p, wide, sel)
   const open = gtcKey === p.id
+  // Live availability check in flight for this product (kiosk API): waiting state, no second tap.
+  if (pending)
+    return (
+      <button type="button" className="ob ob-wait" disabled aria-disabled="true" aria-busy="true" aria-label={t('availCheckT')}>
+        <span className="ob-i">
+          <Ic n="clock" sw={2.4} />
+        </span>
+      </button>
+    )
   if (wide && obVarCard(p)) return n > 0 && open && !bl ? <ObStepper p={p} n={n} row={false} wide /> : null
   if (bl)
     return (
-      <button type="button" className="ob ob-off" disabled aria-disabled="true" aria-label={bl === 'filter' ? tf('obFilterA', { name: p.name }) : tf('soldOutA', { name: p.name })}>
+      <button type="button" className="ob ob-off" disabled aria-disabled="true" aria-label={bl === 'filter' ? tf('obFilterA', { name: pname(p) }) : tf('soldOutA', { name: pname(p) })}>
         <span className="ob-i">
           <Ic n={bl === 'filter' ? 'info' : 'x'} sw={2.4} />
         </span>
@@ -52,14 +62,14 @@ export function CardCtl({ p, size = 72, wide = false }: { p: Product; size?: num
     )
   if (obNeedsDetail(p))
     return (
-      <button type="button" data-a="prod" className="press ob" aria-label={tf('obChooseA', { name: p.name })} onClick={() => a.openProduct(p)}>
+      <button type="button" data-a="prod" className="press ob" aria-label={tf('obChooseA', { name: pname(p) })} onClick={() => a.openProduct(p)}>
         <span className="ob-i">
           <Ic n="chevR" sw={2.6} />
         </span>
       </button>
     )
   return (
-    <button type="button" data-a="quickAdd" className="press ob" aria-label={tf('obAddA', { name: p.name })} onClick={() => a.quickAdd(p.id)}>
+    <button type="button" data-a="quickAdd" className="press ob" aria-label={tf('obAddA', { name: pname(p) })} onClick={() => a.quickAdd(p.id)}>
       <span className="ob-i">
         <Ic n="plus" sw={2.6} />
       </span>
@@ -73,7 +83,7 @@ export function ObStepper({ p, n, row, wide }: { p: Product; n: number; row: boo
   const cardDec = useEngine((s) => s.cardDec)
   const sel = useServingSel(p.id)
   const one = n === 1
-  const atMax = n >= MAX_LINE_QTY
+  const atMax = n >= lineMax(p)
   const l = obLine(cart, p, wide, sel)
   const multi = !wide && obConfigs(cart, p) > 1
   const lab = multi && l ? lineSummary(cart, l) : ''
@@ -133,7 +143,7 @@ export function ProductCard({ p }: { p: Product }) {
       <button type="button" data-a="prod" {...prodAttrs(p)} className="press block w-full text-left" onClick={() => openProduct(p)}>
         <FoodImg p={p} cls="w-full flex-none" em="80px" style={{ height: b.layout.productImageHeight }} />
         <div className="px-[16px] pt-2">
-          <div className="hd text-[25px] leading-[27px] tracking-[.3px] clamp2 h-[54px]">{p.name}</div>
+          <div className="hd text-[25px] leading-[27px] tracking-[.3px] clamp2 h-[54px]">{pname(p)}</div>
           <div className="p-desc text-[16px] text-mute font-normal leading-[21px] clamp2 h-[42px] mt-1">{L(p.desc)}</div>
         </div>
       </button>
@@ -156,7 +166,7 @@ export function CompactCard({ p }: { p: Product }) {
       <button type="button" data-a="prod" {...prodAttrs(p)} className="press block w-full text-left" onClick={() => openProduct(p)}>
         <FoodImg p={p} cls="cp-img w-full flex-none" em="60px" />
         <div className="px-[14px] pt-2">
-          <div className="hd cp-n text-[23px] leading-[25px] tracking-[.3px] clamp2">{p.name}</div>
+          <div className="hd cp-n text-[23px] leading-[25px] tracking-[.3px] clamp2">{pname(p)}</div>
           <div className="p-desc text-[15px] text-mute font-normal leading-[20px] clamp2 mt-1 h-[40px]">{L(p.desc)}</div>
         </div>
       </button>
@@ -188,7 +198,7 @@ function ObwSizes({ p }: { p: Product }) {
             aria-disabled={dis ? true : undefined}
             data-a="obVar"
             className={`press obw-sz${q ? ' has' : ''}`}
-            aria-label={tf(q ? 'obVarAq' : 'obVarA', { name: p.name, size: L(x.short), price: fmt(x.price), q })}
+            aria-label={tf(q ? 'obVarAq' : 'obVarA', { name: pname(p), size: L(x.short), price: fmt(x.price), q })}
             onClick={() => obVar(p.id, i)}
           >
             <span className="obw-szt">
@@ -228,13 +238,13 @@ export function ProductWide({ p }: { p: Product }) {
   const tags = (p.flavour || info.flavour || []).slice(0, 3)
   return (
     <article className={`obw ob-card relative bg-card rounded-[22px] overflow-hidden shadow-soft card-in card-fast${alHidden(p) ? ' ob-flt' : ''}`}>
-      <button type="button" data-a="prod" {...prodAttrs(p)} className="press obw-img" aria-label={p.name} onClick={() => openProduct(p)}>
+      <button type="button" data-a="prod" {...prodAttrs(p)} className="press obw-img" aria-label={pname(p)} onClick={() => openProduct(p)}>
         <FoodImg p={p} cls="w-full h-full" em="80px" />
       </button>
       <Badges p={p} cls="top-3 left-3" sm />
       <div className="obw-body">
         <button type="button" data-a="prod" {...prodAttrs(p)} className="press block w-full text-left" onClick={() => openProduct(p)}>
-          <div className="hd obw-name">{p.name}</div>
+          <div className="hd obw-name">{pname(p)}</div>
           {sub ? <div className="obw-sub">{sub}</div> : null}
           <div className="obw-desc">{L(p.desc)}</div>
         </button>
@@ -274,7 +284,7 @@ export function FinishItem({ p }: { p: Product }) {
       </button>
       <div className="flex-1 min-w-0">
         <button type="button" data-a="prod" className="press block text-left w-full" onClick={() => openProduct(p)}>
-          <span className="hd block text-[20px] leading-[22px] tracking-[.03em]">{p.name}</span>
+          <span className="hd block text-[20px] leading-[22px] tracking-[.03em]">{pname(p)}</span>
         </button>
         <div className="num text-[19px] font-extrabold mt-0.5">+ {fmt(p.price)}</div>
       </div>

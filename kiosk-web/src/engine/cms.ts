@@ -15,7 +15,7 @@ export function cmsTargets(v: { target?: CmsTarget }, p: Product): boolean {
 
 export function cmsList(arr: CmsItem[] | undefined, p: Product): CmsItem[] {
   return (arr || [])
-    .filter((v) => v.enabled !== false && cmsTargets(v, p) && !(v.pid && alHidden(byId(v.pid))))
+    .filter((v) => v.enabled !== false && v.pid !== p.id && cmsTargets(v, p) && !(v.pid && alHidden(byId(v.pid))))
     .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
 }
 

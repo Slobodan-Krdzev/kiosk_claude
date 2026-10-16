@@ -1,5 +1,11 @@
 import { E, L, checkProducts, getAllergenFilter, t } from './state'
-import type { Allergens, Cat, Draft, ModItem, Product, Serving } from './types'
+import { MAX_LINE_QTY, type Allergens, type Cat, type Draft, type ModItem, type Product, type Serving } from './types'
+
+/** Largest quantity one cart line of this product may hold: the catalog's cap (API MaxAmountInAgenda) within the engine's. */
+export function lineMax(p: Product | undefined): number {
+  const cap = p?.maxQty
+  return Number.isInteger(cap) && (cap as number) >= 1 ? Math.min(MAX_LINE_QTY, cap as number) : MAX_LINE_QTY
+}
 
 export function byId(id: string | null | undefined): Product | undefined {
   if (!id) return undefined
@@ -10,6 +16,11 @@ export function mustId(id: string): Product {
   const p = byId(id)
   if (!p) throw new Error('unknown product ' + id)
   return p
+}
+
+/** Product name in the current language (API menus carry per-language names; the brand pack has one). Audit F09. */
+export function pname(p: Pick<Product, 'name' | 'names'>): string {
+  return (p.names ? L(p.names) : '') || p.name
 }
 
 export function catOf(id: string): Cat | undefined {
@@ -56,8 +67,8 @@ export function obHasReq(p: Product): boolean {
 }
 
 export function obNeedsDetail(p: Product): boolean {
-  // API catalog: upsell steps are chosen on the product page.
-  return obHasReq(p) || !!obSizes(p) || !!p.steps?.length
+  // API catalog: upsell steps are chosen on the product page; information-only products open it too (no add).
+  return obHasReq(p) || !!obSizes(p) || !!p.steps?.length || !!p.infoOnly
 }
 
 /** May show its sizes in a WIDE card. */
@@ -102,6 +113,18 @@ export type Blocked = 'filter' | 'na' | null
 
 export function obBlocked(p: Product): Blocked {
   return alHidden(p) ? 'filter' : gtcSoldOut(p) ? 'na' : null
+}
+
+/** True when the menu comes from the kiosk API: the venue's identity replaces the brand pack's on every screen (audit F10). */
+export const venueMenu = (): boolean => !!E().venue
+export const venueName = (): string => E().venue?.name || ''
+
+/** Promotions or popular / new products to show on the home screen; without them the kiosk opens on the first category (audit F08). */
+export function homeHasContent(): boolean {
+  const d = E()
+  const promos = (d.brand.promos || []).filter((pr) => byId(pr.pid) && !alHidden(byId(pr.pid)))
+  if (promos.length) return true
+  return visible(d.products.filter((p) => p.badges.includes('pop') || p.badges.includes('new'))).length > 0
 }
 
 export function prodsIn(cat: string): Product[] {

@@ -1,8 +1,8 @@
 import { useShallow } from 'zustand/shallow'
 // Order review — port of SCR.cart (+ cartInspireHTML). Loyalty (Como) box reduced to a login prompt.
 
-import { cartClashes, cartCount, hasCat, lineSummary, lineUnit, validateCart, type PriceChange } from '../engine/cart'
-import { byId, mustId } from '../engine/catalog'
+import { cartClashes, cartCount, hasCat, lineSummary, lineUnit, validateCart } from '../engine/cart'
+import { byId, lineMax, pname } from '../engine/catalog'
 import { cmsAddable, cmsBlocks } from '../engine/cms'
 import { firstIncomplete, lineNeedsChoice, unavailParts, validateLineStructure } from '../engine/draft'
 import { fmt } from '../engine/money'
@@ -36,7 +36,7 @@ function CartInspire() {
             <FoodImg p={p} cls="h-full" em="44px" />
           </button>
           <div className="flex-1 min-w-0">
-            <div className="hd text-[23px] leading-[25px] tracking-[.03em]">{p.name}</div>
+            <div className="hd text-[23px] leading-[25px] tracking-[.03em]">{pname(p)}</div>
             <div className="p-desc text-[18px] text-mute font-medium leading-[23px] clamp2">{L(p.desc)}</div>
             <div className="num text-[21px] font-extrabold mt-1">+ {fmt(p.price)}</div>
           </div>
@@ -73,13 +73,13 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
         {img()}
         <div className="flex-1 min-w-0 py-1">
           <div className="flex items-center gap-3">
-            <div className="hd text-[25px] tracking-[.03em]">{p.name}</div>
+            <div className="hd text-[25px] tracking-[.03em]">{pname(p)}</div>
             <span className="badge b-dea">🎁 {t('giftLabel')}</span>
           </div>
           <div className="text-[19px] text-mute font-semibold mt-1">{t('giftFixed')}</div>
           <div className="num text-[24px] font-extrabold mt-1">{fmt(0)}</div>
           <button type="button" data-a="delLine" className="press mt-3 h-[56px] px-5 rounded-full bg-card shadow-soft text-[19px] font-bold text-ink/70" onClick={() => a.delLine(l.lid)}>
-            {tf('removeA', { name: p.name })}
+            {tf('removeA', { name: pname(p) })}
           </button>
         </div>
       </div>
@@ -88,7 +88,7 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
     return (
       <div className="flex gap-6 p-5 rounded-[26px] mb-4 line-na" role="group" aria-label={t('lineInvalid')}>
         <div className="flex-1 min-w-0 py-1">
-          <div className="hd text-[25px] tracking-[.03em] line-through text-ink/60">{p ? p.name : l.pid}</div>
+          <div className="hd text-[25px] tracking-[.03em] line-through text-ink/60">{p ? pname(p) : l.pid}</div>
           <div className="text-[19px] text-ink/80 font-medium mt-1">{t('lineInvalid')}</div>
           <button type="button" data-a="delLine" className="press mt-3 h-[64px] px-6 rounded-full bg-ember text-white text-[20px] font-bold" onClick={() => a.delLine(l.lid)}>
             {t('unavailRemove')}
@@ -102,7 +102,7 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
       <div className="flex gap-6 p-5 rounded-[26px] mb-4 line-need" role="group">
         {img()}
         <div className="flex-1 min-w-0 py-1">
-          <div className="hd text-[25px] tracking-[.03em]">{p.name}</div>
+          <div className="hd text-[25px] tracking-[.03em]">{pname(p)}</div>
           <button type="button" data-a="editLine" className="press mt-2 h-[64px] px-6 rounded-full bg-ember text-white text-[20px] font-bold" onClick={() => a.editLine(l.lid)}>
             {tf('needChoice', { label: L(E().mods[g].label).toLowerCase() })}
           </button>
@@ -115,7 +115,7 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
       <div className="flex gap-6 p-5 rounded-[26px] mb-4 line-na" role="group" aria-label={t('unavailT')}>
         {img('opacity-50')}
         <div className="flex-1 min-w-0 py-1">
-          <div className="hd text-[25px] tracking-[.03em] line-through text-ink/60">{p.name}</div>
+          <div className="hd text-[25px] tracking-[.03em] line-through text-ink/60">{pname(p)}</div>
           <div className="hd text-[20px] tracking-[.06em] text-ember mt-1">{t('unavailT')}</div>
           <div className="text-[19px] text-ink/80 font-medium mt-1">{t('unavailB')}</div>
           <button type="button" data-a="delLine" className="press mt-3 h-[64px] px-6 rounded-full bg-ember text-white text-[20px] font-bold" onClick={() => a.delLine(l.lid)}>
@@ -128,7 +128,7 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
     <div className="flex gap-6 p-5 bg-card rounded-[26px] mb-4 shadow-soft">
       {img()}
       <div className="flex-1 min-w-0 py-1">
-        <div className="hd text-[25px] tracking-[.03em]">{p.name}</div>
+        <div className="hd text-[25px] tracking-[.03em]">{pname(p)}</div>
         {sum ? <div className="text-[19px] text-mute font-medium leading-snug clamp2 mt-1">{sum}</div> : null}
         <div className="flex items-center gap-8 mt-3">
           {l.lineType === 'cross-sell' ? (
@@ -148,7 +148,7 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
           {fmt(lineUnit(l) * l.qty)}
         </div>
         <span id={`ls-${l.lid}`}>
-          <Stepper qty={l.qty} onDelta={(d) => a.cartQty(l.lid, d)} h={72} name={p.name} />
+          <Stepper qty={l.qty} onDelta={(d) => a.cartQty(l.lid, d)} h={72} name={pname(p)} max={lineMax(p)} />
         </span>
       </div>
     </div>
@@ -281,5 +281,3 @@ export function Cart() {
   )
 }
 
-export type { PriceChange }
-export { mustId }

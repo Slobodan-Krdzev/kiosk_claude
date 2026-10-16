@@ -33,7 +33,8 @@
     "posSubmit": 15000,
     "print": 10000,
     "availability": 8000,
-    "health": 5000
+    "health": 5000,
+    "menuLoad": 20000
   },
   "uncertainMs": 120000,
   "idle": { "warnAfterMs": 60000, "countdownMs": 15000 },

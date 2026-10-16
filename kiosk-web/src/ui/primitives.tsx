@@ -122,14 +122,17 @@ export function Stepper({
   h = 72,
   keepMin = false,
   name,
+  max = MAX_LINE_QTY,
 }: {
   qty: number
   onDelta: (d: number) => void
   h?: number
   keepMin?: boolean
   name?: string
+  /** Per-product cap (lineMax); defaults to the engine's limit. */
+  max?: number
 }) {
-  const atMax = qty >= MAX_LINE_QTY
+  const atMax = qty >= Math.min(max, MAX_LINE_QTY)
   const atMin = qty <= 1
   const minIcon = atMin && !keepMin ? 'trash' : 'minus'
   return (

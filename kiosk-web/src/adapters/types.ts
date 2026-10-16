@@ -62,8 +62,14 @@ export interface PrinterAdapter {
   print(req: { orderNo: string; snapshot: OrderSnapshot }): Promise<{ printed: boolean }>
 }
 
+export interface AvailabilityResult {
+  unavailableIds: string[]
+  /** Products whose availability could not be determined (error, timeout). Never treated as available. */
+  unknownIds?: string[]
+}
+
 export interface AvailabilityAdapter {
-  check(productIds: string[]): Promise<{ unavailableIds: string[] }>
+  check(productIds: string[]): Promise<AvailabilityResult>
 }
 
 export interface CatalogAdapter {

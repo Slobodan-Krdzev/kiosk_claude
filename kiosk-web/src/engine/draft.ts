@@ -1,11 +1,11 @@
 // Draft (product configuration) model: creation, pricing, validation. Port of the v36 engine.
 
-import { alHidden, byId, mustId, modItem, servingOf, servingsOf, servingIx } from './catalog'
+import { alHidden, byId, lineMax, mustId, modItem, servingOf, servingsOf, servingIx, pname } from './catalog'
 import { cmsById, drinkUp, priceOf } from './cms'
 import { E, L, checkProducts, t, tf } from './state'
 import { MAX_LINE_QTY, type CrossSellSel, type Draft, type ModGroup, type Product } from './types'
 
-export const clampQty = (n: number): number => Math.max(1, Math.min(MAX_LINE_QTY, n | 0))
+export const clampQty = (n: number, max: number = MAX_LINE_QTY): number => Math.max(1, Math.min(MAX_LINE_QTY, max, n | 0))
 
 export function defChoice(g: string): string | null {
   const grp = E().mods[g]
@@ -213,13 +213,13 @@ export const menuTotalOf = (p: Product, d: Draft): number => {
 /** Full itemised calculation for the price sheet: [label, cents, isAddition]. */
 export function priceLines(p: Product, d: Draft): [string, number, boolean][] {
   const d0 = E()
-  const rows: [string, number, boolean][] = [[p.name, p.price, false]]
+  const rows: [string, number, boolean][] = [[pname(p), p.price, false]]
   const sv = servingOf(p, d)
   if (sv && sv.price !== p.price) rows.push([L(sv.short), sv.price - p.price, true])
   if (d.menu) {
     rows.push([L(d0.upsell.menuUpgrade.title), d0.menuDeal.price, true])
     const up = drinkUp(d.drink)
-    if (up && d.drink) rows.push([mustId(d.drink).name, up, true])
+    if (up && d.drink) rows.push([pname(mustId(d.drink)), up, true])
   }
   for (const [g, cid] of Object.entries(d.choices || {})) {
     if (!cid) continue
@@ -277,8 +277,18 @@ export interface Issue {
   lid?: string
 }
 
+/** Selected upsell-step options that are backed by a product (API catalog): [group, optionId, productId]. */
+export const stepOptionPids = (d: Draft): [string, string, string][] =>
+  (d.extras || []).flatMap(([g, id]) => {
+    if (!isStep(g)) return []
+    const pid = E().mods[g]?.items.find((i) => i.id === id)?.pid
+    return pid ? [[g, id, pid] as [string, string, string]] : []
+  })
+
+/** Every product a configured line depends on: main product, menu parts, cross-sells and upsell options (audit F06). */
 export const includedPids = (d: Draft): string[] => [
   d.pid,
+  ...stepOptionPids(d).map(([, , pid]) => pid),
   ...(d.menu ? [E().menuDeal.side, d.drink].filter((x): x is string => !!x) : []),
   ...((d.crossSells || []).map((x) => cmsById(x.id)?.pid).filter((x): x is string => !!x) as string[]),
 ]
@@ -312,7 +322,8 @@ export function validateDraft(d: Draft, { availability = true }: { availability?
     if (groupUnmet(d, g)) issues.push({ code: 'required-choice', group: g })
   })
   if (d.menu && !d.drink) issues.push({ code: 'menu-drink' })
-  if (!(Number.isInteger(d.qty) && d.qty >= 1 && d.qty <= MAX_LINE_QTY)) issues.push({ code: 'qty' })
+  if (p.infoOnly) issues.push({ code: 'info-only' })
+  if (!(Number.isInteger(d.qty) && d.qty >= 1 && d.qty <= lineMax(p))) issues.push({ code: 'qty' })
   ;(d.crossSells || []).forEach((x) => {
     if (!Number.isInteger(x.quantity) || x.quantity < 1 || x.quantity > MAX_LINE_QTY) issues.push({ code: 'qty', xs: x.id })
   })
@@ -332,25 +343,35 @@ export const firstIncomplete = (d: Draft): string | null => {
 
 export interface UnavailPart {
   pid: string
-  role: 'main' | 'menu-side' | 'menu-drink' | 'cross-sell'
+  role: 'main' | 'menu-side' | 'menu-drink' | 'cross-sell' | 'option'
   name: string
   id?: string
-  fix?: 'menu' | 'drink' | 'xs'
+  group?: string
+  fix?: 'menu' | 'drink' | 'xs' | 'option'
 }
 
 export function unavailParts(d: Draft): UnavailPart[] {
   const na = new Set(checkProducts(includedPids(d)))
   const out: UnavailPart[] = []
   const md = E().menuDeal
-  if (na.has(d.pid)) out.push({ pid: d.pid, role: 'main', name: mustId(d.pid).name })
-  if (d.menu && na.has(md.side)) out.push({ pid: md.side, role: 'menu-side', name: mustId(md.side).name, fix: 'menu' })
-  if (d.menu && d.drink && na.has(d.drink)) out.push({ pid: d.drink, role: 'menu-drink', name: mustId(d.drink).name, fix: 'drink' })
+  if (na.has(d.pid)) out.push({ pid: d.pid, role: 'main', name: pname(mustId(d.pid)) })
+  if (d.menu && na.has(md.side)) out.push({ pid: md.side, role: 'menu-side', name: pname(mustId(md.side)), fix: 'menu' })
+  if (d.menu && d.drink && na.has(d.drink)) out.push({ pid: d.drink, role: 'menu-drink', name: pname(mustId(d.drink)), fix: 'drink' })
   ;(d.crossSells || []).forEach((x) => {
     const v = cmsById(x.id)
     const pid = v?.pid
-    if (pid && na.has(pid)) out.push({ pid, role: 'cross-sell', id: x.id, name: mustId(pid).name, fix: 'xs' })
+    if (pid && na.has(pid)) out.push({ pid, role: 'cross-sell', id: x.id, name: pname(mustId(pid)), fix: 'xs' })
+  })
+  stepOptionPids(d).forEach(([g, id, pid]) => {
+    if (na.has(pid)) out.push({ pid, role: 'option', id, group: g, name: L(modItem(g, id).name), fix: 'option' })
   })
   return out
+}
+
+/** An upsell option whose product is sold out / disabled cannot be picked (and is shown as such). */
+export function optionUnavailable(g: string, id: string): boolean {
+  const pid = E().mods[g]?.items.find((i) => i.id === id)?.pid
+  return !!pid && checkProducts([pid]).length > 0
 }
 
 export function blockReason(d: Draft): string {

@@ -1,17 +1,28 @@
-# Guestit Kiosk (web) — DADAWAN design
+# Guestit Kiosk (web) — v36 design
 
-React + TypeScript self-service kiosk that reproduces the Guestit white-label kiosk engine v36 (DADAWAN brand)
+React + TypeScript self-service kiosk that reproduces the Guestit white-label kiosk engine v36 (DADAWAN design)
 on top of the failover-safe payment core from `../failover-handover/`.
 
-Today it runs on **static JSON fixtures** (`public/mock/`) behind an adapter interface. Later the same UI runs inside
-the Guestit Launcher (Kotlin WebView), which injects `window.GuestitAdapters`, or against an HTTP backend.
+The **menu comes from the kiosk API** (`getfullresources`, see `../failover-handover/docs/reference/api-samples/README.md`),
+selected with `public/mock/config.json → catalogSource` or `?source=api|test|static` / `?testMode=true&menuId=<n>`.
+On an API menu, **product availability is checked live** (`checkProductAvailable`, one request per product: on the
+first add or product-page open, and again for the whole cart before any charge; `src/adapters/http/tmkLive.ts`,
+`src/app/availability.ts`). The API has no price endpoint, so prices are never re-checked client-side
+(`../failover-handover/status/BACKEND-DEPENDENCIES.md`). Design data the API does not carry (popular/new badges,
+sidebar icons, subtitles, cross-sells, finish strips, reward) comes from the **venue design file**
+`public/venue/<menuId>.json` (`src/adapters/http/venueDesign.ts`, format in
+`../failover-handover/docs/reference/venue-design-layer.md`); promo cards come from the API's `IsPromotion` window.
+Everything else (terminal, POS, printer, loyalty,
+connectivity) still runs on the **static simulation** in `src/adapters/static/` behind the `GuestitAdapters`
+interface — that is a development stand-in, not a production integration. Later the same UI runs inside the Guestit Launcher (Kotlin WebView), which injects
+`window.GuestitAdapters`, or against the HTTP backend.
 
 ## Run
 
 ```bash
 npm install
 npm run dev        # open the printed URL; a portrait window shows the kiosk edge to edge, landscape shows the scaled device
-npm test           # 39 unit tests: payment state machine, engine pricing/cart, order tag, persistence
+npm test           # unit tests: payment state machine, engine pricing/cart, API menu mapper, audit regressions, order tag, persistence
 npm run build      # dist/ (relative paths, ES2018 for older WebViews)
 ```
 
@@ -29,8 +40,8 @@ src/engine/              pure port of the engine logic: catalog, pricing, draft/
 src/store/engine.ts      kiosk state + actions (the engine's S / ACT) on Zustand
 src/ui/                  screens as JSX with the engine's class names: Attract, shell (rail/home/menu), cards, Pdp (R44), Cart, Tag, Pay, Overlays, Stage, StaffPanel
 src/payment/             PaymentController (v36 state machine), durable paid-order record
-src/adapters/            GuestitAdapters interface; static/ = JSON fixtures + simulated terminal, POS, printer, connectivity
-src/app/                 boot (App.tsx), checkout preflight, runtime singletons, session persistence
+src/adapters/            GuestitAdapters interface; http/ = kiosk API menu (catalog source, mapper, image proxy URL); static/ = fixtures + simulated terminal, POS, printer, connectivity
+src/app/                 boot (App.tsx: payment recovery before the menu), checkout preflight (one path for every charge), runtime singletons, session persistence, order-tag logic
 ```
 
 ## Design parity rules

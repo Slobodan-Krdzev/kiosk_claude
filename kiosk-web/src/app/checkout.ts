@@ -2,29 +2,60 @@
 // The payment itself is our PaymentController (persist before pay, one attempt id per charge, same key on retry).
 
 import { withTimeout } from '../adapters/withTimeout'
-import { canSubmitWrites } from '../domain/connectivity'
+import { canSubmitWrites, type ConnectionState } from '../domain/connectivity'
 import type { OrderSnapshot, SnapshotLine } from '../domain/types'
 import { applyRevalidatedPrices, lineUnit, priceStamp, revalidatePrices, validateCart } from '../engine/cart'
 import { byId, mustId, servingOf, servingsOf } from '../engine/catalog'
-import { exQty } from '../engine/draft'
-import { E, L, setDisabled, setUnavailable } from '../engine/state'
+import { cmsById } from '../engine/cms'
+import { exQty, includedPids } from '../engine/draft'
+import { E, L, patchUnavailable, setDisabled } from '../engine/state'
 import type { CartLine, Product } from '../engine/types'
 import { PAY_ACTIVE, PAY_UNCERTAIN } from '../payment/states'
 import { useEngine } from '../store/engine'
-import { tagModeFor, type TagState } from '../ui/Tag'
+import { tagModeFor, type TagState } from './tag'
 import { getRuntime } from './runtime'
 
 let paying = false
+/** Version of the last successful catalog refresh; frozen into every snapshot (pricedWith). */
+let catalogVersion = 0
 
-/** Live catalog sync (availability + current prices). Never touches a started or paid snapshot. */
-export async function catalogRefresh(): Promise<boolean> {
+/** Identity of the writable authority the device believes in; a change during preflight invalidates the preflight. */
+const connKey = (c: ConnectionState): string => (c.kind === 'connected' ? `${c.role}:${c.nodeId}:${c.epoch}` : c.kind)
+
+/** Every product the cart depends on: lines, picked upsell options, menu parts and cross-sells. */
+export function cartPids(cart: CartLine[]): string[] {
+  const ids = new Set<string>()
+  for (const l of cart) {
+    if (l.reward) continue
+    if (l.lineType === 'cross-sell') {
+      const pid = (l.xsId && cmsById(l.xsId)?.pid) || l.pid
+      if (pid) ids.add(pid)
+      continue
+    }
+    includedPids(l).forEach((id) => ids.add(id))
+  }
+  return [...ids]
+}
+
+/**
+ * Live catalog sync (availability + current prices). Never touches a started or paid snapshot.
+ * Checks the products the cart depends on (the kiosk API answers one product per request, kiosk-product-checks.md
+ * §2); `ids` widens that, e.g. the whole menu on the static simulation. A product whose availability is UNKNOWN
+ * makes the refresh fail: the kiosk never charges on an unverified cart.
+ */
+export async function catalogRefresh(ids?: string[]): Promise<boolean> {
   const rt = getRuntime()
   const { adapters } = rt.resolved
   const cfg = rt.config
   try {
-    const want = E().products.map((p) => p.id)
+    const want = ids ?? cartPids(useEngine.getState().cart)
     const na = await withTimeout(adapters.availability.check(want), cfg.timeouts.availability, 'availability')
-    setUnavailable(na.unavailableIds)
+    patchUnavailable(want, na.unavailableIds)
+    useEngine.getState().availChanged()
+    if (na.unknownIds?.length) {
+      rt.log('availability.unknown', { ids: na.unknownIds })
+      return false
+    }
     const cur = await withTimeout(adapters.catalog.current(), cfg.timeouts.availability, 'catalog')
     for (const [pid, cents] of Object.entries(cur.prices || {})) {
       const p = byId(pid)
@@ -33,7 +64,13 @@ export async function catalogRefresh(): Promise<boolean> {
       p.price = cents
       servingsOf(p)?.forEach((s) => (s.price += delta))
     }
+    // Price variants (premium menu drinks, cross-sell prices) are pricing inputs too (audit F11).
+    for (const [id, cents] of Object.entries(cur.variants || {})) {
+      const pv = E().priceVariants[id]
+      if (pv && typeof cents === 'number') pv.price = cents
+    }
     setDisabled(cur.disabled || [])
+    if (typeof cur.version === 'number') catalogVersion = cur.version
     return true
   } catch (e) {
     rt.log('catalog.refreshFailed', { error: String(e) })
@@ -48,6 +85,11 @@ function tagNeeded(): boolean {
 
 const cartSig = (cart: CartLine[]) => JSON.stringify(cart.map((l) => [l.lid, l.qty, l.unitPrice]))
 
+/**
+ * The ONE preflight before any charge (first attempt and every "try again"): writable authority, cart valid,
+ * order tag, fresh availability + prices, authority unchanged after the awaits, then startPay().
+ * Audit F02/F03 (2026-10-16).
+ */
 export async function toPay(): Promise<void> {
   const s = useEngine.getState()
   const rt = getRuntime()
@@ -61,12 +103,19 @@ export async function toPay(): Promise<void> {
   }
   paying = true
   const sig = cartSig(s.cart)
+  const auth = connKey(s.conn)
   try {
     s.setChecking(true)
     const ok = await catalogRefresh()
     const s2 = useEngine.getState()
     s2.setChecking(false)
     if (sig !== cartSig(s2.cart)) return
+    if (connKey(s2.conn) !== auth) {
+      // The authority changed while we were checking: the answers came from the old writer. Re-resolve, never proceed.
+      rt.log('checkout.authorityChanged', { from: auth, to: connKey(s2.conn) })
+      s2.setConfirm('authChanged')
+      return
+    }
     if (!ok) {
       s2.setConfirm('availFail')
       return
@@ -88,6 +137,11 @@ export async function availRetry(): Promise<void> {
   useEngine.getState().setConfirm(null)
   await toPay()
 }
+
+/** "Try again" after declined / cancelled / terminal-offline: the same preflight as the first attempt. */
+export async function retryPay(): Promise<void> {
+  await toPay()
+}
 export function availBack(): void {
   useEngine.getState().setConfirm(null)
 }
@@ -100,6 +154,11 @@ export async function priceConfirm(): Promise<void> {
   if (priceStamp(now) !== conf.shown) {
     s.setConfirm(now.length ? { type: 'priceChanged', changes: now, shown: priceStamp(now), again: true } : null)
     if (!now.length) await toPay()
+    return
+  }
+  if (!canSubmitWrites(s.conn)) {
+    getRuntime().log('checkout.authorityLost', { at: 'priceConfirm' })
+    s.setConfirm('authChanged')
     return
   }
   s.setCart(applyRevalidatedPrices(s.cart))
@@ -128,6 +187,11 @@ export async function startPay(): Promise<void> {
   const rt = getRuntime()
   if (!rt.controller.canRetryPayment()) return
   if (!s.cart.length) return
+  // Charge boundary: the authority is checked again right here, after every await of the preflight.
+  if (!canSubmitWrites(s.conn)) {
+    rt.log('pay.refusedNoAuthority', { conn: s.conn.kind })
+    return
+  }
   s.setScreen('pay')
   const snapshot = buildSnapshot(s.cart, s.service === 'eatin' ? 'eat-in' : 'takeaway', s.lang, s.tag, s.member?.id ?? null)
   const started = await rt.controller.start(snapshot)
@@ -169,6 +233,6 @@ export function buildSnapshot(cart: CartLine[], service: 'eat-in' | 'takeaway', 
     tag,
     totals: { subtotalCents: subtotal, discountCents: 0, totalCents: subtotal, count: cart.reduce((a, l) => a + l.qty, 0) },
     loyalty: memberId ? { memberId } : null,
-    pricedWith: { catalogVersion: 36 },
+    pricedWith: { catalogVersion },
   }
 }

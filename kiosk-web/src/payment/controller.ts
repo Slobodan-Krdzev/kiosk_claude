@@ -8,6 +8,8 @@
 //  - a timeout is UNKNOWN, never failure; the guest is never asked to pay again automatically
 //  - the idempotency key IDEMP-<orderId> never changes across retries or restarts
 //  - the cart is cleared only after the POS accepted the order
+//  - an order is submitted only after the payment was CONFIRMED (provider approval, or a restored record that was
+//    written after approval); unknown / unreadable recovery records never submit and never start a new charge
 
 import type { PaymentAdapter, PaymentStartResult, PosAdapter, PrinterAdapter } from '../adapters/types'
 import { withTimeout } from '../adapters/withTimeout'
@@ -26,6 +28,8 @@ export interface PayState {
   attemptId: string | null
   txRef: string | null
   txRefGenerated: boolean
+  /** True only after provider approval (or a restored record written after approval). Required for any POS submit. */
+  paymentConfirmed: boolean
   submitKey: string | null
   recoveryRef: string | null
   snapshot: OrderSnapshot | null
@@ -65,6 +69,7 @@ function initialState(session: string): PayState {
     attemptId: null,
     txRef: null,
     txRefGenerated: false,
+    paymentConfirmed: false,
     submitKey: null,
     recoveryRef: null,
     snapshot: null,
@@ -190,7 +195,7 @@ export class PaymentController {
 
   private clearAttemptData(): void {
     this.deps.store.clear()
-    this.set({ snapshot: null, txRef: null, txRefGenerated: false, uncertainReason: null, assistanceNeeded: false, lastError: null })
+    this.set({ snapshot: null, txRef: null, txRefGenerated: false, paymentConfirmed: false, uncertainReason: null, assistanceNeeded: false, lastError: null })
   }
 
   // ---------- timers ----------
@@ -265,6 +270,7 @@ export class PaymentController {
       submitKey,
       txRef: null,
       txRefGenerated: false,
+      paymentConfirmed: false,
       recoveryRef: null,
       uncertainReason: null,
       assistanceNeeded: false,
@@ -422,6 +428,7 @@ export class PaymentController {
     this.set({
       txRef: ref,
       txRefGenerated: !clean,
+      paymentConfirmed: true,
       snapshot: this.s.snapshot ? { ...this.s.snapshot, paidAt: new Date().toISOString() } : this.s.snapshot,
       assistanceNeeded: false,
       uncertainReason: null,
@@ -431,18 +438,25 @@ export class PaymentController {
     void this.submitOrder()
   }
 
-  /** Submit (or re-submit) the paid order with the SAME idempotency key. */
+  /** A POS submit is allowed only for a confirmed payment with all identifiers present. */
+  canSubmitOrder(): boolean {
+    const { status: st, paymentConfirmed, attemptId, submitKey, orderId, txRef, snapshot } = this.s
+    return (st === 'approved' || st === 'recovery-required') && paymentConfirmed && !!attemptId && !!submitKey && !!orderId && !!txRef && !!snapshot
+  }
+
+  /** Submit (or re-submit) the CONFIRMED-paid order with the SAME idempotency key. Never from an unknown outcome. */
   async submitOrder(): Promise<void> {
-    const st = this.s.status
-    if (st !== 'approved' && st !== 'recovery-required' && st !== 'assistance') return
-    const { orderSession: session, attemptId: att, submitKey, orderId, txRef, snapshot } = this.s
-    if (!att || !submitKey || !orderId || !snapshot) return
+    if (!this.canSubmitOrder()) {
+      this.log('pay.submitRefused', { paymentConfirmed: this.s.paymentConfirmed })
+      return
+    }
+    const { orderSession: session, attemptId: att, submitKey, orderId, txRef, snapshot } = this.s as PayState & { attemptId: string; submitKey: string; orderId: string; txRef: string; snapshot: OrderSnapshot }
     if (!this.go('submitting')) return
     this.persist('submitting')
     let r
     try {
       r = await withTimeout(
-        this.deps.adapters.pos.submit({ idempotencyKey: submitKey, orderId, attemptId: att, txRef: txRef ?? '', snapshot }),
+        this.deps.adapters.pos.submit({ idempotencyKey: submitKey, orderId, attemptId: att, txRef, snapshot }),
         this.deps.timeouts.posSubmit,
         'posSubmit',
       )
@@ -489,9 +503,9 @@ export class PaymentController {
     this.deps.store.clear()
   }
 
-  /** Guest: "Resend order" from recovery-required. Same key. */
+  /** Guest / staff: "Resend order" from recovery-required (payment confirmed). Same key. */
   async submitRetry(): Promise<void> {
-    if (this.s.status === 'recovery-required' || this.s.status === 'assistance') await this.submitOrder()
+    if (this.s.status === 'recovery-required') await this.submitOrder()
   }
 
   /** Guest: "Try again" after declined / cancelled / terminal-offline. New attemptId, same orderId. */
@@ -561,14 +575,19 @@ export class PaymentController {
     switch (rec.submissionState) {
       case 'accepted':
         this.finalized.add(rec.paymentAttemptId)
-        this.set({ receipt: 'unknown' })
+        this.set({ receipt: 'unknown', paymentConfirmed: true })
         this.restoreTo('done')
         return
       case 'approved':
       case 'submitting':
       case 'order-submit-failed':
+        // These states are written only after approveOnce(): the payment is confirmed, the order may be resent.
         this.finalized.add(rec.paymentAttemptId)
-        this.set({ recoveryRef: rec.recoveryReference ?? newRecoveryRef() })
+        this.set({
+          paymentConfirmed: true,
+          recoveryRef: rec.recoveryReference ?? newRecoveryRef(),
+          ...(rec.transactionReference ? {} : { txRef: fallbackTxRef(), txRefGenerated: true }),
+        })
         this.restoreTo('recovery-required')
         this.persist('order-submit-failed')
         this.armUncertain()

@@ -69,8 +69,14 @@ export interface TmkProduct {
   SmallPictureUrl?: string | null
   IdOtherPos?: string | null
   OutOfStock?: boolean
+  /** Quantity cap per line (old kiosk: detail-sheet stepper stops here). Seen: 1, 50000, 99999, 999999. */
+  MaxAmountInAgenda?: number | null
+  /** Information-only product: shown, opens the detail page, cannot be ordered. */
   NoInteraction?: boolean
+  /** Promotion switch; the kiosk shows the product as a promo card between PromotionFrom and PromotionTo (local time, no zone). */
   IsPromotion?: boolean
+  PromotionFrom?: string | null
+  PromotionTo?: string | null
   IsSpicy?: boolean
   IsVegan?: boolean
   IsVegetarian?: boolean
