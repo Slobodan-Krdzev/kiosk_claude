@@ -3,15 +3,18 @@
 // Decisions (Alex, 2026-10-15):
 // - The menu is MainCategories[0] of the TMKData entry for the current language (fallback: the first entry);
 //   its SubCategories are the sidebar categories.
-// - Design-only data the API does not carry (badges popular/new, promos, hero copy, category icons, menu deal,
-//   CMS cross-sells) stay as in the brand pack for now; anything that points at brand-pack products is emptied.
+// - Design-only data the API does not carry (badges popular/new, category icons and subtitles, cross-sells,
+//   finish strips, reward) comes from the venue design file (venueDesign.ts), keyed by API ids (D2, closed
+//   2026-10-16). Promo cards come from the API's IsPromotion window. Menu deal, product enhancements and premium
+//   drinks have no API counterpart and are off; the brand pack's own entries are never shown on an API menu.
 // - Modifiers (Products[].ModifierWizards) are not used, as in the old kiosk (decision 2026-10-15).
 // - Upsell collections are shown on the product page, one section per step.
 // - Products priced 0 show their 0 price.
 // - http image URLs go through the image proxy (imgUrl).
 
-import type { Allergens, Cat, EngineData, L10n, Lang, ModGroup, ModItem, Product, Screensaver, Slide } from '../../engine/types'
+import type { Allergens, Cat, CmsBlock, CmsItem, EngineData, L10n, Lang, ModGroup, ModItem, Product, Promo, Screensaver, Slide } from '../../engine/types'
 import type { TmkLangData, TmkProduct, TmkRoot, TmkSlide, TmkUpsaleCollection } from './tmk'
+import { EMPTY_DESIGN, iconForCategory, promoActive, type VenueDesign } from './venueDesign'
 
 const SUPPORTED: Lang[] = ['nl', 'en', 'mk']
 
@@ -54,7 +57,15 @@ export interface TmkMapOptions {
   asset?: (path: string) => string
   /** Preferred language; the TMKData entry for it defines the menu structure. */
   lang?: Lang
+  /** The venue's design layer (normalised); absent = API data only. */
+  design?: VenueDesign
+  /** "Now" for the promotion windows (tests). */
+  now?: number
 }
+
+/** Apply `f` to every language of an L10n. */
+const mapL10n = (v: L10n, f: (s: string) => string): L10n => (typeof v === 'string' ? f(v) : { en: f(v.en), ...(v.nl !== undefined ? { nl: f(v.nl) } : {}), ...(v.mk !== undefined ? { mk: f(v.mk) } : {}) })
+const firstLine = (s: string) => s.split('\n')[0].trim()
 
 export const cents = (euros: number | null | undefined): number => Math.round((Number(euros) || 0) * 100)
 
@@ -188,6 +199,13 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
     return l10n(vals, primary)
   }
   const img = (u: string | null | undefined): string | undefined => (isPicture(u) ? opts.img(u!) : undefined)
+  const design = opts.design ?? EMPTY_DESIGN
+  const now = opts.now ?? Date.now()
+  /** Engine text in every language the pack has, as an L10n for CMS titles. */
+  const i18nL = (key: string): L10n => ({ en: pack.i18n.en?.[key] ?? key, ...(pack.i18n.nl?.[key] ? { nl: pack.i18n.nl[key] } : {}), ...(pack.i18n.mk?.[key] ? { mk: pack.i18n.mk[key] } : {}) })
+  const badgeKeys = new Set(Object.keys(pack.bdg))
+  const catsub: Record<string, L10n> = {}
+  const apiPromos: string[] = []
 
   const main = primaryTree.MainCategories[0]
   const subs = [...(main?.SubCategories || [])].sort(byOrder)
@@ -237,14 +255,22 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
   }
 
   for (const s of subs) {
-    const cid = 's' + s.SubCategoryId
-    cats.push({ id: cid, icon: 'dish', name: tr((x) => x.sub.get(s.SubCategoryId), s.Name) })
+    const sid = String(s.SubCategoryId)
+    const cid = 's' + sid
+    cats.push({ id: cid, icon: design.icons[sid] || iconForCategory(s.Name), name: tr((x) => x.sub.get(s.SubCategoryId), s.Name) })
+    if (design.catsub[sid]) catsub[cid] = design.catsub[sid]
     for (const p of [...(s.Products || [])].sort(byOrder)) {
       const pid = String(p.ProductId)
       const { allergens, diet } = allergensOf(p)
       const badges = new Set<string>()
       if (p.IsVegan || p.IsVegetarian || diet.has(21) || diet.has(22)) badges.add('veg')
       if (p.IsSpicy || diet.has(20)) badges.add('spc')
+      // IsPromotion within its window (kiosk-product-checks.md §5): the product itself is the promo card, badge "deal".
+      if (promoActive(p, now)) {
+        badges.add('dea')
+        apiPromos.push(pid)
+      }
+      for (const b of design.badges[pid] || []) if (badgeKeys.has(b)) badges.add(b)
 
       const steps = p.HasUpsaleCollection && p.UpsaleCollectionId != null ? collectionSteps(p.UpsaleCollectionId) : []
       const desc = descOf(p)
@@ -271,6 +297,68 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
     }
   }
 
+  // ---- venue design layer: everything below points at API products / categories only ----
+  const byPid = new Map(products.map((p) => [p.id, p]))
+  const catIds = new Set(cats.map((c) => c.id))
+  const toCids = (sids: string[] | undefined) => (sids || []).map((x) => 's' + x).filter((c) => catIds.has(c))
+  const toPids = (pids: string[] | undefined) => (pids || []).filter((x) => byPid.has(x))
+
+  const promos: Promo[] = []
+  const promoOf = (pid: string, v: Partial<Promo> = {}): Promo | null => {
+    const p = byPid.get(pid)
+    if (!p || promos.some((x) => x.pid === pid)) return null
+    return { pid, ...(p.img ? { img: p.img } : {}), em: p.em, flag: v.flag ?? i18nL('promoFlag'), title: v.title ?? p.names ?? p.name, sub: v.sub ?? mapL10n(p.desc, firstLine), ...(v.img ? { img: v.img } : {}) }
+  }
+  for (const v of design.promos) {
+    const pr = promoOf(v.pid, v)
+    if (pr) promos.push(pr)
+  }
+  for (const pid of apiPromos) {
+    const pr = promoOf(pid)
+    if (pr) promos.push(pr)
+  }
+
+  // Cross-sells: price always the product's menu price (no price variants on API menus).
+  const crossSells: CmsItem[] = []
+  design.crossSells.forEach((x, i) => {
+    const p = byPid.get(x.pid)
+    if (!p) return
+    const xcats = x.cats ? toCids(x.cats) : []
+    const prods = x.products ? toPids(x.products) : []
+    if ((x.cats && !xcats.length) || (x.products && !prods.length)) return
+    const target = xcats.length || prods.length ? { ...(xcats.length ? { cats: xcats } : {}), ...(prods.length ? { products: prods } : {}) } : { cats: [...catIds] }
+    crossSells.push({
+      id: 'xs' + p.id,
+      role: 'cross-sell',
+      enabled: true,
+      priority: 10 + i,
+      pid: p.id,
+      target,
+      ...(p.img ? { img: p.img } : {}),
+      em: p.em,
+      minSelections: 0,
+      maxSelections: 1,
+      title: p.names ?? p.name,
+      ...(x.qtyLabel ? { qtyLabel: x.qtyLabel } : {}),
+    })
+  })
+
+  const blocks: CmsBlock[] = []
+  design.finish.forEach((f, i) => {
+    const cats = toCids(f.cats)
+    const items = toPids(f.pids).map((pid) => ({ pid }))
+    if (!cats.length || !items.length) return
+    blocks.push({ id: 'finish' + (i + 1), role: 'category-finish', enabled: true, priority: 10, target: { cats }, title: f.title ?? i18nL('finishT'), subtitle: f.subtitle ?? i18nL('finishS'), display: { mode: 'compact-horizontal', maxVisible: f.maxVisible ?? 4 }, items })
+  })
+  if (design.inspire) {
+    const items = toPids(design.inspire.pids).map((pid) => ({ pid }))
+    const linkCat = design.inspire.linkCat ? toCids([design.inspire.linkCat])[0] : undefined
+    if (items.length || linkCat) {
+      blocks.push({ id: 'inspire', role: 'cart-inspire', enabled: true, priority: 10, title: design.inspire.title ?? i18nL('inspireT'), subtitle: design.inspire.subtitle ?? i18nL('finishS'), items, ...(linkCat ? { link: { cat: linkCat, label: i18nL('seeAll') } } : {}) })
+    }
+  }
+  const reward = design.reward && byPid.has(design.reward.pid) ? { threshold: design.reward.threshold, pid: design.reward.pid } : undefined
+
   const languages = apiLangs.length ? apiLangs : [primary]
   const asset = opts.asset || ((path: string) => path)
   const alg = Object.fromEntries(ALLERGENS.map((a) => [a.key, a.name]))
@@ -290,20 +378,22 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
       ...pack.brand,
       languages,
       defaultLanguage: languages.includes(pack.brand.defaultLanguage) ? pack.brand.defaultLanguage : primary,
-      promos: [],
-      reward: undefined,
+      promos,
+      reward,
     },
     cats,
     products,
     mods: { ...premX, ...mods },
-    cms: { ...pack.cms, categories: {}, upsell: { blocks: [] } },
-    upsell: { ...pack.upsell, productEnhancements: [], crossSells: [], premiumDrinks: [] },
+    // No menu deal on API menus (no API counterpart; upsale collections are the venue's combos): nothing may point at pack products.
+    menuDeal: { price: 0, side: '', sideLabel: '', drinks: [] },
+    cms: { ...pack.cms, categories: {}, upsell: { blocks } },
+    upsell: { ...pack.upsell, productEnhancements: [], crossSells, premiumDrinks: [] },
     priceVariants: {},
     alg,
     algIcon,
     algImg,
     algFilter,
-    catsub: {},
+    catsub,
     obwInfo: {},
     obwDefault: {},
     cmsCatAlias: {},

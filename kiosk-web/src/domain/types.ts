@@ -212,6 +212,8 @@ export interface CatalogSourceConfig {
   /** Test-mode menu endpoint; ?menu=<menuId> is appended. */
   testUrl: string
   menuId: number
+  /** Venue design file (badges, icons, cross-sells … keyed by API ids); default `venue/<menuId>.json` under the page base. */
+  designUrl?: string
 }
 
 // ---------- Order snapshot (frozen at payment start) ----------

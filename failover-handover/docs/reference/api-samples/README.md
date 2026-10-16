@@ -51,7 +51,7 @@ Status of everything below: `NOT_IMPLEMENTED`; the samples are evidence of the r
 | # | Decision | Implementation |
 | --- | --- | --- |
 | D1 | Render every SubCategory of `MainCategories[0]` of the TMKData entry for the current language (fallback `TMKData[0]`); the sidebar lists the subcategories | `mapTmkToEngine` (`kiosk-web/src/adapters/http/tmkMapper.ts`). The nl tree defines the structure; other languages are joined by id |
-| D2 | Leave design-only data (badges popular/new, promos, hero copy, category icons, menu deal, cross-sells) **for now — to be fixed later** | Brand pack stays; everything that points at brand-pack products is emptied. Home "Popular"/"New" are therefore empty on API menus. **Open reminder.** |
+| D2 | ~~Leave design-only data (badges popular/new, promos, hero copy, category icons, menu deal, cross-sells) for now~~ **Closed 2026-10-16** | Promo cards from the API's `IsPromotion` window; icons from the subcategory name; badges, subtitles, cross-sells, finish strips, cart block and reward from the per-venue design file `kiosk-web/public/venue/<menuId>.json` (`docs/reference/venue-design-layer.md`, DEVIATIONS 32–35). Hero copy was already replaced by the venue's screensaver and logo (audit F10). Menu deal, enhancements and premium drinks stay off (no API counterpart) |
 | D3 | ~~Modifiers look like the v36 design; picking rules per product~~ **Revised 2026-10-15: modifiers are not used** | `Products[].ModifierWizards` is ignored, as in the old kiosk (which sent `"Variants": []`). The `pick` group type was removed again; products with only modifiers are added straight from the card |
 | D4 | Upsell fitted into the product page | Each `UpsaleSteps` entry is a `step` section on the product page (v36 enhancement tiles, stepper when an option may be taken more than once). Steps follow `NextStepId`, an option's `OverrideNextStepId`, and stop at `Finish`; picks in steps that leave the page are dropped. Link and counting rules as in the old kiosk (`docs/reference/kiosk-upsale-flow.md`): only `HasUpsaleCollection` + `UpsaleCollectionId` → `UpsaleColletions[].Id`; step `Min/MaxSelection` count **different options**, each option capped by its own `MaxSelection` (2026-10-15). Steps/options sorted by `DisplayOrder`/`OptionOrder` (same as array order in the samples) |
 | D5 | Show 0 prices | Prices map 1:1 (euros → cents), 0 shows as 0,00 |
@@ -112,7 +112,9 @@ How it is implemented (`kiosk-web/src/adapters/http/tmkLive.ts`, `src/app/availa
   "could not verify" dialog and no payment attempt.
 - `MaxAmountInAgenda` → `Product.maxQty` → `lineMax(p)`, applied to card stepper, product page, cart and
   validation, within the engine's 20 (DEVIATIONS 27). `NoInteraction` → `Product.infoOnly` (DEVIATIONS 31).
-- `IsPromotion`: design-only banner switch, left under decision 2.
+- `IsPromotion` + `PromotionFrom/To`: the promoted product is a promo card on the home while the window is open
+  (DEVIATIONS 32). Menu 2408 has one (454444 "De Keuken", 2025-10-09 → 2031-08-06); menu 2490 has none.
+  `ProductsTags` is empty on 1161 of 1162 products, `SuggestionsScreen` always null → design file, see D2.
 - Prices: the API has no price endpoint. The live `catalog.current()` reports no changes and stamps the menu load
   time as the catalog version; price validation is the backend's job → `status/BACKEND-DEPENDENCIES.md` B1.
 

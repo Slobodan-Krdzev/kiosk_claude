@@ -74,13 +74,18 @@ describe('menu structure (decision 1: SubCategories of MainCategories[0])', () =
     for (const r of raw) expect(prod(d, r.ProductId).price).toBe(Math.round(r.Price * 100))
     expect(d.products.some((p) => p.price === 0)).toBe(true)
   })
-  it('design-only data that points at brand-pack products is emptied (decision 2, pending)', () => {
+  it('without a venue design file nothing points at brand-pack products (decision 2: promos only from the API flag)', () => {
     const d = map(FULL)
-    expect(d.brand.promos).toEqual([])
+    expect(d.brand.promos.map((p) => p.pid)).toEqual(['454444']) // the one IsPromotion product of menu 2408
     expect(d.brand.reward).toBeUndefined()
     expect(d.upsell.crossSells).toEqual([])
+    expect(d.upsell.productEnhancements).toEqual([])
+    expect(d.upsell.premiumDrinks).toEqual([])
     expect(d.cms.upsell.blocks).toEqual([])
+    expect(d.menuDeal.drinks).toEqual([])
+    expect(d.products.every((p) => !p.canMenu)).toBe(true)
     expect(Object.keys(d.mods).every((k) => k === 'premX' || k.startsWith('mw') || k.startsWith('up'))).toBe(true)
+    expect(map(TEST).brand.promos).toEqual([])
   })
   it('out-of-stock products are disabled and never listed', () => {
     const c = structuredClone(FULL)

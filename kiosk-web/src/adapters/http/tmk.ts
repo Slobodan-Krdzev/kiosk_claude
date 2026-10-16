@@ -73,7 +73,10 @@ export interface TmkProduct {
   MaxAmountInAgenda?: number | null
   /** Information-only product: shown, opens the detail page, cannot be ordered. */
   NoInteraction?: boolean
+  /** Promotion switch; the kiosk shows the product as a promo card between PromotionFrom and PromotionTo (local time, no zone). */
   IsPromotion?: boolean
+  PromotionFrom?: string | null
+  PromotionTo?: string | null
   IsSpicy?: boolean
   IsVegan?: boolean
   IsVegetarian?: boolean

@@ -369,7 +369,10 @@ describe('F09 — product names follow the selected language', () => {
 describe('F08 / F10 — API menus open on a useful screen with one venue identity', () => {
   const sample = (): TmkRoot => JSON.parse(readFileSync(resolve(process.cwd(), '../failover-handover/docs/reference/api-samples/getfullresources.json'), 'utf8'))
   it('without promotions or badges the home screen is skipped: start → first category', () => {
-    setEngine(mapTmkToEngine(sample(), pack(), { img: (u) => u }))
+    const raw = sample()
+    // menu 2408 has one IsPromotion product; this case is the menu without it
+    for (const s of raw.TMKData[0].MainCategories[0].SubCategories) for (const p of s.Products) p.IsPromotion = false
+    setEngine(mapTmkToEngine(raw, pack(), { img: (u) => u }))
     expect(homeHasContent()).toBe(false)
     expect(venueMenu()).toBe(true)
     expect(venueName()).toBe('Tapas Mainstreet')
@@ -379,6 +382,12 @@ describe('F08 / F10 — API menus open on a useful screen with one venue identit
     expect(s.cat).toBe(E().cats[0].id)
     useEngine.getState().home()
     expect(useEngine.getState().screen).toBe('menu')
+  })
+  it("the venue's live promotion gives the home screen content: start → home", () => {
+    setEngine(mapTmkToEngine(sample(), pack(), { img: (u) => u }))
+    expect(homeHasContent()).toBe(true)
+    useEngine.getState().startWith('eatin')
+    expect(useEngine.getState().screen).toBe('home')
   })
   it('the brand pack still opens on the home screen', () => {
     expect(homeHasContent()).toBe(true)

@@ -5,6 +5,7 @@ import { fetchEngineData } from '../../engine/data'
 import type { EngineData, Lang } from '../../engine/types'
 import type { TmkRoot } from './tmk'
 import { mapTmkToEngine } from './tmkMapper'
+import { normalizeVenueDesign, type VenueDesign } from './venueDesign'
 
 export const DEFAULT_SOURCE: CatalogSourceConfig = {
   source: 'static',
@@ -64,13 +65,47 @@ export async function fetchMenu(s: CatalogSourceConfig, timeoutMs = DEFAULT_MENU
   }
 }
 
-export function mapMenu(raw: TmkRoot, pack: EngineData, base: string, lang?: Lang): EngineData {
+/** The venue design file: `catalogSource.designUrl`, else `venue/<menuId>.json` under the page base. */
+export function designUrl(s: CatalogSourceConfig, base: string): string {
+  if (s.designUrl) return s.designUrl
   const root = base.endsWith('/') ? base : base + '/'
-  return mapTmkToEngine(raw, pack, { img: (u) => proxiedImg(base, u), asset: (path) => root + path, lang })
+  return `${root}venue/${encodeURIComponent(String(s.menuId))}.json`
+}
+
+/**
+ * Fetch the venue design file, bounded like the menu. A missing file (404) is normal: the kiosk then shows the
+ * API data alone. Any other failure is reported in `error` and treated the same way — design never blocks the menu.
+ */
+export async function fetchDesign(url: string, timeoutMs = DEFAULT_MENU_TIMEOUT_MS): Promise<{ raw: unknown; error?: string }> {
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, { cache: 'no-cache', signal: ctl.signal })
+    if (res.status === 404) return { raw: null }
+    if (!res.ok) return { raw: null, error: `design ${url}: HTTP ${res.status}` }
+    return { raw: await res.json() }
+  } catch (e) {
+    return { raw: null, error: ctl.signal.aborted ? `design ${url}: timed out after ${timeoutMs} ms` : `design ${url}: ${String(e)}` }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Validate a fetched design file against the pack's badge and icon sets. */
+export function designFor(raw: unknown, pack: EngineData): { design: VenueDesign | undefined; problems: string[] } {
+  if (raw == null) return { design: undefined, problems: [] }
+  const { design, problems } = normalizeVenueDesign(raw, { badges: Object.keys(pack.bdg), icons: Object.keys(pack.icons) })
+  return { design, problems }
+}
+
+export function mapMenu(raw: TmkRoot, pack: EngineData, base: string, lang?: Lang, design?: VenueDesign): EngineData {
+  const root = base.endsWith('/') ? base : base + '/'
+  return mapTmkToEngine(raw, pack, { img: (u) => proxiedImg(base, u), asset: (path) => root + path, lang, design })
 }
 
 export async function loadEngineData(base: string, s: CatalogSourceConfig, lang?: Lang, timeoutMs?: number): Promise<EngineData> {
   const pack = await fetchEngineData(base)
   if (s.source === 'static') return pack
-  return mapMenu(await fetchMenu(s, timeoutMs), pack, base, lang)
+  const [raw, dz] = await Promise.all([fetchMenu(s, timeoutMs), fetchDesign(designUrl(s, base), timeoutMs)])
+  return mapMenu(raw, pack, base, lang, designFor(dz.raw, pack).design)
 }

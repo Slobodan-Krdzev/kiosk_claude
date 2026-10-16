@@ -21,7 +21,8 @@ export function Rail() {
   const a = useEngine(useShallow((s) => ({ home: s.home, goCat: s.goCat, attract: s.attract })))
   const navRef = useRef<HTMLDivElement>(null)
   const indRef = useRef<HTMLDivElement>(null)
-  const homeish = screen === 'home' || (screen === 'menu' && cat === 'new')
+  // "New" and (on API menus, where it is not a category of its own) "Popular" are home-screen lists.
+  const homeish = screen === 'home' || (screen === 'menu' && (cat === 'new' || (cat === 'popular' && !catOf('popular'))))
 
   useLayoutEffect(() => {
     const nav = navRef.current
@@ -176,7 +177,8 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
   const openProduct = useEngine((s) => s.openProduct)
   const p = byId(pr.pid)
   if (!p) return null
-  const chip = pr.menu ? `${tf('menuPriceA', { price: fmt(p.price + E().menuDeal.price) })} · ${tf('menuBaseA', { price: fmt(p.price) })}` : fmt(p.price)
+  // Information-only products (API NoInteraction) promote a message, not a price.
+  const chip = p.infoOnly ? '' : pr.menu ? `${tf('menuPriceA', { price: fmt(p.price + E().menuDeal.price) })} · ${tf('menuBaseA', { price: fmt(p.price) })}` : fmt(p.price)
   const open = () => openProduct(p, { menu: !!pr.menu, from: 'home' })
   if (big)
     return (
@@ -188,7 +190,7 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
           <div className="flex-1" />
           <div className="heroTitle hd text-[52px] leading-[53px] tracking-[.5px] clamp2">{L(pr.title)}</div>
           <div className="text-[20px] leading-[28px] font-normal opacity-90 mt-2">{L(pr.sub)}</div>
-          <div className="num text-[28px] leading-[34px] tracking-[-0.3px] font-extrabold mt-2">{chip}</div>
+          {chip ? <div className="num text-[28px] leading-[34px] tracking-[-0.3px] font-extrabold mt-2">{chip}</div> : null}
           <span className="mt-6 self-start h-[76px] px-10 rounded-full bg-cream text-ink flex items-center gap-3">
             <span className="text-[22px] font-bold leading-[26px]">{t('promoView')}</span>
             <span className="w-6 h-6">
@@ -208,7 +210,7 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
         <div className="hd text-[34px] leading-[37px] tracking-[.4px] clamp2">{L(pr.title)}</div>
         <div className="text-[18px] leading-[25px] font-normal text-mute mt-1.5">{L(pr.sub)}</div>
         <div className="flex items-center justify-between mt-2.5">
-          <span className="num text-[25px] leading-[30px] tracking-[-0.2px] font-extrabold">{chip}</span>
+          <span className="num text-[25px] leading-[30px] tracking-[-0.2px] font-extrabold">{chip || ' '}</span>
           <span className="w-[48px] h-[48px] rounded-full bg-jade text-white grid place-items-center">
             <span className="w-5 h-5">
               <Ic n="chevR" sw={2.8} />
