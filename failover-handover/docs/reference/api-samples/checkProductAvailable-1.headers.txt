@@ -1,0 +1,13 @@
+HTTP/2 500 
+cache-control: no-cache
+pragma: no-cache
+content-type: application/json; charset=utf-8
+expires: -1
+server: Microsoft-IIS/10.0
+access-control-allow-origin: http://localhost:5173
+access-control-allow-credentials: true
+x-aspnet-version: 4.0.30319
+x-powered-by: ASP.NET
+date: Fri, 16 Oct 2026 13:14:35 GMT
+content-length: 36
+

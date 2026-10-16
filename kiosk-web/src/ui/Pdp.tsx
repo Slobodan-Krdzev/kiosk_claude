@@ -2,7 +2,7 @@ import { useShallow } from 'zustand/shallow'
 // Product detail page (R44 layout) + customize step. Ports of renderR44(), r44*(), vuMenuBlock(), vuDrinksBlock(), xsSection(), SCR.customize, stepDock().
 
 import { useEffect, useRef, useState } from 'react'
-import { byId, mustId, pname, servingIx, servingsOf } from '../engine/catalog'
+import { byId, lineMax, mustId, pname, servingIx, servingsOf } from '../engine/catalog'
 import { cmsById, drinkUp, priceOf } from '../engine/cms'
 import {
   activeSteps,
@@ -697,13 +697,21 @@ function ProductPage({ p, d, xp, editing, nudge, need, hint }: { p: Product; d: 
           ) : null}
           <Info p={p} d={d} xp={xp} vu={vu} />
         </div>
+        {p.infoOnly ? (
+          // Information-only product (API NoInteraction, kiosk-product-checks.md §4): no quantity, no add.
+          <div className="flex-none pdp-bottom r44-bar">
+            <div id="ctaReason" className="r44-reason r44-info-only" role="status">
+              {t('infoOnlyB')}
+            </div>
+          </div>
+        ) : (
         <div className="flex-none pdp-bottom r44-bar">
           <div id="ctaReason" className="r44-reason" role="status" aria-live="polite">
             {ok ? '' : blockReason(d)}
           </div>
           <div className="r44-barrow">
             <div className="pdp-stp r44-qty">
-              <Stepper qty={d.qty} onDelta={a.draftQty} h={64} keepMin />
+              <Stepper qty={d.qty} onDelta={a.draftQty} h={64} keepMin max={lineMax(p)} />
             </div>
             <div className="relative flex-1" id="ctaWrap">
               <button type="button" data-a="addOrder" id="cfgCta" disabled={!ok} aria-disabled={!ok} className="press cta r44-cta" onClick={a.addOrder}>
@@ -719,6 +727,7 @@ function ProductPage({ p, d, xp, editing, nudge, need, hint }: { p: Product; d: 
             </div>
           </div>
         </div>
+        )}
       </div>
     </>
   )

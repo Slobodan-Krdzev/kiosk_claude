@@ -2,10 +2,10 @@ import { useShallow } from 'zustand/shallow'
 // Product cards (visual, compact, wide) and the R44 order button / inline stepper.
 
 import { obConfigs, obLine, obQty, obSizeQty, lineSummary } from '../engine/cart'
-import { alHidden, obBlocked, obHasReq, obNeedsDetail, obSizes, obVarCard, pname, servingsOf, defServingIx } from '../engine/catalog'
+import { alHidden, lineMax, obBlocked, obHasReq, obNeedsDetail, obSizes, obVarCard, pname, servingsOf, defServingIx } from '../engine/catalog'
 import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
-import { MAX_LINE_QTY, type Product } from '../engine/types'
+import type { Product } from '../engine/types'
 import { useEngine } from '../store/engine'
 import { Badges, FoodImg, Ic } from './primitives'
 
@@ -28,10 +28,20 @@ export function CardCtl({ p, size = 72, wide = false }: { p: Product; size?: num
   const gtcKey = useEngine((s) => s.gtcKey)
   const a = useEngine(useShallow((s) => ({ quickAdd: s.quickAdd, cardInc: s.cardInc, cardDec: s.cardDec, gtcExpand: s.gtcExpand, openProduct: s.openProduct })))
   const sel = useServingSel(p.id)
+  const pending = useEngine((s) => s.availPending) === p.id
   const row = size === 56
   const bl = obBlocked(p)
   const n = obQty(cart, p, wide, sel)
   const open = gtcKey === p.id
+  // Live availability check in flight for this product (kiosk API): waiting state, no second tap.
+  if (pending)
+    return (
+      <button type="button" className="ob ob-wait" disabled aria-disabled="true" aria-busy="true" aria-label={t('availCheckT')}>
+        <span className="ob-i">
+          <Ic n="clock" sw={2.4} />
+        </span>
+      </button>
+    )
   if (wide && obVarCard(p)) return n > 0 && open && !bl ? <ObStepper p={p} n={n} row={false} wide /> : null
   if (bl)
     return (
@@ -73,7 +83,7 @@ export function ObStepper({ p, n, row, wide }: { p: Product; n: number; row: boo
   const cardDec = useEngine((s) => s.cardDec)
   const sel = useServingSel(p.id)
   const one = n === 1
-  const atMax = n >= MAX_LINE_QTY
+  const atMax = n >= lineMax(p)
   const l = obLine(cart, p, wide, sel)
   const multi = !wide && obConfigs(cart, p) > 1
   const lab = multi && l ? lineSummary(cart, l) : ''

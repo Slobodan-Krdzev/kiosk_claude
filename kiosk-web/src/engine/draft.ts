@@ -1,11 +1,11 @@
 // Draft (product configuration) model: creation, pricing, validation. Port of the v36 engine.
 
-import { alHidden, byId, mustId, modItem, servingOf, servingsOf, servingIx, pname } from './catalog'
+import { alHidden, byId, lineMax, mustId, modItem, servingOf, servingsOf, servingIx, pname } from './catalog'
 import { cmsById, drinkUp, priceOf } from './cms'
 import { E, L, checkProducts, t, tf } from './state'
 import { MAX_LINE_QTY, type CrossSellSel, type Draft, type ModGroup, type Product } from './types'
 
-export const clampQty = (n: number): number => Math.max(1, Math.min(MAX_LINE_QTY, n | 0))
+export const clampQty = (n: number, max: number = MAX_LINE_QTY): number => Math.max(1, Math.min(MAX_LINE_QTY, max, n | 0))
 
 export function defChoice(g: string): string | null {
   const grp = E().mods[g]
@@ -322,7 +322,8 @@ export function validateDraft(d: Draft, { availability = true }: { availability?
     if (groupUnmet(d, g)) issues.push({ code: 'required-choice', group: g })
   })
   if (d.menu && !d.drink) issues.push({ code: 'menu-drink' })
-  if (!(Number.isInteger(d.qty) && d.qty >= 1 && d.qty <= MAX_LINE_QTY)) issues.push({ code: 'qty' })
+  if (p.infoOnly) issues.push({ code: 'info-only' })
+  if (!(Number.isInteger(d.qty) && d.qty >= 1 && d.qty <= lineMax(p))) issues.push({ code: 'qty' })
   ;(d.crossSells || []).forEach((x) => {
     if (!Number.isInteger(x.quantity) || x.quantity < 1 || x.quantity > MAX_LINE_QTY) issues.push({ code: 'qty', xs: x.id })
   })

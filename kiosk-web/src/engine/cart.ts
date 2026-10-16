@@ -1,6 +1,6 @@
 // Cart model: pure functions over an array of lines (the reference mutates S.cart; we return new arrays).
 
-import { alHidden, byId, modItem, mustId, servingIx, servingOf, servingsOf, pname } from './catalog'
+import { alHidden, byId, lineMax, modItem, mustId, servingIx, servingOf, servingsOf, pname } from './catalog'
 import { cmsById, priceOf } from './cms'
 import { canMergeCartLine, cfgKey, clampQty, defChoice, exQty, newDraft, unitPrice, validateDraft, validateLineStructure, type Issue } from './draft'
 import { E, L, checkProducts, t } from './state'
@@ -56,9 +56,10 @@ export function addToCart(cart: CartLine[], d: Draft): { cart: CartLine[]; line:
   void _xsAsk
   const k = cfgKey(main as Draft)
   if (canMergeCartLine(d)) {
-    const ex = cart.find((l) => l.key === k && l.lineType === 'product' && l.mergeable && l.qty < MAX_LINE_QTY)
+    const max = lineMax(byId(main.pid))
+    const ex = cart.find((l) => l.key === k && l.lineType === 'product' && l.mergeable && l.qty < max)
     if (ex) {
-      const merged = { ...ex, qty: clampQty(ex.qty + main.qty) }
+      const merged = { ...ex, qty: clampQty(ex.qty + main.qty, max) }
       return { cart: cart.map((l) => (l === ex ? merged : l)), line: merged }
     }
   }

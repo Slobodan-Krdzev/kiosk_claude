@@ -1,5 +1,11 @@
 import { E, L, checkProducts, getAllergenFilter, t } from './state'
-import type { Allergens, Cat, Draft, ModItem, Product, Serving } from './types'
+import { MAX_LINE_QTY, type Allergens, type Cat, type Draft, type ModItem, type Product, type Serving } from './types'
+
+/** Largest quantity one cart line of this product may hold: the catalog's cap (API MaxAmountInAgenda) within the engine's. */
+export function lineMax(p: Product | undefined): number {
+  const cap = p?.maxQty
+  return Number.isInteger(cap) && (cap as number) >= 1 ? Math.min(MAX_LINE_QTY, cap as number) : MAX_LINE_QTY
+}
 
 export function byId(id: string | null | undefined): Product | undefined {
   if (!id) return undefined
@@ -61,8 +67,8 @@ export function obHasReq(p: Product): boolean {
 }
 
 export function obNeedsDetail(p: Product): boolean {
-  // API catalog: upsell steps are chosen on the product page.
-  return obHasReq(p) || !!obSizes(p) || !!p.steps?.length
+  // API catalog: upsell steps are chosen on the product page; information-only products open it too (no add).
+  return obHasReq(p) || !!obSizes(p) || !!p.steps?.length || !!p.infoOnly
 }
 
 /** May show its sizes in a WIDE card. */

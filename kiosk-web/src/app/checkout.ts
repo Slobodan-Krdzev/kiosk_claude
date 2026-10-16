@@ -6,8 +6,9 @@ import { canSubmitWrites, type ConnectionState } from '../domain/connectivity'
 import type { OrderSnapshot, SnapshotLine } from '../domain/types'
 import { applyRevalidatedPrices, lineUnit, priceStamp, revalidatePrices, validateCart } from '../engine/cart'
 import { byId, mustId, servingOf, servingsOf } from '../engine/catalog'
-import { exQty } from '../engine/draft'
-import { E, L, setDisabled, setUnavailable } from '../engine/state'
+import { cmsById } from '../engine/cms'
+import { exQty, includedPids } from '../engine/draft'
+import { E, L, patchUnavailable, setDisabled } from '../engine/state'
 import type { CartLine, Product } from '../engine/types'
 import { PAY_ACTIVE, PAY_UNCERTAIN } from '../payment/states'
 import { useEngine } from '../store/engine'
@@ -21,15 +22,40 @@ let catalogVersion = 0
 /** Identity of the writable authority the device believes in; a change during preflight invalidates the preflight. */
 const connKey = (c: ConnectionState): string => (c.kind === 'connected' ? `${c.role}:${c.nodeId}:${c.epoch}` : c.kind)
 
-/** Live catalog sync (availability + current prices). Never touches a started or paid snapshot. */
-export async function catalogRefresh(): Promise<boolean> {
+/** Every product the cart depends on: lines, picked upsell options, menu parts and cross-sells. */
+export function cartPids(cart: CartLine[]): string[] {
+  const ids = new Set<string>()
+  for (const l of cart) {
+    if (l.reward) continue
+    if (l.lineType === 'cross-sell') {
+      const pid = (l.xsId && cmsById(l.xsId)?.pid) || l.pid
+      if (pid) ids.add(pid)
+      continue
+    }
+    includedPids(l).forEach((id) => ids.add(id))
+  }
+  return [...ids]
+}
+
+/**
+ * Live catalog sync (availability + current prices). Never touches a started or paid snapshot.
+ * Checks the products the cart depends on (the kiosk API answers one product per request, kiosk-product-checks.md
+ * §2); `ids` widens that, e.g. the whole menu on the static simulation. A product whose availability is UNKNOWN
+ * makes the refresh fail: the kiosk never charges on an unverified cart.
+ */
+export async function catalogRefresh(ids?: string[]): Promise<boolean> {
   const rt = getRuntime()
   const { adapters } = rt.resolved
   const cfg = rt.config
   try {
-    const want = E().products.map((p) => p.id)
+    const want = ids ?? cartPids(useEngine.getState().cart)
     const na = await withTimeout(adapters.availability.check(want), cfg.timeouts.availability, 'availability')
-    setUnavailable(na.unavailableIds)
+    patchUnavailable(want, na.unavailableIds)
+    useEngine.getState().availChanged()
+    if (na.unknownIds?.length) {
+      rt.log('availability.unknown', { ids: na.unknownIds })
+      return false
+    }
     const cur = await withTimeout(adapters.catalog.current(), cfg.timeouts.availability, 'catalog')
     for (const [pid, cents] of Object.entries(cur.prices || {})) {
       const p = byId(pid)

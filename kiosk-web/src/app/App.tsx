@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { DEFAULT_MENU_TIMEOUT_MS, fetchMenu, mapMenu, resolveCatalogSource } from '../adapters/http/catalogSource'
+import { withLiveAdapters } from '../adapters/http/tmkLive'
 import { withTimeout } from '../adapters/withTimeout'
 import type { CatalogSourceConfig } from '../domain/types'
 import { fetchEngineData, resolveOrderTagConfig } from '../engine/data'
-import { setEngine, t } from '../engine/state'
+import { E, setEngine, t } from '../engine/state'
 import type { EngineData, Lang } from '../engine/types'
-import { useEngine } from '../store/engine'
+import { setAvailabilityGate, useEngine } from '../store/engine'
+import { liveGate } from './availability'
 import { usePayState } from '../store/payment'
 import { Attract } from '../ui/Attract'
 import { applyBrand } from '../ui/brand'
@@ -24,9 +26,17 @@ import { clearSession, restoreSession, startSessionPersistence } from './session
 let bootStarted = false
 let brandName = 'Guestit'
 let menuRetry: { source: CatalogSourceConfig; pack: EngineData; timeoutMs: number } | null = null
+/** When the API menu in use was loaded (ms); stamped into snapshots as the catalog version (no price endpoint exists). */
+let menuLoadedAt = 0
+/** Live checks against the kiosk API are in use (API / test menu on the static simulation). */
+let liveChecks = false
+
+/** Boot / recovery refresh: the whole menu on the static simulation, only the cart's products on the live API. */
+const refreshScope = (): string[] | undefined => (liveChecks ? undefined : E().products.map((p) => p.id))
 
 function applyMenu(engine: EngineData, config: { defaultLang: Lang }): Lang {
   setEngine(engine)
+  if (engine.venue) menuLoadedAt = Date.now()
   applyBrand(engine.brand)
   // One identity everywhere (audit F10): the venue's name on API menus, the brand pack's otherwise.
   brandName = engine.venue ? engine.venue.name || 'Kiosk' : engine.brand.name
@@ -46,7 +56,7 @@ async function retryMenu(): Promise<void> {
     useEngine.getState().setMenuError(null)
     useEngine.getState().setReady(s.config, lang)
     getRuntime().log('menu.recovered')
-    void catalogRefresh()
+    void catalogRefresh(refreshScope())
   } catch (e) {
     getRuntime().log('menu.retryFailed', { error: String(e) })
   }
@@ -60,7 +70,7 @@ async function retryMenu(): Promise<void> {
  */
 async function boot(): Promise<void> {
   const store = useEngine.getState()
-  const resolved = resolveAdapters()
+  let resolved = resolveAdapters()
   try {
     const config = await resolved.adapters.catalog.config()
     if (config.mode === 'production' && resolved.adapters.kind === 'static') {
@@ -69,6 +79,11 @@ async function boot(): Promise<void> {
     const base = import.meta.env.BASE_URL
     const source = resolveCatalogSource(config.catalogSource, window.location.search)
     const timeoutMs = config.timeouts.menuLoad ?? DEFAULT_MENU_TIMEOUT_MS
+    // API menu on the simulation: availability (and the no-op price check) go to the kiosk API, as the old kiosk did.
+    const live = withLiveAdapters(resolved.adapters, source, () => menuLoadedAt, { timeoutMs: config.timeouts.availability })
+    liveChecks = live !== resolved.adapters
+    resolved = { ...resolved, adapters: live }
+    setAvailabilityGate(liveChecks ? liveGate : null)
     // The remote menu request starts now, in parallel with the brand pack; it is awaited only after restore().
     const menuP = source.source === 'static' ? null : fetchMenu(source, timeoutMs)
     menuP?.catch(() => undefined) // observed below; avoid an unhandled rejection if restore() throws first
@@ -102,8 +117,8 @@ async function boot(): Promise<void> {
       useEngine.getState().setConn(c)
       rt.log('connectivity.state', { kind: c.kind, ...(c.kind === 'connected' ? { role: c.role, epoch: c.epoch } : {}) })
     })
-    if (!menuError) void catalogRefresh()
-    rt.log('boot.ok', { adapters: resolved.adapters.kind, mode: config.mode, brand: engine.brand.id, catalog: source.source, menuError })
+    if (!menuError) void catalogRefresh(refreshScope())
+    rt.log('boot.ok', { adapters: resolved.adapters.kind, liveChecks, mode: config.mode, brand: engine.brand.id, catalog: source.source, menuError })
   } catch (e) {
     store.setBootError(String(e))
   }

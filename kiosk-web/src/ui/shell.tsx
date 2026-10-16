@@ -359,6 +359,7 @@ export function CategoryFinish({ cat }: { cat: string }) {
 
 function MenuGrid({ cat, filter }: { cat: string; filter: string }) {
   const openAlFilter = useEngine((s) => s.openAlFilter)
+  useEngine((s) => s.availVersion) // sold-out set changed (live check / checkout refresh): rebuild the list
   const c = catOf(cat)
   const list = prodsInCards(cat).filter((p) => filter === 'all' || !c?.filters ? true : (p.tags || []).includes(filter))
   if (!list.length)

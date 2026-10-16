@@ -55,6 +55,10 @@ export interface Product {
   steps?: string[]
   /** POS article code (API IdOtherPos). */
   plu?: string
+  /** Per-line quantity cap from the catalog (API MaxAmountInAgenda); the engine's MAX_LINE_QTY still applies. */
+  maxQty?: number
+  /** Information only (API NoInteraction): visible, opens the product page, cannot be added. */
+  infoOnly?: boolean
 }
 
 export interface ModItem {

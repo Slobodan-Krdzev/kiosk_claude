@@ -75,9 +75,48 @@ Mapping and icons follow `docs/reference/product-allergen-map.md`: TMK `Allergen
 - Empty pictures are filled with the API's placeholders (`…/DefaultDetailsMainProductImage.png`). These are treated as "no picture"; the card falls back to `SmallPictureUrl`, which usually holds the real photo.
 - Some upsell options have `ProductId: null` (collection 12). Order submission will need a rule for them (old payload sent `UpsaleStepOptionModel.ProductId` as optional).
 - Collection 9 step 1 is mandatory (`MinSelection 1`), so products carrying it cannot be ordered without a coffee. The kiosk follows the data.
-- `NoInteraction` products are treated as not orderable (hidden). Assumption; confirm.
+- `NoInteraction` products: first treated as hidden (assumption). Resolved 2026-10-16 by `kiosk-product-checks.md` §4: they are visible, open the product page and cannot be ordered (`Product.infoOnly`).
 - Product **names** follow the default language (the engine keeps names as plain strings); category names and descriptions are translated.
 - Products without an allergen screen are marked "allergens unknown", never "free of".
 - Menu 2490 is 3.6 MB and takes ~5 s to download at boot.
 
-Status: catalog over HTTP = `NOT_VERIFIED_ON_REAL_INFRA` (runs against the dev API and the test endpoint; tests run on the captured samples). Availability, order, payment: `NOT_IMPLEMENTED`.
+## Availability and product checks (2026-10-16)
+
+Reference: `../kiosk-product-checks.md` (handed over by Alex, 2026-10-16). Captured from the dev API with
+`curl -H 'Origin: http://localhost:5173'`:
+
+| File | Request | Result |
+|---|---|---|
+| `checkProductAvailable-454992.json` | `GET {api}/checkProductAvailable?idProduct=454992` (Herten carpaccio) | HTTP 200, body `true` |
+| `checkProductAvailable-454444.json` | same, 454444 (the `NoInteraction` product "De Keuken") | HTTP 200, body `true` |
+| `checkProductAvailable-1.json` | same, unknown id 1 | HTTP 500 `{"Message":"An error has occurred."}` |
+| (not stored) | `GET {api}/checkProductAvailable` without the parameter | HTTP 404 |
+
+The body is a bare JSON boolean; CORS allows `http://localhost:5173`. **No product on the dev menu is out of stock, so a
+`false` body has not been observed.** The adapter treats `false` as sold out and everything that is not a boolean
+2xx body (500, network error, timeout) as UNKNOWN.
+
+How it is implemented (`kiosk-web/src/adapters/http/tmkLive.ts`, `src/app/availability.ts`, `src/store/engine.ts`):
+
+- One GET per product, at most 4 in flight, per-request timeout `timeouts.availability` (8 s). `?testMode=true`
+  answers "available" without a request (the old kiosk's test-mode override). Wired at boot by `withLiveAdapters`
+  when the menu is the API or test menu and the adapters are the static simulation; Launcher-injected adapters
+  (`window.GuestitAdapters`) are never overridden.
+- When: once per product per guest session, before the first add or product-page open (card tap, size tap,
+  product page add); then the whole cart (lines, picked upsell options, menu parts, cross-sells) before any charge
+  via `catalogRefresh(cartPids)`. The old kiosk's "every tap" is not repeated for increments of a product already
+  in the cart (DEVIATIONS 28).
+- Results: sold out → dialog "Sorry, {name} is sold out right now", nothing added, the product leaves every list
+  (engine rule `visible()`, the same hiding the old kiosk did) and an existing cart line is blocked; UNKNOWN →
+  toast "could not check, try again", nothing added, product not marked (DEVIATIONS 26); at checkout UNKNOWN →
+  "could not verify" dialog and no payment attempt.
+- `MaxAmountInAgenda` → `Product.maxQty` → `lineMax(p)`, applied to card stepper, product page, cart and
+  validation, within the engine's 20 (DEVIATIONS 27). `NoInteraction` → `Product.infoOnly` (DEVIATIONS 31).
+- `IsPromotion`: design-only banner switch, left under decision 2.
+- Prices: the API has no price endpoint. The live `catalog.current()` reports no changes and stamps the menu load
+  time as the catalog version; price validation is the backend's job → `status/BACKEND-DEPENDENCIES.md` B1.
+
+Status: catalog over HTTP = `NOT_VERIFIED_ON_REAL_INFRA` (runs against the dev API and the test endpoint; tests run
+on the captured samples). Availability client = `IMPLEMENTED`; exercised against the dev API for the "available"
+and the HTTP 500 paths only, so the sold-out path is `NOT_VERIFIED_ON_REAL_INFRA` until a product can be set out of
+stock on the dev menu. Live prices = `BLOCKED_BACKEND`. Order, payment: `NOT_IMPLEMENTED`.

@@ -262,8 +262,11 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
         desc: tr((x) => x.prod.get(p.ProductId)?.desc, desc),
         ...(steps.length ? { steps } : {}),
         ...(p.IdOtherPos ? { plu: p.IdOtherPos } : {}),
-        // OutOfStock: never shown (as the old kiosk). NoInteraction: not orderable.
-        ...(p.OutOfStock || p.NoInteraction ? { disabled: true } : {}),
+        // OutOfStock: never shown (as the old kiosk). NoInteraction: shown, information only (kiosk-product-checks.md §4).
+        ...(p.OutOfStock ? { disabled: true } : {}),
+        ...(p.NoInteraction ? { infoOnly: true } : {}),
+        // MaxAmountInAgenda: per-line quantity cap (§3). Values like 999999 mean "no cap" → the engine's own limit applies.
+        ...(Number.isInteger(p.MaxAmountInAgenda) && (p.MaxAmountInAgenda as number) >= 1 ? { maxQty: p.MaxAmountInAgenda as number } : {}),
       })
     }
   }

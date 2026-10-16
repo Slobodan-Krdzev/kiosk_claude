@@ -1111,3 +1111,10 @@ html.brand-sojubar{ --sj-blue:#5DB3E6; --sj-blue-text:#1A6FB0; --sj-pink:#E4479B
 .tagdone-x{ display:flex; flex-direction:column; align-items:flex-start; text-align:left; }
 .tagdone .l{ font-size:18px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; opacity:.7; }
 .tagdone .v{ font-family:var(--font-display),'Bebas Neue',sans-serif; font-size:60px; line-height:1; letter-spacing:.03em; max-width:560px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* live availability check (kiosk API, 2026-10-16): card control while the request is in flight */
+.ob-wait{ background:rgb(var(--c-ink) / .08); color:rgb(var(--c-ink) / .45); animation:obwait 1.1s ease-in-out infinite; }
+.ob-wait .ob-i{ width:20px; height:20px; }
+@keyframes obwait{ 0%,100%{ opacity:1; } 50%{ opacity:.45; } }
+.perf-low .ob-wait{ animation:none !important; }
+/* information-only product (API NoInteraction): the bar holds a note instead of quantity + add */
+.r44-info-only{ min-height:64px; display:grid; place-items:center; font-size:21px; font-weight:600; color:rgb(var(--c-mute)); }

@@ -285,6 +285,20 @@ function Confirms() {
   const a = useEngine(useShallow((s) => ({ keepEdit: s.keepEdit, discardStep: s.discardStep, discardEdit: s.discardEdit, delAll: s.delAll, delMainOnly: s.delMainOnly, delCancel: s.delCancel, keepOrder: s.keepOrder, confirmCancel: s.confirmCancel })))
   if (!confirm) return null
   if (confirm === 'idle') return <IdleDialog />
+  if (typeof confirm === 'object' && confirm.type === 'soldOut')
+    return (
+      <Dialog label={t('unavailT')}>
+        <div id="soldOutT" className="hd text-[44px] leading-[1.05] tracking-[.02em]">
+          {t('unavailT')}
+        </div>
+        <p className="text-[23px] text-mute font-medium mt-3">{tf('soldOutNow', { name: confirm.name })}</p>
+        <div className="grid gap-4 mt-10">
+          <button type="button" data-a="soldOutOk" className="press h-[92px] rounded-full bg-jade text-white hd text-[23px] tracking-[.08em]" onClick={() => useEngine.getState().setConfirm(null)}>
+            {t('close')}
+          </button>
+        </div>
+      </Dialog>
+    )
   if (confirm === 'availFail' || confirm === 'authChanged')
     return (
       <Dialog>

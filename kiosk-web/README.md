@@ -5,9 +5,12 @@ on top of the failover-safe payment core from `../failover-handover/`.
 
 The **menu comes from the kiosk API** (`getfullresources`, see `../failover-handover/docs/reference/api-samples/README.md`),
 selected with `public/mock/config.json → catalogSource` or `?source=api|test|static` / `?testMode=true&menuId=<n>`.
-Everything else (availability, current prices, terminal, POS, printer, loyalty, connectivity) still runs on the
-**static simulation** in `src/adapters/static/` behind the `GuestitAdapters` interface — that is a development stand-in,
-not a production integration. Later the same UI runs inside the Guestit Launcher (Kotlin WebView), which injects
+On an API menu, **product availability is checked live** (`checkProductAvailable`, one request per product: on the
+first add or product-page open, and again for the whole cart before any charge; `src/adapters/http/tmkLive.ts`,
+`src/app/availability.ts`). The API has no price endpoint, so prices are never re-checked client-side
+(`../failover-handover/status/BACKEND-DEPENDENCIES.md`). Everything else (terminal, POS, printer, loyalty,
+connectivity) still runs on the **static simulation** in `src/adapters/static/` behind the `GuestitAdapters`
+interface — that is a development stand-in, not a production integration. Later the same UI runs inside the Guestit Launcher (Kotlin WebView), which injects
 `window.GuestitAdapters`, or against the HTTP backend.
 
 ## Run

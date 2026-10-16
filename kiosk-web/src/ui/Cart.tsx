@@ -2,7 +2,7 @@ import { useShallow } from 'zustand/shallow'
 // Order review — port of SCR.cart (+ cartInspireHTML). Loyalty (Como) box reduced to a login prompt.
 
 import { cartClashes, cartCount, hasCat, lineSummary, lineUnit, validateCart } from '../engine/cart'
-import { byId, pname } from '../engine/catalog'
+import { byId, lineMax, pname } from '../engine/catalog'
 import { cmsAddable, cmsBlocks } from '../engine/cms'
 import { firstIncomplete, lineNeedsChoice, unavailParts, validateLineStructure } from '../engine/draft'
 import { fmt } from '../engine/money'
@@ -148,7 +148,7 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
           {fmt(lineUnit(l) * l.qty)}
         </div>
         <span id={`ls-${l.lid}`}>
-          <Stepper qty={l.qty} onDelta={(d) => a.cartQty(l.lid, d)} h={72} name={pname(p)} />
+          <Stepper qty={l.qty} onDelta={(d) => a.cartQty(l.lid, d)} h={72} name={pname(p)} max={lineMax(p)} />
         </span>
       </div>
     </div>
