@@ -15,6 +15,8 @@ import { tagModeFor, type TagState } from '../ui/Tag'
 import { getRuntime } from './runtime'
 
 let paying = false
+/** Version of the last successful catalog refresh; frozen into every snapshot (pricedWith). */
+let catalogVersion = 0
 
 /** Identity of the writable authority the device believes in; a change during preflight invalidates the preflight. */
 const connKey = (c: ConnectionState): string => (c.kind === 'connected' ? `${c.role}:${c.nodeId}:${c.epoch}` : c.kind)
@@ -36,7 +38,13 @@ export async function catalogRefresh(): Promise<boolean> {
       p.price = cents
       servingsOf(p)?.forEach((s) => (s.price += delta))
     }
+    // Price variants (premium menu drinks, cross-sell prices) are pricing inputs too (audit F11).
+    for (const [id, cents] of Object.entries(cur.variants || {})) {
+      const pv = E().priceVariants[id]
+      if (pv && typeof cents === 'number') pv.price = cents
+    }
     setDisabled(cur.disabled || [])
+    if (typeof cur.version === 'number') catalogVersion = cur.version
     return true
   } catch (e) {
     rt.log('catalog.refreshFailed', { error: String(e) })
@@ -199,6 +207,6 @@ export function buildSnapshot(cart: CartLine[], service: 'eat-in' | 'takeaway', 
     tag,
     totals: { subtotalCents: subtotal, discountCents: 0, totalCents: subtotal, count: cart.reduce((a, l) => a + l.qty, 0) },
     loyalty: memberId ? { memberId } : null,
-    pricedWith: { catalogVersion: 36 },
+    pricedWith: { catalogVersion },
   }
 }

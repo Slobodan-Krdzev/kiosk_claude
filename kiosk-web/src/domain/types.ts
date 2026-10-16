@@ -181,6 +181,8 @@ export interface Timeouts {
   health: number
   /** Remote menu (getfullresources) at boot; a hanging menu service must never block payment recovery. */
   menuLoad?: number
+  /** Loyalty identification from the voucher sheet. */
+  loyalty?: number
 }
 
 export interface GuestitConfig {

@@ -7,13 +7,15 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import configRaw from '../public/mock/config.json'
 import { fetchMenu } from './adapters/http/catalogSource'
+import { mapTmkToEngine } from './adapters/http/tmkMapper'
+import type { TmkRoot } from './adapters/http/tmk'
 import { createStaticAdapters } from './adapters/static/staticAdapters'
-import { toPay } from './app/checkout'
+import { catalogRefresh, toPay } from './app/checkout'
 import { createRuntime } from './app/runtime'
 import type { GuestitConfig } from './domain/types'
-import { addToCart } from './engine/cart'
+import { addToCart, revalidatePrices } from './engine/cart'
 import { finalizeEngineData } from './engine/data'
-import { newDraft } from './engine/draft'
+import { grpSet, newDraft, unavailParts, validateDraft } from './engine/draft'
 import { E, setAllergenFilter, setDisabled, setEngine, setLang, setUnavailable } from './engine/state'
 import type { EngineData } from './engine/types'
 import { PaymentController } from './payment/controller'
@@ -21,6 +23,7 @@ import { MemoryPaidRecordStore } from './payment/persistence'
 import { useEngine } from './store/engine'
 import { attachPayState } from './store/payment'
 import { deferred, FakePayment, FakePos, FakePrinter, snapshotInput, TEST_TIMEOUTS } from './test/fakes'
+import { Overlays } from './ui/Overlays'
 import { Pay } from './ui/Pay'
 
 const FILES: Record<keyof EngineData, string> = {
@@ -233,5 +236,102 @@ describe('F05 — the remote menu request is bounded', () => {
     expect(await result).toContain('timed out after 5000 ms')
     expect(aborted).toBe(true)
     vi.unstubAllGlobals()
+  })
+})
+
+describe('F06 — selected upsell options take part in stock validation', () => {
+  const sample = (): TmkRoot => JSON.parse(readFileSync(resolve(process.cwd(), '../failover-handover/docs/reference/api-samples/testmode-2490.json'), 'utf8'))
+  it('A05: a sold-out product behind a picked option blocks the line; removing the option clears it', () => {
+    const d = mapTmkToEngine(sample(), pack(), { img: (u) => u })
+    setEngine(d)
+    const p = d.products.find((x) => x.id === '469180')!
+    const g = 'up9_8'
+    const item = d.mods[g].items[0]
+    expect(item.pid).toBeTruthy()
+    const draft = newDraft(p)
+    grpSet(draft, g, item.id, 1)
+    expect(validateDraft(draft)).toHaveLength(0)
+    setUnavailable([item.pid!])
+    const issues = validateDraft(draft)
+    expect(issues.some((i) => i.code === 'unavailable-included' && i.pid === item.pid)).toBe(true)
+    expect(unavailParts(draft)).toEqual([expect.objectContaining({ role: 'option', group: g, id: item.id, fix: 'option' })])
+    grpSet(draft, g, item.id, 0)
+    // the step is required (min 1): the guest must now pick another option
+    expect(validateDraft(draft).map((i) => i.code)).toEqual(['required-choice'])
+  })
+})
+
+describe('F07 — a late loyalty reply never reaches the next guest', () => {
+  function identifyPending() {
+    const rt = runtime()
+    const pending = deferred<{ id: string; name: string; points: number } | null>()
+    rt.adapters.loyalty.identify = () => pending.promise
+    useEngine.getState().voucher()
+    render(<Overlays />)
+    fireEvent.change(screen.getByPlaceholderText('123456'), { target: { value: '123456' } })
+    return { rt, pending }
+  }
+  it('A07: reset while identification is pending → the reply is discarded', async () => {
+    const { pending } = identifyPending()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: nl().cm_apply }))
+    })
+    await act(async () => {
+      useEngine.getState().newOrderReset()
+    })
+    await act(async () => {
+      pending.resolve({ id: 'previous-guest', name: 'Audit guest', points: 1 })
+    })
+    expect(useEngine.getState().member).toBeNull()
+  })
+  it('closing the sheet while pending also discards the reply; the same session applies it', async () => {
+    const a = identifyPending()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: nl().cm_apply }))
+    })
+    expect(screen.getByRole('button', { name: nl().cm_wait })).toBeDisabled()
+    await act(async () => {
+      useEngine.getState().closeSheet()
+    })
+    await act(async () => {
+      a.pending.resolve({ id: 'closed-guest', name: 'X', points: 1 })
+    })
+    expect(useEngine.getState().member).toBeNull()
+    cleanup()
+    const b = identifyPending()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: nl().cm_apply }))
+    })
+    await act(async () => {
+      b.pending.resolve({ id: 'this-guest', name: 'Y', points: 2 })
+    })
+    expect(useEngine.getState().member?.id).toBe('this-guest')
+    expect(useEngine.getState().sheet).toBeNull()
+  })
+  it('a timeout shows the error and leaves the guest without a member', async () => {
+    identifyPending()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: nl().cm_apply }))
+    })
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(9_000)
+    })
+    expect(screen.getByText(nl().cm_err)).toBeTruthy()
+    expect(useEngine.getState().member).toBeNull()
+  })
+})
+
+describe('F11 — price variants are part of the live price check', () => {
+  it('A08: a changed premium-drink variant is detected for a configured meal', async () => {
+    const rt = runtime()
+    const draft = newDraft(E().products.find((p) => p.id === 'salmonpoke')!)
+    draft.menu = true
+    draft.drink = 'lychee'
+    const { cart } = addToCart([], draft)
+    rt.adapters.catalog.current = async () => ({ version: 37, prices: {}, variants: { 'lychee-menu-upgrade': 999 }, disabled: [] })
+    expect(await catalogRefresh()).toBe(true)
+    const changes = revalidatePrices(cart)
+    expect(changes).toHaveLength(1)
+    expect(changes[0].now - changes[0].old).toBe(999 - 150)
   })
 })

@@ -277,8 +277,18 @@ export interface Issue {
   lid?: string
 }
 
+/** Selected upsell-step options that are backed by a product (API catalog): [group, optionId, productId]. */
+export const stepOptionPids = (d: Draft): [string, string, string][] =>
+  (d.extras || []).flatMap(([g, id]) => {
+    if (!isStep(g)) return []
+    const pid = E().mods[g]?.items.find((i) => i.id === id)?.pid
+    return pid ? [[g, id, pid] as [string, string, string]] : []
+  })
+
+/** Every product a configured line depends on: main product, menu parts, cross-sells and upsell options (audit F06). */
 export const includedPids = (d: Draft): string[] => [
   d.pid,
+  ...stepOptionPids(d).map(([, , pid]) => pid),
   ...(d.menu ? [E().menuDeal.side, d.drink].filter((x): x is string => !!x) : []),
   ...((d.crossSells || []).map((x) => cmsById(x.id)?.pid).filter((x): x is string => !!x) as string[]),
 ]
@@ -332,10 +342,11 @@ export const firstIncomplete = (d: Draft): string | null => {
 
 export interface UnavailPart {
   pid: string
-  role: 'main' | 'menu-side' | 'menu-drink' | 'cross-sell'
+  role: 'main' | 'menu-side' | 'menu-drink' | 'cross-sell' | 'option'
   name: string
   id?: string
-  fix?: 'menu' | 'drink' | 'xs'
+  group?: string
+  fix?: 'menu' | 'drink' | 'xs' | 'option'
 }
 
 export function unavailParts(d: Draft): UnavailPart[] {
@@ -350,7 +361,16 @@ export function unavailParts(d: Draft): UnavailPart[] {
     const pid = v?.pid
     if (pid && na.has(pid)) out.push({ pid, role: 'cross-sell', id: x.id, name: mustId(pid).name, fix: 'xs' })
   })
+  stepOptionPids(d).forEach(([g, id, pid]) => {
+    if (na.has(pid)) out.push({ pid, role: 'option', id, group: g, name: L(modItem(g, id).name), fix: 'option' })
+  })
   return out
+}
+
+/** An upsell option whose product is sold out / disabled cannot be picked (and is shown as such). */
+export function optionUnavailable(g: string, id: string): boolean {
+  const pid = E().mods[g]?.items.find((i) => i.id === id)?.pid
+  return !!pid && checkProducts([pid]).length > 0
 }
 
 export function blockReason(d: Draft): string {

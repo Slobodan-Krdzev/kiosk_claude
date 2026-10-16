@@ -12,6 +12,7 @@ import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
 import { canSubmitWrites } from '../domain/connectivity'
 import { useEngine } from '../store/engine'
+import { withTimeout } from '../adapters/withTimeout'
 import { NOTHING_CHARGED } from '../payment/states'
 import { usePayState } from '../store/payment'
 import { PriceRows } from './Pdp'
@@ -51,8 +52,28 @@ function VoucherSheet() {
   const setMember = useEngine((s) => s.setMember)
   const [code, setCode] = useState('')
   const [err, setErr] = useState(false)
+  const [busy, setBusy] = useState(false)
+  // The reply is applied only if this sheet is still open for the SAME guest session (audit F07):
+  // a reset or close while the request is pending discards the result instead of attaching the previous guest.
   const submit = async () => {
-    const m = await getRuntime().resolved.adapters.loyalty.identify(code)
+    if (busy || !code) return
+    const rt = getRuntime()
+    const gen = useEngine.getState().sessionGen
+    setBusy(true)
+    setErr(false)
+    let m: Awaited<ReturnType<typeof rt.resolved.adapters.loyalty.identify>> | undefined
+    try {
+      m = await withTimeout(rt.resolved.adapters.loyalty.identify(code), rt.config.timeouts.loyalty ?? 8000, 'loyaltyIdentify')
+    } catch (e) {
+      rt.log('loyalty.identifyFailed', { error: String(e) })
+      m = undefined
+    }
+    const now = useEngine.getState()
+    if (now.sessionGen !== gen || (now.sheet !== 'voucher' && now.sheet !== 'loyalty')) {
+      rt.log('loyalty.staleReplyDiscarded', { gen, nowGen: now.sessionGen })
+      return
+    }
+    setBusy(false)
     if (m) {
       setMember(m)
       close()
@@ -68,8 +89,8 @@ function VoucherSheet() {
       <div className="text-center text-[18px] font-bold text-ember mt-3">{t('voucherDemo')}</div>
       <div className="flex justify-center gap-3 mt-6">
         <input className="h-[72px] w-[320px] px-6 rounded-[16px] bg-card text-[28px] num text-center" inputMode="numeric" placeholder="123456" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
-        <button type="button" className="press h-[72px] px-8 rounded-full bg-jade text-white hd text-[22px] tracking-[.1em]" onClick={() => void submit()}>
-          {t('cm_apply')}
+        <button type="button" className={`press h-[72px] px-8 rounded-full bg-jade text-white hd text-[22px] tracking-[.1em]${busy ? ' opacity-60' : ''}`} disabled={busy} aria-busy={busy || undefined} onClick={() => void submit()}>
+          {busy ? t('cm_wait') : t('cm_apply')}
         </button>
       </div>
       {err ? <div className="text-center text-[19px] font-bold text-ember mt-3">{t('cm_err')}</div> : null}

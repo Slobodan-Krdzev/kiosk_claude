@@ -11,6 +11,7 @@ import {
   grpMax,
   grpMin,
   isStep,
+  optionUnavailable,
   stepLocked,
   draftValid,
   exMax,
@@ -179,16 +180,18 @@ function StepTile({ g, it, d, full }: { g: string; it: ModItem; d: Draft; full: 
   const q = exQty(d, g, it.id)
   const max = exMax(it.id, g)
   const name = L(it.name)
+  // Sold-out / disabled product behind the option (audit F06): shown, not pickable; an existing pick can be removed.
+  const na = optionUnavailable(g, it.id)
   // full = the step has its maximum of different options: a picked option can still go up to its own max
-  const more = q < max && (q > 0 || !full)
+  const more = q < max && (q > 0 || !full) && !na
   return (
-    <div className={`r44-ex${q ? ' on' : ''}`} data-ex={it.id}>
+    <div className={`r44-ex${q ? ' on' : ''}`} data-ex={it.id} aria-disabled={na && !q ? true : undefined} style={na ? { opacity: q ? 1 : 0.45 } : undefined}>
       <div className="r44-ex-img" style={{ height: 'calc(210px * var(--u))' }}>
         <FoodImg p={{ img: it.img, em: it.em || '🍽' }} cls="absolute inset-0" em="64px" />
       </div>
       <div className="r44-ex-b">
         <div className="hd r44-ex-n">{name}</div>
-        <div className="r44-ex-s">{it.sub ? L(it.sub) : ''}</div>
+        <div className={`r44-ex-s${na ? ' text-ember' : ''}`}>{na ? t('unavailT') : it.sub ? L(it.sub) : ''}</div>
         <div className="r44-ex-row">
           <span className="r44-ex-p hd num">+ {fmt(it.price)}</span>
           {q > 0 && max > 1 ? (
@@ -218,7 +221,7 @@ function StepTile({ g, it, d, full }: { g: string; it: ModItem; d: Draft; full: 
               </span>
             </button>
           ) : (
-            <button type="button" data-a="pick" className={`press ob${full && grpMax(g) > 1 ? ' off' : ''}`} aria-label={tf('obAddA', { name })} onClick={() => a.pick(g, it.id)}>
+            <button type="button" data-a="pick" className={`press ob${(full && grpMax(g) > 1) || na ? ' off' : ''}`} aria-label={tf('obAddA', { name })} aria-disabled={na || undefined} onClick={() => !na && a.pick(g, it.id)}>
               <span className="ob-i">
                 <Ic n="plus" sw={2.6} />
               </span>
@@ -589,7 +592,7 @@ function Info({ p, d, xp, vu }: { p: Product; d: Draft; xp: Experience; vu: bool
 }
 
 function UnavailBanner({ d }: { d: Draft }) {
-  const a = useEngine(useShallow((s) => ({ fixXs: s.fixXs, fixMenu: s.fixMenu })))
+  const a = useEngine(useShallow((s) => ({ fixXs: s.fixXs, fixMenu: s.fixMenu, fixOption: s.fixOption })))
   const naP = unavailParts(d)
   if (!naP.length) return null
   return (
@@ -615,6 +618,10 @@ function UnavailBanner({ d }: { d: Draft }) {
               </button>
             ) : x.fix === 'xs' ? (
               <button key={x.pid} type="button" className="press h-[60px] px-5 rounded-full bg-white text-ember text-[19px] font-bold" onClick={() => a.fixXs(x.id!)}>
+                {tf('removePart', { name: x.name })}
+              </button>
+            ) : x.fix === 'option' ? (
+              <button key={x.group + ':' + x.id} type="button" className="press h-[60px] px-5 rounded-full bg-white text-ember text-[19px] font-bold" onClick={() => a.fixOption(x.group!, x.id!)}>
                 {tf('removePart', { name: x.name })}
               </button>
             ) : (

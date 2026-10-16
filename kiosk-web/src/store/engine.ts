@@ -46,6 +46,8 @@ export interface EngineState {
   bootError: string | null
   /** The remote menu failed after the payment controller was restored: recovery runs, guests cannot order. */
   menuError: string | null
+  /** Guest session generation: bumped on every reset. Async replies for an older generation are discarded (audit F07). */
+  sessionGen: number
   config: GuestitConfig | null
   lang: Lang
   service: Service | null
@@ -146,6 +148,8 @@ export interface EngineState {
   discardEdit(): void
   fixXs(id: string): void
   fixMenu(): void
+  /** Remove a sold-out upsell option from the draft (audit F06). */
+  fixOption(g: string, id: string): void
   addOrder(): void
 
   // cart
@@ -300,6 +304,7 @@ export const useEngine = create<EngineState>((set, get) => {
     ready: false,
     bootError: null,
     menuError: null,
+    sessionGen: 0,
     config: null,
     lang: 'nl',
     cartVersion: 0,
@@ -556,6 +561,10 @@ export const useEngine = create<EngineState>((set, get) => {
       set({ confirm: null })
       get().closeProduct()
     },
+    fixOption: (g, id) =>
+      mutateDraft((d) => {
+        grpSet(d, g, id, 0)
+      }),
     fixXs: (id) =>
       mutateDraft((d) => {
         xsRemove(d, id)
@@ -707,7 +716,7 @@ export const useEngine = create<EngineState>((set, get) => {
       if (gtcTimer) clearTimeout(gtcTimer)
       setAllergenFilter(new Set())
       const s = get()
-      set({ ...resetFields(), lang: s.config?.defaultLang ?? s.lang, cartVersion: s.cartVersion + 1, lastActivity: Date.now() })
+      set({ ...resetFields(), lang: s.config?.defaultLang ?? s.lang, cartVersion: s.cartVersion + 1, sessionGen: s.sessionGen + 1, lastActivity: Date.now() })
       engineSetLang(s.config?.defaultLang ?? s.lang)
     },
     hydrate: (h) => {
