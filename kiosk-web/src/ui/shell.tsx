@@ -60,13 +60,14 @@ export function Rail() {
   )
 
   const sb = b.sidebar
-  // API menu: the venue's logo and name, no brand photo / taglines (audit F10).
+  // API menu: the venue's logo and name, no brand taglines (audit F10). The sidebar background photo stays the
+  // brand pack's until the venue's own image is decided (Alex, 2026-10-16).
   const venue = venueMenu()
   const logo = venue ? E().venue!.logoImg : b.logoImg
   return (
     <nav id="railSide" className="flex-none relative z-20 flex flex-col text-cream overflow-hidden" style={{ width: b.layout.sidebarWidth, boxShadow: '16px 0 40px -18px rgba(20,17,12,.38)' }}>
-      <div className="absolute inset-0" style={{ background: !venue && sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
-        {!venue && sb.backgroundType === 'image' ? (
+      <div className="absolute inset-0" style={{ background: sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
+        {sb.backgroundType === 'image' ? (
           <img
             src={SIDEBAR_FALLBACK}
             alt=""
@@ -242,6 +243,8 @@ function H2({ txt, seeAllCat }: { txt: string; seeAllCat?: string }) {
 export function HomeMain() {
   const b = E().brand
   const ref = useScroller('home')
+  useEngine((s) => s.allergenFilter) // promos / popular / new follow the allergen filter
+  useEngine((s) => s.availVersion)
   const promos = b.promos.filter((pr) => !alHidden(byId(pr.pid)) && !(pr.menu && alHidden(byId(E().menuDeal.side))))
   const [P0, ...rest] = promos
   const news = visible(E().products.filter((p) => p.badges.includes('new'))).slice(0, 3)
@@ -362,6 +365,7 @@ export function CategoryFinish({ cat }: { cat: string }) {
 function MenuGrid({ cat, filter }: { cat: string; filter: string }) {
   const openAlFilter = useEngine((s) => s.openAlFilter)
   useEngine((s) => s.availVersion) // sold-out set changed (live check / checkout refresh): rebuild the list
+  useEngine((s) => s.allergenFilter) // allergen filter changed while the category is open: rebuild the list
   const c = catOf(cat)
   const list = prodsInCards(cat).filter((p) => filter === 'all' || !c?.filters ? true : (p.tags || []).includes(filter))
   if (!list.length)
@@ -401,6 +405,7 @@ export function MenuMain() {
   const cat = useEngine((s) => s.cat)
   const filter = useEngine((s) => s.filter)
   const setFilter = useEngine((s) => s.setFilter)
+  useEngine((s) => s.allergenFilter) // finish / comp strips below the grid follow the allergen filter too
   const ref = useScroller(cat)
   const b = E().brand
   const c = catOf(cat)
