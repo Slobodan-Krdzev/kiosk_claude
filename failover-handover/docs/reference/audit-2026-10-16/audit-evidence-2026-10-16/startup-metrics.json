@@ -1,0 +1,30 @@
+{
+  "commit": "85a3ff728db5445413c4183b700fbff661eb2fdb",
+  "environment": "Local Vite production preview; desktop browser; warm cache; no CPU/network throttling; three sequential samples",
+  "measurement": "Attract .hero-lockup mounted, not all images decoded or target-device readiness",
+  "samples": [
+    {
+      "attractDomMs": 2116.3,
+      "fcpMs": 168,
+      "apiMs": 1924.5,
+      "longTasksObserved": 0
+    },
+    {
+      "attractDomMs": 444.1,
+      "fcpMs": 120,
+      "apiMs": 334,
+      "longTasksObserved": 0
+    },
+    {
+      "attractDomMs": 401.9,
+      "fcpMs": 196,
+      "apiMs": 193.8,
+      "longTasksObserved": 0
+    }
+  ],
+  "brandPackJsonRequestsPerBoot": 23,
+  "jsBytes": 421198,
+  "jsGzipApproxBytes": 124930,
+  "cssBytes": 103496,
+  "cssGzipApproxBytes": 21950
+}
