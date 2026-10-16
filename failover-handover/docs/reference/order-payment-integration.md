@@ -14,6 +14,21 @@ and `kiosk-api-documentation.md`. Nothing here is implemented yet; the open ques
 | Retry after print failure | re-POST the whole order with `skip=true`, `OrderGuid` empty | `submitRetry()` with the **same** idempotency key, never a second charge |
 | Outcome mapping | `IsSuccess`, `ResponseMessage` ∈ {`Aborted`, `Printing problem`, other}, `Data.AdditionalData` (order no), `Data.IdOrder` | `approved` / `declined` / `cancelled` / `timeout` / `terminal-offline`; anything else = UNKNOWN |
 
+## 1a. Both flows stay (Alex, 2026-10-16: "we need to keep this new kiosk flow as well")
+
+The new kiosk's flow — terminal, then order submit with a durable idempotency key, then print, with
+restart recovery and status lookup — is the controller and is **not** replaced. The old API's one-POST flow is
+added as one more implementation of the same three adapter interfaces, chosen per kiosk:
+
+| Adapters in use | Payment flow | When |
+| --- | --- | --- |
+| Static simulation (`kind: 'static'`, static menu) | three steps against the simulated terminal / POS / printer | development, `?source=static`, `?testMode=true` |
+| `TmkOrderPayment` (`kind: 'static'` + API menu) | one POST `CreateKioskOrderWithPinPayment`, mapped onto the three steps (§2) | today's Guestit backend (`?source=api`) |
+| Launcher-injected `window.GuestitAdapters` (`kind: 'bridge'` / `'http'`) | three steps against the real terminal, POS and printer of the hybrid-failover backend (`docs/02-contracts.md`) | the target architecture; never overridden by the kiosk |
+
+The selection is the existing `withLiveAdapters` rule (`src/adapters/http/tmkLive.ts`); nothing else in the
+kiosk knows which flow is behind the interfaces.
+
 ## 2. Integration: the POST becomes `payment.start()`, the order number is handed through
 
 One HTTP class `TmkOrderPayment` (`src/adapters/http/tmkOrder.ts`) implements **all three** adapter interfaces
