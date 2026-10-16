@@ -5,7 +5,7 @@ import { withTimeout } from '../adapters/withTimeout'
 import { canSubmitWrites, type ConnectionState } from '../domain/connectivity'
 import type { OrderSnapshot, SnapshotLine } from '../domain/types'
 import { applyRevalidatedPrices, lineUnit, priceStamp, revalidatePrices, validateCart } from '../engine/cart'
-import { byId, mustId, servingOf, servingsOf } from '../engine/catalog'
+import { byId, modItem, mustId, servingOf, servingsOf } from '../engine/catalog'
 import { cmsById } from '../engine/cms'
 import { exQty, includedPids } from '../engine/draft'
 import { E, L, patchUnavailable, setDisabled } from '../engine/state'
@@ -213,11 +213,17 @@ export function buildSnapshot(cart: CartLine[], service: 'eat-in' | 'takeaway', 
       choices: Object.entries(l.choices || {})
         .filter(([, v]) => !!v)
         .map(([groupId, v]) => ({ groupId, optionIds: [v as string] })),
-      extras: (l.extras || []).map(([g, id]) => ({ extraId: `${g}:${id}`, qty: exQty(l, g, id) })),
+      extras: (l.extras || []).map(([g, id]) => {
+        const it = modItem(g, id)
+        return { extraId: `${g}:${id}`, qty: exQty(l, g, id), ...(it.pid ? { productId: it.pid } : {}), name: typeof it.name === 'string' ? it.name : it.name.en, priceCents: it.price }
+      }),
       removes: (l.removes || []).map(([g, id]) => `${g}:${id}`),
       qty: l.qty,
       unitPriceCents: unit,
       lineTotalCents: unit * l.qty,
+      basePriceCents: l.reward ? 0 : sv ? sv.price : p.price,
+      ...(p.apiImg ? { image: p.apiImg } : {}),
+      ...(p.plu ? { plu: p.plu } : {}),
       kind,
       ...(l.priceVariantId ? { priceVariantId: l.priceVariantId } : {}),
       ...(l.groupId ? { groupId: l.groupId } : {}),

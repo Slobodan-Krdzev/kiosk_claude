@@ -121,4 +121,8 @@ How it is implemented (`kiosk-web/src/adapters/http/tmkLive.ts`, `src/app/availa
 Status: catalog over HTTP = `NOT_VERIFIED_ON_REAL_INFRA` (runs against the dev API and the test endpoint; tests run
 on the captured samples). Availability client = `IMPLEMENTED`; exercised against the dev API for the "available"
 and the HTTP 500 paths only, so the sold-out path is `NOT_VERIFIED_ON_REAL_INFRA` until a product can be set out of
-stock on the dev menu. Live prices = `BLOCKED_BACKEND`. Order, payment: `NOT_IMPLEMENTED`.
+stock on the dev menu. Live prices = `BLOCKED_BACKEND`. Order + payment over `CreateKioskOrderWithPinPayment`
+(`kiosk-web/src/adapters/http/tmkOrder.ts`, mapping in `docs/reference/order-payment-integration.md`): client
+`IMPLEMENTED` for approve / cancel / printing-problem, `NOT_VERIFIED_ON_REAL_INFRA` (tests on a mocked fetch only;
+no terminal was driven); status lookup, resend after printing problem and declined-as-distinct-outcome =
+`BLOCKED_BACKEND` (B7, B4, B8). No request was sent to the dev backend: an order POST starts a real terminal payment.

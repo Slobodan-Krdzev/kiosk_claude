@@ -1,7 +1,15 @@
 # Order + payment: integrating `CreateKioskOrderWithPinPayment` into the kiosk's payment controller
 
-Proposal, 2026-10-16, branch `order-payment-api`. Source of the contract: `kiosk-payment-flow.md` (Alex's handover)
-and `kiosk-api-documentation.md`. Nothing here is implemented yet; the open questions at the end gate parts of it.
+Proposal 2026-10-16, branch `order-payment-api`. Source of the contract: `kiosk-payment-flow.md` (Alex's handover)
+and `kiosk-api-documentation.md`.
+
+**Status 2026-10-16 (same day, "go ahead and build it"):** implemented as described in §2–§5 in
+`kiosk-web/src/adapters/http/tmkOrder.ts` (`buildOrderPayload`, `classify`, `TmkOrderPayment`), selected by
+`withLiveAdapters` on API menus, snapshot fields added (`basePriceCents`, `image`, `plu`, option `productId` /
+`name` / `priceCents`), `PaymentStartRequest.snapshot`. Tests: `tmkOrder.test.ts` (16: payload from menu 2490,
+every response row, cancel race, timeout, and the whole controller run for approve / cancel / unknown / printing
+problem / late approval). **No request was sent to the dev backend**: an order POST starts a real terminal
+payment, so the live run waits for question 4. Classification per §6. Deviations 37–40, dependencies B4, B7, B8.
 
 ## 1. The two shapes
 

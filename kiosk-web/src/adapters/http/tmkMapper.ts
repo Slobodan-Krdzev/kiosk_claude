@@ -288,6 +288,7 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
         desc: tr((x) => x.prod.get(p.ProductId)?.desc, desc),
         ...(steps.length ? { steps } : {}),
         ...(p.IdOtherPos ? { plu: p.IdOtherPos } : {}),
+        ...(isPicture(p.SmallPictureUrl) ? { apiImg: p.SmallPictureUrl! } : {}),
         // OutOfStock: never shown (as the old kiosk). NoInteraction: shown, information only (kiosk-product-checks.md §4).
         ...(p.OutOfStock ? { disabled: true } : {}),
         ...(p.NoInteraction ? { infoOnly: true } : {}),

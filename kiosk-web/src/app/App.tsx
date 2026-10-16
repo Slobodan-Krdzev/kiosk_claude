@@ -31,6 +31,14 @@ let menuRetry: { source: CatalogSourceConfig; pack: EngineData; timeoutMs: numbe
 let menuLoadedAt = 0
 /** Live checks against the kiosk API are in use (API / test menu on the static simulation). */
 let liveChecks = false
+/** Order adapter log: through the runtime once it exists (it is created after the adapters are resolved). */
+const orderLog = (event: string, data?: Record<string, unknown>): void => {
+  try {
+    getRuntime().log(event, data)
+  } catch {
+    console.debug('[kiosk]', event, data)
+  }
+}
 
 /** Boot / recovery refresh: the whole menu on the static simulation, only the cart's products on the live API. */
 const refreshScope = (): string[] | undefined => (liveChecks ? undefined : E().products.map((p) => p.id))
@@ -81,7 +89,15 @@ async function boot(): Promise<void> {
     const source = resolveCatalogSource(config.catalogSource, window.location.search)
     const timeoutMs = config.timeouts.menuLoad ?? DEFAULT_MENU_TIMEOUT_MS
     // API menu on the simulation: availability (and the no-op price check) go to the kiosk API, as the old kiosk did.
-    const live = withLiveAdapters(resolved.adapters, source, () => menuLoadedAt, { timeoutMs: config.timeouts.availability })
+    // Order + payment on the API menu: one POST (CreateKioskOrderWithPinPayment) behind payment / POS / printer.
+    // The POST may stay open longer than the controller's guard: a late approval is still applied once.
+    const live = withLiveAdapters(
+      resolved.adapters,
+      source,
+      () => menuLoadedAt,
+      { timeoutMs: config.timeouts.availability },
+      { startTimeoutMs: config.timeouts.paymentStart + 60_000, cancelTimeoutMs: config.timeouts.paymentCancel, log: orderLog },
+    )
     liveChecks = live !== resolved.adapters
     resolved = { ...resolved, adapters: live }
     setAvailabilityGate(liveChecks ? liveGate : null)

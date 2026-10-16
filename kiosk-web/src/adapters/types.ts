@@ -13,6 +13,8 @@ export interface PaymentStartRequest {
   orderId: string
   amountMinor: number
   currency: string
+  /** The frozen order. Backends whose payment call carries the order (kiosk API: one POST) read it; others ignore it. */
+  snapshot?: OrderSnapshot
 }
 
 export interface PaymentStartResult {

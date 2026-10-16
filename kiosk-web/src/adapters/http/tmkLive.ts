@@ -3,6 +3,7 @@
 
 import type { CatalogCurrent, CatalogSourceConfig } from '../../domain/types'
 import type { AvailabilityAdapter, AvailabilityResult, CatalogAdapter, GuestitAdapters } from '../types'
+import { TmkOrderPayment, type TmkOrderOptions } from './tmkOrder'
 
 export const DEFAULT_AVAILABILITY_TIMEOUT_MS = 8_000
 const DEFAULT_CONCURRENCY = 4
@@ -99,8 +100,13 @@ export function liveCatalog(base: CatalogAdapter, menuVersion: () => number): Ca
  * the API. Everything else (payment, POS, printer, loyalty…) stays as resolved. Injected Launcher adapters
  * (kind !== 'static') are never overridden: the Launcher owns those calls then.
  */
-export function withLiveAdapters(adapters: GuestitAdapters, source: CatalogSourceConfig, menuVersion: () => number, opts: TmkAvailabilityOptions = {}): GuestitAdapters {
+export function withLiveAdapters(adapters: GuestitAdapters, source: CatalogSourceConfig, menuVersion: () => number, opts: TmkAvailabilityOptions = {}, order?: TmkOrderOptions): GuestitAdapters {
   if (adapters.kind !== 'static' || source.source === 'static') return adapters
   const availability = source.source === 'test' ? new AllAvailable() : new TmkAvailability(source.apiBase, opts)
-  return { ...adapters, availability, catalog: liveCatalog(adapters.catalog, menuVersion) }
+  const live = { ...adapters, availability, catalog: liveCatalog(adapters.catalog, menuVersion) }
+  // Test mode keeps the simulated terminal (the old kiosk never sent an order in test mode either).
+  if (source.source !== 'api' || !order) return live
+  // One POST does terminal + order + receipt: one instance serves payment, POS and printer (docs/reference/order-payment-integration.md).
+  const op = new TmkOrderPayment(source.apiBase, { ...order, tableNumber: order.tableNumber ?? source.tableNumber })
+  return { ...live, payment: op, pos: op, printer: op }
 }

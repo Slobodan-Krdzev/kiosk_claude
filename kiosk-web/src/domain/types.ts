@@ -214,6 +214,8 @@ export interface CatalogSourceConfig {
   menuId: number
   /** Venue design file (badges, icons, cross-sells … keyed by API ids); default `venue/<menuId>.json` under the page base. */
   designUrl?: string
+  /** `tableNumber` sent with an API order when the order has no table tag (the old kiosk hard-coded "9"). */
+  tableNumber?: string
 }
 
 // ---------- Order snapshot (frozen at payment start) ----------
@@ -225,10 +227,17 @@ export interface SnapshotLine {
   servingId: string
   servingName: string
   choices: { groupId: string; optionIds: string[] }[]
-  extras: { extraId: string; qty: number }[]
+  /** Picked options; `productId`/`name`/`priceCents` are the API option's own values (upsale steps) for the order payload. */
+  extras: { extraId: string; qty: number; productId?: string; name?: string; priceCents?: number }[]
   qty: number
+  /** Price per unit including options (what the guest pays per line unit). */
   unitPriceCents: number
   lineTotalCents: number
+  /** Base product (serving) price without options: the API order wants product and options priced separately. */
+  basePriceCents?: number
+  /** Product picture as the API sent it (not the proxy URL) and the POS article code, for the order payload. */
+  image?: string
+  plu?: string
   kind: LineKind
   priceVariantId?: string
   groupId?: string

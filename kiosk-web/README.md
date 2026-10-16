@@ -12,7 +12,10 @@ first add or product-page open, and again for the whole cart before any charge; 
 sidebar icons, subtitles, cross-sells, finish strips, reward) comes from the **venue design file**
 `public/venue/<menuId>.json` (`src/adapters/http/venueDesign.ts`, format in
 `../failover-handover/docs/reference/venue-design-layer.md`); promo cards come from the API's `IsPromotion` window.
-Everything else (terminal, POS, printer, loyalty,
+On an API menu **order + payment go through the API's one blocking POST** `CreateKioskOrderWithPinPayment`
+(`src/adapters/http/tmkOrder.ts`): it backs the payment, POS and printer adapters of the payment controller
+(`../failover-handover/docs/reference/order-payment-integration.md`). Test mode and the static menu keep the
+simulated terminal. Everything else (loyalty,
 connectivity) still runs on the **static simulation** in `src/adapters/static/` behind the `GuestitAdapters`
 interface — that is a development stand-in, not a production integration. Later the same UI runs inside the Guestit Launcher (Kotlin WebView), which injects
 `window.GuestitAdapters`, or against the HTTP backend.
