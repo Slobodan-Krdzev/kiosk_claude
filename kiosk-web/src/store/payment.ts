@@ -9,6 +9,7 @@ const EMPTY: PayState = {
   attemptId: null,
   txRef: null,
   txRefGenerated: false,
+  paymentConfirmed: false,
   submitKey: null,
   recoveryRef: null,
   snapshot: null,

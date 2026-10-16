@@ -128,17 +128,19 @@ function Body() {
               Order no · {pay.orderNo ?? '—'} {pay.duplicate ? '(duplicate)' : ''}
             </div>
             <div>Reason · {pay.uncertainReason ?? pay.lastError ?? '—'}</div>
+            <div>Payment confirmed · {pay.paymentConfirmed ? 'yes' : 'no'}</div>
             <div className="flex gap-3 flex-wrap">
               {pay.status === 'timeout' || pay.status === 'assistance' ? (
                 <button type="button" className={btn} onClick={() => void rt.controller.staffCheckStatus()}>
                   Check payment status
                 </button>
               ) : null}
-              {pay.status === 'recovery-required' || pay.status === 'assistance' ? (
+              {pay.status === 'recovery-required' ? (
                 <button type="button" className={btn} onClick={() => void rt.controller.submitRetry()}>
                   Resend order (same key)
                 </button>
               ) : null}
+              {pay.status === 'assistance' ? <div className="text-mute">Payment not confirmed: the order cannot be sent from here. Check the status or clear after handling at the POS.</div> : null}
             </div>
             {canClear ? (
               <div className="flex gap-3 flex-wrap items-center">

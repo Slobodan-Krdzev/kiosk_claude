@@ -179,6 +179,8 @@ export interface Timeouts {
   print: number
   availability: number
   health: number
+  /** Remote menu (getfullresources) at boot; a hanging menu service must never block payment recovery. */
+  menuLoad?: number
 }
 
 export interface GuestitConfig {

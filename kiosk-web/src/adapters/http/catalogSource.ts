@@ -41,13 +41,36 @@ export function proxiedImg(base: string, url: string): string {
   return `${root}img-proxy?u=${encodeURIComponent(url)}`
 }
 
-export async function loadEngineData(base: string, s: CatalogSourceConfig, lang?: Lang): Promise<EngineData> {
-  const pack = await fetchEngineData(base)
-  if (s.source === 'static') return pack
+export const DEFAULT_MENU_TIMEOUT_MS = 20_000
+
+/**
+ * Fetch the remote menu, bounded: the request is aborted after `timeoutMs` (audit F05, 2026-10-16).
+ * A hanging or failing menu service must never block payment recovery, so boot runs this in parallel
+ * with the brand pack and only awaits it after the payment controller was restored.
+ */
+export async function fetchMenu(s: CatalogSourceConfig, timeoutMs = DEFAULT_MENU_TIMEOUT_MS): Promise<TmkRoot> {
   const url = catalogUrl(s)
-  const res = await fetch(url, { cache: 'no-cache' })
-  if (!res.ok) throw new Error(`menu ${url}: HTTP ${res.status}`)
-  const raw = (await res.json()) as TmkRoot
+  const ctl = new AbortController()
+  const timer = setTimeout(() => ctl.abort(), timeoutMs)
+  try {
+    const res = await fetch(url, { cache: 'no-cache', signal: ctl.signal })
+    if (!res.ok) throw new Error(`menu ${url}: HTTP ${res.status}`)
+    return (await res.json()) as TmkRoot
+  } catch (e) {
+    if (ctl.signal.aborted) throw new Error(`menu ${url}: timed out after ${timeoutMs} ms`)
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+export function mapMenu(raw: TmkRoot, pack: EngineData, base: string, lang?: Lang): EngineData {
   const root = base.endsWith('/') ? base : base + '/'
   return mapTmkToEngine(raw, pack, { img: (u) => proxiedImg(base, u), asset: (path) => root + path, lang })
+}
+
+export async function loadEngineData(base: string, s: CatalogSourceConfig, lang?: Lang, timeoutMs?: number): Promise<EngineData> {
+  const pack = await fetchEngineData(base)
+  if (s.source === 'static') return pack
+  return mapMenu(await fetchMenu(s, timeoutMs), pack, base, lang)
 }

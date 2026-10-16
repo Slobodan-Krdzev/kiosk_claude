@@ -33,6 +33,7 @@ export type Confirm =
   | null
   | 'idle'
   | 'availFail'
+  | 'authChanged'
   | 'crash'
   | 'cancel'
   | 'discard'
@@ -43,6 +44,8 @@ export type Confirm =
 export interface EngineState {
   ready: boolean
   bootError: string | null
+  /** The remote menu failed after the payment controller was restored: recovery runs, guests cannot order. */
+  menuError: string | null
   config: GuestitConfig | null
   lang: Lang
   service: Service | null
@@ -90,6 +93,7 @@ export interface EngineState {
   // boot
   setReady(config: GuestitConfig, lang: Lang): void
   setBootError(msg: string): void
+  setMenuError(msg: string | null): void
   setConn(c: ConnectionState): void
   setStaffOpen(open: boolean): void
   setMember(m: LoyaltyMember | null): void
@@ -295,6 +299,7 @@ export const useEngine = create<EngineState>((set, get) => {
   return {
     ready: false,
     bootError: null,
+    menuError: null,
     config: null,
     lang: 'nl',
     cartVersion: 0,
@@ -308,6 +313,7 @@ export const useEngine = create<EngineState>((set, get) => {
       set({ ready: true, config, lang, cat: firstCat() })
     },
     setBootError: (msg) => set({ bootError: msg }),
+    setMenuError: (menuError) => set({ menuError }),
     setConn: (conn) => set({ conn }),
     setStaffOpen: (open) => set({ staffOpen: open }),
     setMember: (member) => set({ member }),

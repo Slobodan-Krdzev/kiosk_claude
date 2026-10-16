@@ -32,13 +32,15 @@ export const PAY_T: Record<PayStatus, PayStatus[]> = {
   submitting: ['done', 'order-submit-failed'],
   'order-submit-failed': ['recovery-required'],
   'recovery-required': ['submitting'],
+  // Audit F01 (2026-10-16): assistance means the payment outcome is unknown or the record is unreadable;
+  // an order is never submitted from here. Staff may run a lookup; a confirmed payment then leads via lookup → approved.
+  'assistance': ['lookup'],
   declined: ['idle', 'connecting'],
   cancelled: ['idle', 'connecting'],
   'terminal-offline': ['connecting', 'idle'],
   timeout: ['lookup', 'idle'],
   lookup: ['approved', 'idle', 'timeout'],
   'status-check': ['approved', 'idle', 'assistance', 'recovery-required'],
-  assistance: ['submitting', 'lookup'],
   done: ['idle'],
 }
 

@@ -2,7 +2,7 @@
 // The payment itself is our PaymentController (persist before pay, one attempt id per charge, same key on retry).
 
 import { withTimeout } from '../adapters/withTimeout'
-import { canSubmitWrites } from '../domain/connectivity'
+import { canSubmitWrites, type ConnectionState } from '../domain/connectivity'
 import type { OrderSnapshot, SnapshotLine } from '../domain/types'
 import { applyRevalidatedPrices, lineUnit, priceStamp, revalidatePrices, validateCart } from '../engine/cart'
 import { byId, mustId, servingOf, servingsOf } from '../engine/catalog'
@@ -15,6 +15,9 @@ import { tagModeFor, type TagState } from '../ui/Tag'
 import { getRuntime } from './runtime'
 
 let paying = false
+
+/** Identity of the writable authority the device believes in; a change during preflight invalidates the preflight. */
+const connKey = (c: ConnectionState): string => (c.kind === 'connected' ? `${c.role}:${c.nodeId}:${c.epoch}` : c.kind)
 
 /** Live catalog sync (availability + current prices). Never touches a started or paid snapshot. */
 export async function catalogRefresh(): Promise<boolean> {
@@ -48,6 +51,11 @@ function tagNeeded(): boolean {
 
 const cartSig = (cart: CartLine[]) => JSON.stringify(cart.map((l) => [l.lid, l.qty, l.unitPrice]))
 
+/**
+ * The ONE preflight before any charge (first attempt and every "try again"): writable authority, cart valid,
+ * order tag, fresh availability + prices, authority unchanged after the awaits, then startPay().
+ * Audit F02/F03 (2026-10-16).
+ */
 export async function toPay(): Promise<void> {
   const s = useEngine.getState()
   const rt = getRuntime()
@@ -61,12 +69,19 @@ export async function toPay(): Promise<void> {
   }
   paying = true
   const sig = cartSig(s.cart)
+  const auth = connKey(s.conn)
   try {
     s.setChecking(true)
     const ok = await catalogRefresh()
     const s2 = useEngine.getState()
     s2.setChecking(false)
     if (sig !== cartSig(s2.cart)) return
+    if (connKey(s2.conn) !== auth) {
+      // The authority changed while we were checking: the answers came from the old writer. Re-resolve, never proceed.
+      rt.log('checkout.authorityChanged', { from: auth, to: connKey(s2.conn) })
+      s2.setConfirm('authChanged')
+      return
+    }
     if (!ok) {
       s2.setConfirm('availFail')
       return
@@ -88,6 +103,11 @@ export async function availRetry(): Promise<void> {
   useEngine.getState().setConfirm(null)
   await toPay()
 }
+
+/** "Try again" after declined / cancelled / terminal-offline: the same preflight as the first attempt. */
+export async function retryPay(): Promise<void> {
+  await toPay()
+}
 export function availBack(): void {
   useEngine.getState().setConfirm(null)
 }
@@ -100,6 +120,11 @@ export async function priceConfirm(): Promise<void> {
   if (priceStamp(now) !== conf.shown) {
     s.setConfirm(now.length ? { type: 'priceChanged', changes: now, shown: priceStamp(now), again: true } : null)
     if (!now.length) await toPay()
+    return
+  }
+  if (!canSubmitWrites(s.conn)) {
+    getRuntime().log('checkout.authorityLost', { at: 'priceConfirm' })
+    s.setConfirm('authChanged')
     return
   }
   s.setCart(applyRevalidatedPrices(s.cart))
@@ -128,6 +153,11 @@ export async function startPay(): Promise<void> {
   const rt = getRuntime()
   if (!rt.controller.canRetryPayment()) return
   if (!s.cart.length) return
+  // Charge boundary: the authority is checked again right here, after every await of the preflight.
+  if (!canSubmitWrites(s.conn)) {
+    rt.log('pay.refusedNoAuthority', { conn: s.conn.kind })
+    return
+  }
   s.setScreen('pay')
   const snapshot = buildSnapshot(s.cart, s.service === 'eatin' ? 'eat-in' : 'takeaway', s.lang, s.tag, s.member?.id ?? null)
   const started = await rt.controller.start(snapshot)

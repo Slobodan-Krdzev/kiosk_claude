@@ -12,6 +12,7 @@ import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
 import { canSubmitWrites } from '../domain/connectivity'
 import { useEngine } from '../store/engine'
+import { NOTHING_CHARGED } from '../payment/states'
 import { usePayState } from '../store/payment'
 import { PriceRows } from './Pdp'
 import { Ic, IcQR } from './primitives'
@@ -252,13 +253,13 @@ function Confirms() {
   const a = useEngine(useShallow((s) => ({ keepEdit: s.keepEdit, discardStep: s.discardStep, discardEdit: s.discardEdit, delAll: s.delAll, delMainOnly: s.delMainOnly, delCancel: s.delCancel, keepOrder: s.keepOrder, confirmCancel: s.confirmCancel })))
   if (!confirm) return null
   if (confirm === 'idle') return <IdleDialog />
-  if (confirm === 'availFail')
+  if (confirm === 'availFail' || confirm === 'authChanged')
     return (
       <Dialog>
         <div id="availFailT" className="hd text-[44px] leading-[1.05] tracking-[.02em]">
-          {t('availFailT')}
+          {t(confirm === 'authChanged' ? 'authChangedT' : 'availFailT')}
         </div>
-        <p className="text-[23px] text-mute font-medium mt-3">{t('availFailB')}</p>
+        <p className="text-[23px] text-mute font-medium mt-3">{t(confirm === 'authChanged' ? 'authChangedB' : 'availFailB')}</p>
         <div className="grid gap-4 mt-10">
           <button type="button" data-a="availRetry" className="press h-[92px] rounded-full bg-jade text-white hd text-[23px] tracking-[.08em]" onClick={() => void availRetry()}>
             {t('connRetry')}
@@ -402,7 +403,7 @@ export function Overlays() {
       {sheet && typeof sheet === 'object' ? <AllergenSheet pid={sheet.allergens} /> : null}
       {sheet === 'alfilter' ? <AlFilterSheet /> : null}
       {sheet === 'price' ? <PriceSheet /> : null}
-      {pay.status === 'idle' ? <Confirms /> : null}
+      {pay.status === 'idle' || NOTHING_CHARGED.has(pay.status) ? <Confirms /> : null}
       <Toast />
       <ConnBanner />
     </>
