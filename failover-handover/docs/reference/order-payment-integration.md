@@ -16,8 +16,12 @@ problem / late approval). Classification per §6. Deviations 37–40, dependenci
 message from a non-2xx body as the old kiosk effectively did, and treats "Printing problem" **without an order
 number as UNKNOWN, not as paid** (§4 row corrected). Neither the success nor the `Aborted` path was reached:
 both stay `NOT_VERIFIED_ON_REAL_INFRA`. Details: `api-samples/CreateKioskOrderWithPinPayment-live-2026-10-16.md`.
-Decision needed: implement the old kiosk's "continue without receipt" → same order with `?skip=true` (same
-`OrderGuid`), or wait for B4 / a printer on dev.
+Decision (Alex, same evening): **build the resend like the old kiosk.** Done: "continue without receipt?" dialog
+(`src/app/orderPrompts.ts`, `Overlays.tsx`), Yes → identical body, same `OrderGuid`, `?skip=true`, once per
+attempt; No or Cancel → `abortRequest`. Live: the resend answers `{"IsSuccess":true,"Data":null}` in ~1 s and the
+kiosk reaches the thank-you screen with its own short reference as the order number (B9, DEVIATIONS 41). The
+message "Printing problem" carries a NO-BREAK SPACE; matching collapses whitespace. Tests: `tmkOrderResend.test.ts`,
+`orderPrompts.test.tsx`; 146 total.
 
 ## 1. The two shapes
 

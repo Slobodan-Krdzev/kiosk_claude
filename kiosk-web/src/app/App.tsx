@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { DEFAULT_MENU_TIMEOUT_MS, designFor, designUrl, fetchDesign, fetchMenu, mapMenu, resolveCatalogSource } from '../adapters/http/catalogSource'
 import type { VenueDesign } from '../adapters/http/venueDesign'
+import { askContinueWithoutReceipt } from './orderPrompts'
 import { withLiveAdapters } from '../adapters/http/tmkLive'
 import { withTimeout } from '../adapters/withTimeout'
 import type { CatalogSourceConfig } from '../domain/types'
@@ -96,7 +97,7 @@ async function boot(): Promise<void> {
       source,
       () => menuLoadedAt,
       { timeoutMs: config.timeouts.availability },
-      { startTimeoutMs: config.timeouts.paymentStart + 60_000, cancelTimeoutMs: config.timeouts.paymentCancel, log: orderLog },
+      { startTimeoutMs: config.timeouts.paymentStart + 60_000, cancelTimeoutMs: config.timeouts.paymentCancel, log: orderLog, askPrintingProblem: askContinueWithoutReceipt },
     )
     liveChecks = live !== resolved.adapters
     resolved = { ...resolved, adapters: live }

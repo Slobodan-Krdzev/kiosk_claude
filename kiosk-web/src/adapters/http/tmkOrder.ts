@@ -74,6 +74,9 @@ export function buildOrderPayload(snapshot: OrderSnapshot, tableNumber: string):
   return { Order: { OrderGuid: snapshot.orderId, SessionGuid: '', Items }, tableNumber, deviceSessionId: '' }
 }
 
+/** Last 6 characters of the kiosk's order id, upper-cased: the display number when the backend returns none. */
+export const shortRef = (orderId: string): string => orderId.replace(/[^a-z0-9]/gi, '').slice(-6).toUpperCase()
+
 /** `tableNumber` for the POST: the guest's table tag, else the kiosk's configured fallback. */
 export function tableNumberFor(snapshot: OrderSnapshot, fallback: string): string {
   return snapshot.tag?.type === 'table' && snapshot.tag.value ? String(snapshot.tag.value) : fallback
@@ -88,6 +91,12 @@ export interface TmkOrderOptions {
   cancelTimeoutMs?: number
   /** `tableNumber` when the order carries no table tag. */
   tableNumber?: string
+  /**
+   * The backend answered "Printing problem" without an order number: ask the guest "continue without receipt?".
+   * true → the same order is sent again with ?skip=true (same OrderGuid), false → abortRequest, cancelled.
+   * Without this hook the answer stays UNKNOWN (no prompt possible).
+   */
+  askPrintingProblem?: () => Promise<boolean>
   fetch?: typeof fetch
   log?: (event: string, data?: Record<string, unknown>) => void
 }
@@ -105,10 +114,13 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
   private readonly startTimeoutMs: number
   private readonly cancelTimeoutMs: number
   private readonly tableFallback: string
+  private readonly ask: TmkOrderOptions['askPrintingProblem']
   private readonly fetchFn: typeof fetch
   private readonly log: NonNullable<TmkOrderOptions['log']>
   /** Open POSTs by attemptId (cancel waits for them). */
   private readonly open = new Map<string, Promise<Outcome>>()
+  /** "Continue without receipt?" prompts waiting for the guest, by attemptId (cancel answers them with false). */
+  private readonly asking = new Map<string, (go: boolean) => void>()
   /** Closed POSTs by attemptId (submit / print read them). Bounded: a kiosk runs one attempt at a time. */
   private readonly outcomes = new Map<string, Outcome>()
 
@@ -117,6 +129,7 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
     this.startTimeoutMs = opts.startTimeoutMs ?? 240_000
     this.cancelTimeoutMs = opts.cancelTimeoutMs ?? 12_000
     this.tableFallback = opts.tableNumber ?? ''
+    this.ask = opts.askPrintingProblem
     this.fetchFn = opts.fetch ?? ((input, init) => fetch(input, init))
     this.log = opts.log ?? (() => {})
   }
@@ -135,16 +148,65 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
     const body = buildOrderPayload(req.snapshot, tableNumberFor(req.snapshot, this.tableFallback))
     // The POST is opaque while the guest pays at the terminal: show "waiting for card" at once.
     onProgress?.('waiting-for-card')
-    const p = this.post(req.attemptId, body, false)
-    this.open.set(req.attemptId, p)
+    const att = req.attemptId
     try {
-      const o = await p
+      const p = this.post(att, body, false)
+      this.open.set(att, p)
+      let o = await p
+      this.open.delete(att)
+      // "Printing problem" without an order number (the dev backend's answer to every order, 2026-10-16): the old
+      // kiosk asked "continue without printing?" and re-sent the same order with skip=true. Once per attempt.
+      if (o.kind === 'unknown' && o.message === MSG_PRINTING && this.ask) {
+        const go = await this.prompt(att)
+        if (go) {
+          const p2 = this.post(att, body, true)
+          this.open.set(att, p2)
+          o = await p2
+          this.open.delete(att)
+          if (o.kind === 'unknown' && o.message === MSG_PRINTING) o = { ...o, message: `${MSG_PRINTING} (again, after skip=true)` }
+        } else {
+          await this.abortRequest(att)
+          o = { kind: 'cancelled', orderNo: null, idOrder: null, printed: false, message: 'guest declined to continue without receipt' }
+          this.outcomes.set(att, o)
+          this.log('order.result', { attemptId: att, kind: o.kind, message: o.message })
+        }
+      }
       if (o.kind === 'approved') return { result: 'approved', ...(o.idOrder ? { txRef: o.idOrder } : {}) }
       if (o.kind === 'cancelled') return { result: 'cancelled' }
       // Unknown message / HTTP error: the controller treats a rejection as outcome UNKNOWN and keeps the record.
       throw new Error(o.message || 'order: unclassified response')
     } finally {
-      this.open.delete(req.attemptId)
+      this.open.delete(att)
+      this.asking.delete(att)
+    }
+  }
+
+  private prompt(att: string): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      this.asking.set(att, resolve)
+      this.ask!().then(
+        (go) => {
+          if (this.asking.get(att) === resolve) resolve(go)
+        },
+        () => {
+          if (this.asking.get(att) === resolve) resolve(false)
+        },
+      )
+    }).finally(() => this.asking.delete(att))
+  }
+
+  private async abortRequest(att: string): Promise<void> {
+    try {
+      const ctl = new AbortController()
+      const t = setTimeout(() => ctl.abort(), this.cancelTimeoutMs)
+      try {
+        const res = await this.fetchFn(this.abortUrl(), { method: 'GET', signal: ctl.signal })
+        this.log('order.abortRequested', { attemptId: att, status: res.status })
+      } finally {
+        clearTimeout(t)
+      }
+    } catch (e) {
+      this.log('order.abortFailed', { attemptId: att, error: String(e) })
     }
   }
 
@@ -159,19 +221,14 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
 
   /** abortRequest asks the backend to cancel the terminal; the open POST then closes with "Aborted". */
   async cancel(req: { attemptId: string }): Promise<PaymentCancelResult> {
-    const pending = this.open.get(req.attemptId)
-    try {
-      const ctl = new AbortController()
-      const t = setTimeout(() => ctl.abort(), this.cancelTimeoutMs)
-      try {
-        const res = await this.fetchFn(this.abortUrl(), { method: 'GET', signal: ctl.signal })
-        this.log('order.abortRequested', { attemptId: req.attemptId, status: res.status })
-      } finally {
-        clearTimeout(t)
-      }
-    } catch (e) {
-      this.log('order.abortFailed', { attemptId: req.attemptId, error: String(e) })
+    // Guest cancels while "continue without receipt?" is open: that is the "No" answer (start() sends abortRequest).
+    const asking = this.asking.get(req.attemptId)
+    if (asking) {
+      asking(false)
+      return { result: 'cancelled' }
     }
+    const pending = this.open.get(req.attemptId)
+    await this.abortRequest(req.attemptId)
     const done = pending ?? (this.outcomes.has(req.attemptId) ? Promise.resolve(this.outcomes.get(req.attemptId)!) : null)
     if (!done) return { result: 'unknown' }
     const o = await Promise.race([done, new Promise<null>((r) => setTimeout(() => r(null), this.cancelTimeoutMs))])
@@ -186,8 +243,13 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
   async submit(req: PosSubmitRequest): Promise<PosSubmitResult> {
     const o = this.outcomes.get(req.attemptId)
     if (!o || o.kind !== 'approved') throw new Error(`order: no accepted order for attempt ${req.attemptId}`)
-    if (!o.orderNo) throw new Error('no-orderno')
-    return { orderNo: o.orderNo, duplicate: false }
+    if (o.orderNo) return { orderNo: o.orderNo, duplicate: false }
+    // Live 2026-10-16: the dev backend answers `IsSuccess: true` with `Data: null` — accepted, but no order number
+    // (documented: Data.AdditionalData). The acceptance stands (rule 12); the guest gets the kiosk's own short
+    // reference so staff can still match the order (BACKEND-DEPENDENCIES B9).
+    const fallback = o.idOrder ?? shortRef(req.orderId)
+    this.log('order.noNumber', { attemptId: req.attemptId, orderId: req.orderId, shown: fallback })
+    return { orderNo: fallback, duplicate: false }
   }
 
   /** No health endpoint: the kiosk reaches the API when the menu loaded; the POST itself is the test. */
@@ -198,8 +260,10 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
   // ----- PrinterAdapter: the backend printed as part of the POST -----
 
   async print(req: { orderNo: string; snapshot: OrderSnapshot }): Promise<{ printed: boolean }> {
-    const o = [...this.outcomes.values()].find((x) => x.orderNo === req.orderNo)
-    return { printed: !!o && o.printed }
+    const o = [...this.outcomes.values()].find((x) => x.orderNo === req.orderNo || (!x.orderNo && (x.idOrder === req.orderNo || shortRef(req.snapshot.orderId) === req.orderNo)))
+    // A receipt is only reported as printed when the backend answered with its own order number AND did not
+    // report a printing problem; a skip=true resend never printed (the guest chose to continue without).
+    return { printed: !!o && o.printed && !!o.orderNo }
   }
 
   // ----- the POST -----
@@ -208,9 +272,11 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
     const ctl = new AbortController()
     const timer = setTimeout(() => ctl.abort(), this.startTimeoutMs)
     let outcome: Outcome
+    let rawText = ''
     try {
       const res = await this.fetchFn(this.orderUrl(skip), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: ctl.signal })
       const text = await res.text()
+      rawText = text
       let json: unknown = null
       try {
         json = text ? JSON.parse(text) : null
@@ -224,12 +290,19 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
       clearTimeout(timer)
     }
     this.outcomes.set(attemptId, outcome)
-    this.log('order.result', { attemptId, kind: outcome.kind, orderNo: outcome.orderNo, idOrder: outcome.idOrder, printed: outcome.printed, message: outcome.message })
+    // The raw body (bounded) is part of the log on purpose: the backend's real answers differ from the handover
+    // document (HTTP 409 + bare string, NO-BREAK SPACE in the message) and every live run is evidence.
+    this.log('order.result', { attemptId, skip, kind: outcome.kind, orderNo: outcome.orderNo, idOrder: outcome.idOrder, printed: outcome.printed, message: outcome.message, raw: rawText.slice(0, 400), ...(outcome.kind === 'unknown' ? { codes: [...rawText.slice(0, 60)].map((c) => c.charCodeAt(0)) } : {}) })
     return outcome
   }
 }
 
-const str = (v: unknown): string | null => (v != null && String(v).trim() ? String(v).trim() : null)
+/** Trimmed text with runs of whitespace collapsed to one space: the dev backend writes "Printing problem" with a NO-BREAK SPACE (U+00A0) between the words (live run 2026-10-16). */
+const str = (v: unknown): string | null => {
+  if (v == null) return null
+  const s = String(v).replace(/\s+/g, ' ').trim()
+  return s || null
+}
 
 /**
  * HTTP status + body → outcome. Exported for the tests; every row of order-payment-integration.md §4 is here.

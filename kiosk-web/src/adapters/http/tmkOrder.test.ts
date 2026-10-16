@@ -142,6 +142,9 @@ describe('response → outcome (order-payment-integration.md §4)', () => {
     // As the dev backend really answers (live run 2026-10-16): the message is the body of a non-2xx answer.
     expect(classify(409, 'Printing problem', '"Printing problem"')).toMatchObject({ kind: 'unknown', message: MSG_PRINTING })
     expect(classify(409, 'Printing problem \r\n', '"Printing problem \\r\\n"')).toMatchObject({ kind: 'unknown', message: MSG_PRINTING })
+    // The real bytes (kiosk log 2026-10-16 20:08): a NO-BREAK SPACE between the words.
+    expect(classify(409, 'Printing problem', '"Printing problem"')).toMatchObject({ kind: 'unknown', message: MSG_PRINTING })
+    expect(classify(200, { IsSuccess: false, ResponseMessage: 'Aborted ' }, '')).toMatchObject({ kind: 'cancelled' })
     expect(classify(409, 'Aborted', '"Aborted"')).toMatchObject({ kind: 'cancelled' })
     expect(classify(409, 'Terminal busy', '"Terminal busy"')).toMatchObject({ kind: 'unknown', message: 'order: HTTP 409 Terminal busy' })
     expect(classify(409, { IsSuccess: true, Data: { AdditionalData: '5' } }, '')).toMatchObject({ kind: 'unknown' }) // success is only a 2xx success

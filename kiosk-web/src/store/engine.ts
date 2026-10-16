@@ -42,6 +42,8 @@ export type Confirm =
   | { type: 'delLinked'; lid: string }
   /** The live availability check said "sold out" when the guest tapped a product (kiosk-product-checks.md §2). */
   | { type: 'soldOut'; name: string }
+  /** The order POST answered "Printing problem": continue without a receipt (resend with skip=true) or abort. */
+  | 'printProblem'
 
 /**
  * Live availability gate (old kiosk: `checkProductAvailable` on tap / info / detail add). Installed by the app;

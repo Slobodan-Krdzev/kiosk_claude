@@ -123,8 +123,9 @@ on the captured samples). Availability client = `IMPLEMENTED`; exercised against
 and the HTTP 500 paths only, so the sold-out path is `NOT_VERIFIED_ON_REAL_INFRA` until a product can be set out of
 stock on the dev menu. Live prices = `BLOCKED_BACKEND`. Order + payment over `CreateKioskOrderWithPinPayment`
 (`kiosk-web/src/adapters/http/tmkOrder.ts`, mapping in `docs/reference/order-payment-integration.md`): client
-`IMPLEMENTED` for approve / cancel, `NOT_VERIFIED_ON_REAL_INFRA` — two live runs on 2026-10-16
-(`CreateKioskOrderWithPinPayment-live-2026-10-16.md`) both answered **HTTP 409 `"Printing problem"` within ~1 s**,
-before any terminal contact, so neither the success nor the `Aborted` path was reached. "Printing problem"
-without an order number = outcome UNKNOWN (never paid) until question 2 is answered; status lookup, resend with
-`skip=true` and declined-as-distinct-outcome = `BLOCKED_BACKEND` (B7, B4, B8).
+`IMPLEMENTED`; live on 2026-10-16 (`CreateKioskOrderWithPinPayment-live-2026-10-16.md`): every order answers
+**HTTP 409 `"Printing problem"` (with a NO-BREAK SPACE) in ~1 s**, the kiosk asks "continue without receipt?",
+and the resend with `?skip=true` answers **`IsSuccess: true, Data: null`** in ~1 s — thank-you screen reached,
+order number shown as the kiosk's own short reference because the backend returns none (B9). No terminal was
+involved in any run, so the terminal-driven paths (waiting, `Aborted`, declined) are `NOT_VERIFIED_ON_REAL_INFRA`;
+status lookup, de-duplication of the resend and declined-as-distinct-outcome = `BLOCKED_BACKEND` (B7, B4, B8).
