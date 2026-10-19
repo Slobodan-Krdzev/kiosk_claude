@@ -30,6 +30,8 @@ npm run build      # dist/ (relative paths, ES2018 for older WebViews)
 ```
 
 Staff panel: tap the brand logo 5 times within 3 seconds, PIN `staffPin` from `public/mock/config.json` (demo 2468).
+
+Fullscreen: the small button bottom-right of the viewport enters fullscreen on a tap and hides while fullscreen (browsers do not allow fullscreen without a gesture; for true startup fullscreen launch Chrome with `--kiosk --app=<url>`, or run inside the Launcher, where the button never renders). In the order review, holding the minus button of a line for half a second turns it into a remove button; a tap then removes the whole line.
 Simulation tab: terminal / POS / printer / health outcomes, hangs, connectivity scenarios, sold-out products, price changes.
 
 ## Where things live

@@ -478,15 +478,16 @@ function RewardsMain() {
       <h1 className="hd text-[72px] leading-[72px] tracking-[1px] px-5 mt-4 flex-none">{t('lty_nav')}</h1>
       <div className="text-[24px] text-mute font-semibold px-5 mt-2 flex-none">{t('lty_sub')}</div>
       <div className="scroller flex-1 px-5 pt-7 pb-[220px]">
-        <div className="rounded-[26px] bg-card shadow-soft p-10 flex items-center gap-8">
+        {/* The stylesheet ships a fixed set of utilities (no Tailwind build), so the spacing is set inline. */}
+        <div className="rounded-[26px] bg-card shadow-soft flex items-center" style={{ padding: '44px 48px', gap: 44 }}>
           <span className="w-[96px] h-[96px] text-ink flex-none">
             <IcQRBig />
           </span>
-          <div className="flex-1 min-w-0">
-            <div className="hd text-[36px] tracking-[.03em]">{member ? tf('lty_welcome', { name: member.name }) : t('lty_btn')}</div>
-            <div className="text-[21px] text-mute font-medium mt-1">{member ? tf('lty_points', { n: member.points }) : t('voucherBody')}</div>
+          <div className="flex-1 min-w-0" style={{ paddingRight: 24 }}>
+            <div className="hd text-[36px] tracking-[.03em] leading-[1.1]">{member ? tf('lty_welcome', { name: member.name }) : t('lty_btn')}</div>
+            <div className="text-[21px] text-mute font-medium mt-4 leading-relaxed">{member ? tf('lty_points', { n: member.points }) : t('voucherBody')}</div>
           </div>
-          <button type="button" className="press h-[76px] px-8 rounded-full bg-jade text-white hd text-[22px] tracking-[.1em]" onClick={openSheet}>
+          <button type="button" className="press flex-none h-[76px] px-10 rounded-full bg-jade text-white hd text-[22px] tracking-[.1em] whitespace-nowrap" onClick={openSheet}>
             {t('voucherS')}
           </button>
         </div>

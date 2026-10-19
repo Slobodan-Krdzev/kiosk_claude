@@ -148,7 +148,7 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
           {fmt(lineUnit(l) * l.qty)}
         </div>
         <span id={`ls-${l.lid}`}>
-          <Stepper qty={l.qty} onDelta={(d) => a.cartQty(l.lid, d)} h={72} name={pname(p)} max={lineMax(p)} />
+          <Stepper qty={l.qty} onDelta={(d) => a.cartQty(l.lid, d)} onRemove={() => a.delLine(l.lid)} h={72} name={pname(p)} max={lineMax(p)} />
         </span>
       </div>
     </div>

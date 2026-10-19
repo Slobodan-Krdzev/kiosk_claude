@@ -2,6 +2,7 @@
 // Landscape / desktop: the whole device is scaled to fit (engine's simulator #device --s rule).
 
 import { useEffect, type ReactNode } from 'react'
+import { FullscreenButton } from './FullscreenButton'
 
 function fit(screen: HTMLElement | null, device: HTMLElement | null, hint: HTMLElement | null, brandName: string) {
   const vw = window.visualViewport?.width || innerWidth
@@ -59,6 +60,7 @@ export function Stage({ children, overlay, brandName }: { children: ReactNode; o
         </div>
       </div>
       <div id="hint" />
+      <FullscreenButton />
     </>
   )
 }
