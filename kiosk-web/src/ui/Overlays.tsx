@@ -19,6 +19,7 @@ import { NOTHING_CHARGED } from '../payment/states'
 import { usePayState } from '../store/payment'
 import { PriceRows } from './Pdp'
 import { Ic, IcQR } from './primitives'
+import { toggleFullscreen, useFullscreenState } from '../app/fullscreen'
 
 function Scrim({ onClose, children, z = 'z-40' }: { onClose?: () => void; children: React.ReactNode; z?: string }) {
   return (
@@ -461,6 +462,19 @@ function ConnBanner() {
   )
 }
 
+/** "Volledig scherm" pill after a 3 s hold on the logo: the tap on it is the user activation touch screens need. */
+function FsPrompt() {
+  const fs = useFullscreenState()
+  if (!fs.prompt) return null
+  return (
+    <div id="fsPrompt" role="status">
+      <button type="button" data-a="fsToggle" className="press" onClick={() => void toggleFullscreen()}>
+        {fs.on ? t('fsExit') : t('fsAction')}
+      </button>
+    </div>
+  )
+}
+
 export function Overlays() {
   const sheet = useEngine((s) => s.sheet)
   const confirm = useEngine((s) => s.confirm)
@@ -477,6 +491,7 @@ export function Overlays() {
       {confirms ? <Confirms /> : null}
       <Toast />
       <ConnBanner />
+      <FsPrompt />
     </>
   )
 }
