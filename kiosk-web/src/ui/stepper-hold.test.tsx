@@ -59,6 +59,21 @@ describe('Stepper hold-to-remove', () => {
     expect(minus.className).not.toContain('del')
   })
 
+  it('touch: a long press fires no click, and the very next tap removes the line', () => {
+    const { minus, onDelta, onRemove } = mount()
+    fireEvent.pointerDown(minus)
+    act(() => {
+      vi.advanceTimersByTime(HOLD_TO_REMOVE_MS + 10)
+    })
+    fireEvent.pointerUp(minus) // browsers suppress the click after a touch long-press
+    expect(minus.className).toContain('del')
+    fireEvent.pointerDown(minus)
+    fireEvent.pointerUp(minus)
+    fireEvent.click(minus)
+    expect(onRemove).toHaveBeenCalledTimes(1)
+    expect(onDelta).not.toHaveBeenCalled()
+  })
+
   it('a short press never arms', () => {
     const { minus, onDelta } = mount()
     fireEvent.pointerDown(minus)

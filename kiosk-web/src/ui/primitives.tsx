@@ -164,6 +164,9 @@ export function Stepper({
     hold.current = null
   }
   const startHold = () => {
+    // A new press is a new gesture: whatever the previous hold left behind no longer applies. On touch a
+    // long press fires no click at all, so the flag must never survive into the next tap.
+    swallowClick.current = false
     if (!canHold || armed) return
     clearHold()
     hold.current = setTimeout(() => {
