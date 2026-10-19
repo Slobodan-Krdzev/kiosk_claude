@@ -1131,3 +1131,5 @@ body.kiosk #fsBtn{ cursor:none; }
 /* touch (2026-10-19): the button is always the target. Taps on the label or icon inside a button were lost
    on touch panels (the engine already did this for .ob-i); a <button> never has interactive children. */
 button.press *{ pointer-events:none; }
+/* the desktop-preview caption never takes a tap: when the window is short it overlaps the bottom row */
+#hint{ pointer-events:none; }

@@ -213,6 +213,60 @@ function useIdle() {
   }, [payStatus])
 }
 
+/**
+ * Tap diagnostics (2026-10-19, "the bottom button does not trigger when I tap its text"): every pointer-up
+ * on or inside a button is logged, and `tap.noClick` is logged when no click follows within 500 ms, with
+ * the pointer type, the element under the finger and the action. Read in the staff panel → Logs.
+ */
+function useTapDiagnostics() {
+  useEffect(() => {
+    const describe = (t: EventTarget | null) => {
+      const el = t instanceof Element ? t : null
+      const btn = el?.closest('button,[role="button"],[data-a]') ?? null
+      const name = (n: Element | null) => (n ? `${n.tagName.toLowerCase()}${n.id ? '#' + n.id : ''}${n.getAttribute('data-a') ? '[' + n.getAttribute('data-a') + ']' : ''}` : null)
+      return { target: name(el), button: name(btn), text: el?.textContent?.trim().slice(0, 24) ?? '' }
+    }
+    const safeLog = (event: string, data: Record<string, unknown>) => {
+      try {
+        getRuntime().log(event, data)
+      } catch {
+        console.info('[kiosk]', event, data)
+      }
+    }
+    let pending: ReturnType<typeof setTimeout> | null = null
+    const onUp = (e: PointerEvent) => {
+      const d = describe(e.target)
+      if (!d.button) return
+      if (pending) clearTimeout(pending)
+      pending = setTimeout(() => {
+        pending = null
+        safeLog('tap.noClick', { ...d, pointerType: e.pointerType, x: Math.round(e.clientX), y: Math.round(e.clientY) })
+      }, 500)
+    }
+    const onCancel = (e: PointerEvent) => {
+      const d = describe(e.target)
+      if (d.button) safeLog('tap.cancel', { ...d, pointerType: e.pointerType })
+    }
+    const onClick = (e: MouseEvent) => {
+      if (pending) {
+        clearTimeout(pending)
+        pending = null
+      }
+      const d = describe(e.target)
+      if (d.button) safeLog('tap.click', d)
+    }
+    document.addEventListener('pointerup', onUp, true)
+    document.addEventListener('pointercancel', onCancel, true)
+    document.addEventListener('click', onClick, true)
+    return () => {
+      if (pending) clearTimeout(pending)
+      document.removeEventListener('pointerup', onUp, true)
+      document.removeEventListener('pointercancel', onCancel, true)
+      document.removeEventListener('click', onClick, true)
+    }
+  }, [])
+}
+
 function useStaffTaps() {
   const taps = useRef<number[]>([])
   return () => {
@@ -238,6 +292,7 @@ export function App() {
   const pay = usePayState()
   const staffTap = useStaffTaps()
   useIdle()
+  useTapDiagnostics()
   useMenuRetry(menuError)
 
   useEffect(() => {
