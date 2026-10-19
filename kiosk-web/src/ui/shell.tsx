@@ -181,6 +181,9 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
   // Information-only products (API NoInteraction) promote a message, not a price.
   const chip = p.infoOnly ? '' : pr.menu ? `${tf('menuPriceA', { price: fmt(p.price + E().menuDeal.price) })} · ${tf('menuBaseA', { price: fmt(p.price) })}` : fmt(p.price)
   const open = () => openProduct(p, { menu: !!pr.menu, from: 'home' })
+  // API menus (2026-10-19, Alex): the venue's promo pictures carry their own text, so the card shows no title
+  // and no sub line — only the flag, the price and the button.
+  const noText = !!E().venue
   if (big)
     return (
       <button type="button" data-a="promo" className="press relative w-full rounded-[30px] overflow-hidden text-left" style={{ height: b.layout.promoHeight || b.hero.height || b.layout.heroHeight }} onClick={open}>
@@ -189,8 +192,12 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
         <div className="absolute inset-0 p-9 flex flex-col text-cream" style={{ maxWidth: `${b.hero.textSafeWidth}%` }}>
           <span className={`badge ${pr.menu ? 'b-dea' : 'b-new'} self-start`}>{L(pr.flag)}</span>
           <div className="flex-1" />
-          <div className="heroTitle hd text-[52px] leading-[53px] tracking-[.5px] clamp2">{L(pr.title)}</div>
-          <div className="text-[20px] leading-[28px] font-normal opacity-90 mt-2">{L(pr.sub)}</div>
+          {noText ? null : (
+            <>
+              <div className="heroTitle hd text-[52px] leading-[53px] tracking-[.5px] clamp2">{L(pr.title)}</div>
+              <div className="text-[20px] leading-[28px] font-normal opacity-90 mt-2">{L(pr.sub)}</div>
+            </>
+          )}
           {chip ? <div className="num text-[28px] leading-[34px] tracking-[-0.3px] font-extrabold mt-2">{chip}</div> : null}
           <span className="mt-6 self-start h-[76px] px-10 rounded-full bg-cream text-ink flex items-center gap-3">
             <span className="text-[22px] font-bold leading-[26px]">{t('promoView')}</span>
@@ -208,8 +215,12 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
         <FoodImg p={{ ...pr, _eager: true }} cls="h-[210px] w-full" em="96px" />
       </div>
       <div className="px-6 pt-4 pb-5">
-        <div className="hd text-[34px] leading-[37px] tracking-[.4px] clamp2">{L(pr.title)}</div>
-        <div className="text-[18px] leading-[25px] font-normal text-mute mt-1.5">{L(pr.sub)}</div>
+        {noText ? null : (
+          <>
+            <div className="hd text-[34px] leading-[37px] tracking-[.4px] clamp2">{L(pr.title)}</div>
+            <div className="text-[18px] leading-[25px] font-normal text-mute mt-1.5">{L(pr.sub)}</div>
+          </>
+        )}
         <div className="flex items-center justify-between mt-2.5">
           <span className="num text-[25px] leading-[30px] tracking-[-0.2px] font-extrabold">{chip || ' '}</span>
           <span className="w-[48px] h-[48px] rounded-full bg-jade text-white grid place-items-center">
