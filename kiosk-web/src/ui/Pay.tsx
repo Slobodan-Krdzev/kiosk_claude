@@ -152,6 +152,16 @@ function PayPanel() {
   const setScreen = useEngine((s) => s.setScreen)
   const ctrl = () => getRuntime().controller
   const st = pay.status
+  // "Check payment status" feedback (2026-10-19): the API has no status endpoint (B7), so the lookup usually
+  // ends unknown and the screen used to stay exactly as it was. Now the button says it is checking and the
+  // result is written under it.
+  const [check, setCheck] = useState<'idle' | 'running' | 'unknown'>('idle')
+  const runCheck = async () => {
+    setCheck('running')
+    await ctrl().lookup()
+    const after = getRuntime().controller.state.status
+    setCheck(after === 'timeout' || after === 'assistance' ? 'unknown' : 'idle')
+  }
   if (st === 'done') return <Done />
   const amount = pay.snapshot ? pay.snapshot.totals.totalCents : cartTotal(cart)
   const meta = pay.txRef && st !== 'idle' ? `${t('payAttempt')} ${pay.attempt} · ${pay.txRef}` : undefined
@@ -161,15 +171,6 @@ function PayPanel() {
     ctrl().backToCart()
     setScreen('cart')
   }
-  // Identifiers staff need to reconcile the transaction at the POS / terminal.
-  const ref = (
-    <span className="num font-extrabold">
-      {t('payRef')}: {pay.recoveryRef || '—'}
-      {pay.orderId ? ` · ${pay.orderId}` : ''}
-      {pay.attempt ? ` · ${t('payAttempt')} ${pay.attempt}` : ''}
-      {pay.txRef ? ' · ' + pay.txRef : ''}
-    </span>
-  )
   if (st === 'status-check') return <Panel icon={<Ic n="info" sw={2} />} title={t('statusCheckT')} body={t('statusCheckB')} tone="bg-gold/30" meta={meta} />
   if (st === 'cancel-requested') return <Panel icon={<Ic n="info" sw={2} />} title={t('cancelReqT')} body={t('cancelReqB')} tone="bg-gold/30" meta={meta} />
   if (st === 'assistance' || (pay.assistanceNeeded && (st === 'timeout' || st === 'recovery-required')))
@@ -186,13 +187,24 @@ function PayPanel() {
                 {t('assistData')}
               </>
             ) : null}
-            <br />
-            {ref}
+            {check === 'unknown' ? (
+              <>
+                <br />
+                <span className="font-bold text-ink" role="status">
+                  {t('payCheckUnknown')}
+                </span>
+              </>
+            ) : null}
           </>
         }
-        actions={st === 'recovery-required' ? <Btn a="paySubmitRetry" label={t('payRetrySubmit')} onClick={() => void ctrl().submitRetry()} /> : st === 'timeout' ? <Btn a="payLookup" label={t('payCheck')} onClick={() => void ctrl().lookup()} /> : null}
+        actions={
+          st === 'recovery-required' ? (
+            <Btn a="paySubmitRetry" label={t('payRetrySubmit')} onClick={() => void ctrl().submitRetry()} />
+          ) : st === 'timeout' ? (
+            <Btn a="payLookup" label={check === 'running' ? t('payChecking') : t('payCheck')} disabled={check === 'running'} onClick={() => void runCheck()} />
+          ) : null
+        }
         tone="bg-gold/30"
-        meta={meta}
       />
     )
   if (st === 'declined')
@@ -227,7 +239,28 @@ function PayPanel() {
         meta={meta}
       />
     )
-  if (st === 'timeout') return <Panel icon={<Ic n="info" sw={2} />} title={t('payTimeoutT')} body={t('payTimeoutB')} actions={<Btn a="payLookup" label={t('payCheck')} onClick={() => void ctrl().lookup()} />} tone="bg-gold/30" meta={meta} />
+  if (st === 'timeout')
+    return (
+      <Panel
+        icon={<Ic n="info" sw={2} />}
+        title={t('payTimeoutT')}
+        body={
+          <>
+            {t('payTimeoutB')}
+            {check === 'unknown' ? (
+              <>
+                <br />
+                <span className="font-bold text-ink" role="status">
+                  {t('payCheckUnknown')}
+                </span>
+              </>
+            ) : null}
+          </>
+        }
+        actions={<Btn a="payLookup" label={check === 'running' ? t('payChecking') : t('payCheck')} disabled={check === 'running'} onClick={() => void runCheck()} />}
+        tone="bg-gold/30"
+      />
+    )
   if (st === 'lookup') return <Panel icon={<Ic n="info" sw={2} />} title={t('payChecking')} tone="bg-gold/30" meta={meta} />
   if (st === 'cancelled')
     return (
