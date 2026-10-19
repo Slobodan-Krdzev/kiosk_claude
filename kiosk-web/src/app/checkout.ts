@@ -93,10 +93,21 @@ const cartSig = (cart: CartLine[]) => JSON.stringify(cart.map((l) => [l.lid, l.q
 export async function toPay(): Promise<void> {
   const s = useEngine.getState()
   const rt = getRuntime()
-  if (!canSubmitWrites(s.conn)) return
+  // Every early return is logged (2026-10-19): a tap that "does nothing" must leave a trace in the staff log.
+  if (!canSubmitWrites(s.conn)) {
+    rt.log('checkout.skip', { reason: 'no-authority', conn: s.conn.kind })
+    return
+  }
   const st = rt.controller.state.status
-  if (PAY_ACTIVE.has(st) || PAY_UNCERTAIN.has(st) || paying) return
-  if (validateCart(s.cart).some((i) => i.code !== 'price-changed')) return
+  if (PAY_ACTIVE.has(st) || PAY_UNCERTAIN.has(st) || paying) {
+    rt.log('checkout.skip', { reason: 'payment-state', status: st, paying })
+    return
+  }
+  const issues = validateCart(s.cart).filter((i) => i.code !== 'price-changed')
+  if (issues.length) {
+    rt.log('checkout.skip', { reason: 'cart-invalid', issues: issues.map((i) => i.code) })
+    return
+  }
   if (s.screen === 'cart' && tagNeeded()) {
     s.tagOpen()
     return
@@ -109,7 +120,10 @@ export async function toPay(): Promise<void> {
     const ok = await catalogRefresh()
     const s2 = useEngine.getState()
     s2.setChecking(false)
-    if (sig !== cartSig(s2.cart)) return
+    if (sig !== cartSig(s2.cart)) {
+      rt.log('checkout.skip', { reason: 'cart-changed-during-check' })
+      return
+    }
     if (connKey(s2.conn) !== auth) {
       // The authority changed while we were checking: the answers came from the old writer. Re-resolve, never proceed.
       rt.log('checkout.authorityChanged', { from: auth, to: connKey(s2.conn) })
@@ -120,7 +134,11 @@ export async function toPay(): Promise<void> {
       s2.setConfirm('availFail')
       return
     }
-    if (validateCart(s2.cart).some((i) => i.code !== 'price-changed')) return
+    const issues2 = validateCart(s2.cart).filter((i) => i.code !== 'price-changed')
+    if (issues2.length) {
+      rt.log('checkout.skip', { reason: 'cart-invalid-after-check', issues: issues2.map((i) => i.code) })
+      return
+    }
     const changes = revalidatePrices(s2.cart)
     if (changes.length) {
       s2.setConfirm({ type: 'priceChanged', changes, shown: priceStamp(changes) })
@@ -185,8 +203,14 @@ export async function tagSkip(): Promise<void> {
 export async function startPay(): Promise<void> {
   const s = useEngine.getState()
   const rt = getRuntime()
-  if (!rt.controller.canRetryPayment()) return
-  if (!s.cart.length) return
+  if (!rt.controller.canRetryPayment()) {
+    rt.log('checkout.skip', { reason: 'controller-busy', status: rt.controller.state.status, hasSnapshot: !!rt.controller.state.snapshot })
+    return
+  }
+  if (!s.cart.length) {
+    rt.log('checkout.skip', { reason: 'empty-cart' })
+    return
+  }
   // Charge boundary: the authority is checked again right here, after every await of the preflight.
   if (!canSubmitWrites(s.conn)) {
     rt.log('pay.refusedNoAuthority', { conn: s.conn.kind })
