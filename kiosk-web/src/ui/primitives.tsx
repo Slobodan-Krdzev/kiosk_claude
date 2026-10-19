@@ -1,6 +1,6 @@
 // Shared building blocks, each a faithful port of a reference render helper.
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
 import type { L10n, Lang, Product } from '../engine/types'
@@ -116,15 +116,9 @@ export function LangPills({ dark = false }: { dark?: boolean }) {
 
 export const CTL_R = (): number => (E().cms.brand?.controls || { radius: 12 }).radius
 
-/** Hold the minus button this long and it turns into a remove-the-whole-line button. */
-export const HOLD_TO_REMOVE_MS = 550
-/** An armed remove button goes back to minus after this long without a tap. */
-const REMOVE_ARMED_MS = 4000
-
 export function Stepper({
   qty,
   onDelta,
-  onRemove,
   h = 72,
   keepMin = false,
   name,
@@ -132,8 +126,6 @@ export function Stepper({
 }: {
   qty: number
   onDelta: (d: number) => void
-  /** Given: holding the minus button arms it as a remove button; a tap then removes the whole line. */
-  onRemove?: () => void
   h?: number
   keepMin?: boolean
   name?: string
@@ -142,75 +134,15 @@ export function Stepper({
 }) {
   const atMax = qty >= Math.min(max, MAX_LINE_QTY)
   const atMin = qty <= 1
-  const [armedState, setArmed] = useState(false)
-  // Armed only while a remove makes sense; at quantity 1 the minus button already is a remove button.
-  const armed = armedState && !!onRemove && !atMin && !keepMin
-  const hold = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const swallowClick = useRef(false)
-  const canHold = !!onRemove && !atMin && !keepMin
-  useEffect(() => {
-    if (!armed) return
-    const id = setTimeout(() => setArmed(false), REMOVE_ARMED_MS)
-    return () => clearTimeout(id)
-  }, [armed])
-  useEffect(
-    () => () => {
-      if (hold.current) clearTimeout(hold.current)
-    },
-    [],
-  )
-  const clearHold = () => {
-    if (hold.current) clearTimeout(hold.current)
-    hold.current = null
-  }
-  const startHold = () => {
-    // A new press is a new gesture: whatever the previous hold left behind no longer applies. On touch a
-    // long press fires no click at all, so the flag must never survive into the next tap.
-    swallowClick.current = false
-    if (!canHold || armed) return
-    clearHold()
-    hold.current = setTimeout(() => {
-      hold.current = null
-      swallowClick.current = true
-      setArmed(true)
-      try {
-        navigator.vibrate?.(20)
-      } catch {
-        /* no haptics */
-      }
-    }, HOLD_TO_REMOVE_MS)
-  }
-  const removes = armed || (atMin && !keepMin)
-  const minIcon = removes ? 'trash' : 'minus'
-  const removeLabel = name ? tf('removeA', { name }) : t('removeItem')
+  const minIcon = atMin && !keepMin ? 'trash' : 'minus'
   return (
     <span className="gt-stp" style={{ ['--stp-h' as string]: `${h}px`, ['--stp-r' as string]: `${CTL_R()}px` }} role="group" aria-label={`${t('qty')}: ${qty}`}>
       <button
         type="button"
-        className={`press gt-stp-b ${atMin && keepMin ? 'off' : ''}${armed ? ' del' : ''}`}
-        aria-label={removes ? removeLabel : t('qtyDown')}
+        className={`press gt-stp-b ${atMin && keepMin ? 'off' : ''}`}
+        aria-label={atMin && !keepMin ? (name ? tf('removeA', { name }) : t('removeItem')) : t('qtyDown')}
         aria-disabled={atMin && keepMin ? true : undefined}
-        data-armed={armed || undefined}
-        onPointerDown={startHold}
-        onPointerUp={clearHold}
-        onPointerCancel={clearHold}
-        onPointerLeave={clearHold}
-        onContextMenu={(e) => {
-          if (canHold || armed) e.preventDefault()
-        }}
-        onClick={() => {
-          // The release that ends a long press is not a tap.
-          if (swallowClick.current) {
-            swallowClick.current = false
-            return
-          }
-          if (armed && onRemove) {
-            setArmed(false)
-            onRemove()
-            return
-          }
-          onDelta(-1)
-        }}
+        onClick={() => onDelta(-1)}
       >
         <span className="w-7 h-7">
           <Ic n={minIcon} sw={2.8} />
