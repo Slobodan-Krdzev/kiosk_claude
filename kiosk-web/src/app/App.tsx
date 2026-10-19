@@ -267,6 +267,95 @@ function useTapDiagnostics() {
   }, [])
 }
 
+/** Hold the logo this long to toggle fullscreen (attract hero logo and the rail logo). */
+export const LOGO_HOLD_MS = 3000
+const LOGO_SEL = '.hero-lockup img, [data-a="attract"]'
+
+/**
+ * Fullscreen by gesture (2026-10-19, Alex): browsers only allow fullscreen on a user gesture, so the kiosk cannot
+ * enter it at startup by itself. Holding the logo for 3 s enters fullscreen; holding it again leaves. The call
+ * is made while the pointer's transient activation is still valid (browsers grant ~5 s); if it is refused, the
+ * release of the same hold tries once more. A moved finger (> 24 px) or an early release cancels. Taps on the
+ * logo keep their meanings (5 taps = staff panel; rail logo = back to the start screen).
+ */
+function useLogoHold() {
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fullscreenEnabled) return
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let start: { x: number; y: number; id: number } | null = null
+    let retryOnRelease = false
+    const log = (event: string, data?: Record<string, unknown>) => {
+      try {
+        getRuntime().log(event, data)
+      } catch {
+        /* before boot */
+      }
+    }
+    const toast = (text: string) => useEngine.setState({ toast: { text, at: Date.now() } })
+    const toggle = async (): Promise<boolean> => {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen()
+          log('fullscreen.exit')
+        } else {
+          await document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+          log('fullscreen.enter')
+          toast(t('fsAction'))
+        }
+        return true
+      } catch (err) {
+        log('fullscreen.refused', { error: err instanceof Error ? err.message : String(err) })
+        return false
+      }
+    }
+    const clear = () => {
+      if (timer) clearTimeout(timer)
+      timer = null
+      start = null
+    }
+    const onDown = (e: PointerEvent) => {
+      const el = e.target instanceof Element ? e.target.closest(LOGO_SEL) : null
+      if (!el || !e.isPrimary) return
+      clear()
+      retryOnRelease = false
+      start = { x: e.clientX, y: e.clientY, id: e.pointerId }
+      timer = setTimeout(() => {
+        timer = null
+        void toggle().then((ok) => {
+          retryOnRelease = !ok
+        })
+      }, LOGO_HOLD_MS)
+    }
+    const onMove = (e: PointerEvent) => {
+      if (!start || e.pointerId !== start.id) return
+      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 24) clear()
+    }
+    const onUp = (e: PointerEvent) => {
+      if (start && e.pointerId === start.id) clear()
+      if (retryOnRelease) {
+        retryOnRelease = false
+        void toggle()
+      }
+    }
+    const onContext = (e: Event) => {
+      if (e.target instanceof Element && e.target.closest(LOGO_SEL)) e.preventDefault()
+    }
+    document.addEventListener('pointerdown', onDown, true)
+    document.addEventListener('pointermove', onMove, true)
+    document.addEventListener('pointerup', onUp, true)
+    document.addEventListener('pointercancel', clear, true)
+    document.addEventListener('contextmenu', onContext, true)
+    return () => {
+      clear()
+      document.removeEventListener('pointerdown', onDown, true)
+      document.removeEventListener('pointermove', onMove, true)
+      document.removeEventListener('pointerup', onUp, true)
+      document.removeEventListener('pointercancel', clear, true)
+      document.removeEventListener('contextmenu', onContext, true)
+    }
+  }, [])
+}
+
 function useStaffTaps() {
   const taps = useRef<number[]>([])
   return () => {
@@ -293,6 +382,7 @@ export function App() {
   const staffTap = useStaffTaps()
   useIdle()
   useTapDiagnostics()
+  useLogoHold()
   useMenuRetry(menuError)
 
   useEffect(() => {

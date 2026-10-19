@@ -1118,12 +1118,6 @@ html.brand-sojubar{ --sj-blue:#5DB3E6; --sj-blue-text:#1A6FB0; --sj-pink:#E4479B
 .perf-low .ob-wait{ animation:none !important; }
 /* information-only product (API NoInteraction): the bar holds a note instead of quantity + add */
 .r44-info-only{ min-height:64px; display:grid; place-items:center; font-size:21px; font-weight:600; color:rgb(var(--c-mute)); }
-/* fullscreen button (2026-10-19): bottom-right of the real viewport, gone while fullscreen */
-#fsBtn{ position:fixed; right:14px; bottom:14px; z-index:9000; width:44px; height:44px; padding:11px; border-radius:999px;
-  background:rgb(0 0 0 / .45); color:#fff; box-shadow:0 6px 20px -6px rgb(0 0 0 / .6), inset 0 0 0 1.5px rgb(255 255 255 / .35);
-  cursor:pointer; opacity:.85; }
-#fsBtn:active{ transform:scale(.94); }
-body.kiosk #fsBtn{ cursor:none; }
 /* touch (2026-10-19): the button is always the target. Taps on the label or icon inside a button were lost
    on touch panels (the engine already did this for .ob-i); a <button> never has interactive children. */
 button.press *{ pointer-events:none; }

@@ -277,7 +277,13 @@ export function Cart() {
           ) : null}
           <button type="button" data-a="toPay" disabled={blocked} aria-disabled={blocked} className="press cta w-full h-[112px] mt-5 rounded-full bg-jade text-white flex items-center justify-center gap-6" onClick={() => void toPay()}>
             <span className="hd text-[28px] tracking-[.12em]">
-              {t('goPay')} · <span className="num">{fmt(total)}</span>
+              {checking ? (
+                t('availCheckT')
+              ) : (
+                <>
+                  {t('goPay')} · <span className="num">{fmt(total)}</span>
+                </>
+              )}
             </span>
             <span className="w-9 h-9">
               <Ic n="arrR" sw={2.4} />
