@@ -130,17 +130,25 @@ function Line({ l, cart }: { l: CartLine; cart: CartLine[] }) {
       <div className="flex-1 min-w-0 py-1">
         <div className="hd text-[25px] tracking-[.03em]">{pname(p)}</div>
         {sum ? <div className="text-[19px] text-mute font-medium leading-snug clamp2 mt-1">{sum}</div> : null}
-        <div className="flex items-center gap-8 mt-3">
+        {/* Per-line actions: edit (products only) and remove. Both are 56 px tall touch targets. Remove goes
+            through delLine, the same path as the stepper's trash at quantity 1 (linked-sides dialog kept). */}
+        <div className="flex items-center gap-8 mt-2">
           {l.lineType === 'cross-sell' ? (
             <span className="text-[17px] hd tracking-[.1em] text-mute">{t('priceSide')}</span>
           ) : (
-            <button type="button" data-a="editLine" className="press flex items-center gap-2 text-[20px] font-bold text-ink/70" onClick={() => a.editLine(l.lid)}>
+            <button type="button" data-a="editLine" className="press flex items-center gap-2 h-[56px] text-[20px] font-bold text-ink/70" onClick={() => a.editLine(l.lid)}>
               <span className="w-6 h-6">
                 <Ic n="pencil" />
               </span>
               {t('edit')}
             </button>
           )}
+          <button type="button" data-a="delLine" className="press flex items-center gap-2 h-[56px] text-[20px] font-bold text-ink/70" aria-label={tf('removeA', { name: pname(p) })} onClick={() => a.delLine(l.lid)}>
+            <span className="w-6 h-6">
+              <Ic n="trash" />
+            </span>
+            {t('removeItem')}
+          </button>
         </div>
       </div>
       <div className="flex flex-col items-end justify-between py-1">
