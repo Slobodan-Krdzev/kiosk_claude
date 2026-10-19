@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { DEFAULT_MENU_TIMEOUT_MS, designFor, designUrl, fetchDesign, fetchMenu, mapMenu, resolveCatalogSource } from '../adapters/http/catalogSource'
 import type { VenueDesign } from '../adapters/http/venueDesign'
+import { askContinueWithoutReceipt } from './orderPrompts'
 import { withLiveAdapters } from '../adapters/http/tmkLive'
 import { withTimeout } from '../adapters/withTimeout'
 import type { CatalogSourceConfig } from '../domain/types'
@@ -31,6 +32,14 @@ let menuRetry: { source: CatalogSourceConfig; pack: EngineData; timeoutMs: numbe
 let menuLoadedAt = 0
 /** Live checks against the kiosk API are in use (API / test menu on the static simulation). */
 let liveChecks = false
+/** Order adapter log: through the runtime once it exists (it is created after the adapters are resolved). */
+const orderLog = (event: string, data?: Record<string, unknown>): void => {
+  try {
+    getRuntime().log(event, data)
+  } catch {
+    console.debug('[kiosk]', event, data)
+  }
+}
 
 /** Boot / recovery refresh: the whole menu on the static simulation, only the cart's products on the live API. */
 const refreshScope = (): string[] | undefined => (liveChecks ? undefined : E().products.map((p) => p.id))
@@ -81,7 +90,15 @@ async function boot(): Promise<void> {
     const source = resolveCatalogSource(config.catalogSource, window.location.search)
     const timeoutMs = config.timeouts.menuLoad ?? DEFAULT_MENU_TIMEOUT_MS
     // API menu on the simulation: availability (and the no-op price check) go to the kiosk API, as the old kiosk did.
-    const live = withLiveAdapters(resolved.adapters, source, () => menuLoadedAt, { timeoutMs: config.timeouts.availability })
+    // Order + payment on the API menu: one POST (CreateKioskOrderWithPinPayment) behind payment / POS / printer.
+    // The POST may stay open longer than the controller's guard: a late approval is still applied once.
+    const live = withLiveAdapters(
+      resolved.adapters,
+      source,
+      () => menuLoadedAt,
+      { timeoutMs: config.timeouts.availability },
+      { startTimeoutMs: config.timeouts.paymentStart + 60_000, cancelTimeoutMs: config.timeouts.paymentCancel, log: orderLog, askPrintingProblem: askContinueWithoutReceipt },
+    )
     liveChecks = live !== resolved.adapters
     resolved = { ...resolved, adapters: live }
     setAvailabilityGate(liveChecks ? liveGate : null)
@@ -196,6 +213,149 @@ function useIdle() {
   }, [payStatus])
 }
 
+/**
+ * Tap diagnostics (2026-10-19, "the bottom button does not trigger when I tap its text"): every pointer-up
+ * on or inside a button is logged, and `tap.noClick` is logged when no click follows within 500 ms, with
+ * the pointer type, the element under the finger and the action. Read in the staff panel → Logs.
+ */
+function useTapDiagnostics() {
+  useEffect(() => {
+    const describe = (t: EventTarget | null) => {
+      const el = t instanceof Element ? t : null
+      const btn = el?.closest('button,[role="button"],[data-a]') ?? null
+      const name = (n: Element | null) => (n ? `${n.tagName.toLowerCase()}${n.id ? '#' + n.id : ''}${n.getAttribute('data-a') ? '[' + n.getAttribute('data-a') + ']' : ''}` : null)
+      return { target: name(el), button: name(btn), text: el?.textContent?.trim().slice(0, 24) ?? '' }
+    }
+    const safeLog = (event: string, data: Record<string, unknown>) => {
+      try {
+        getRuntime().log(event, data)
+      } catch {
+        console.info('[kiosk]', event, data)
+      }
+    }
+    let pending: ReturnType<typeof setTimeout> | null = null
+    const onUp = (e: PointerEvent) => {
+      const d = describe(e.target)
+      if (!d.button) return
+      if (pending) clearTimeout(pending)
+      pending = setTimeout(() => {
+        pending = null
+        safeLog('tap.noClick', { ...d, pointerType: e.pointerType, x: Math.round(e.clientX), y: Math.round(e.clientY) })
+      }, 500)
+    }
+    const onCancel = (e: PointerEvent) => {
+      const d = describe(e.target)
+      if (d.button) safeLog('tap.cancel', { ...d, pointerType: e.pointerType })
+    }
+    const onClick = (e: MouseEvent) => {
+      if (pending) {
+        clearTimeout(pending)
+        pending = null
+      }
+      const d = describe(e.target)
+      if (d.button) safeLog('tap.click', d)
+    }
+    document.addEventListener('pointerup', onUp, true)
+    document.addEventListener('pointercancel', onCancel, true)
+    document.addEventListener('click', onClick, true)
+    return () => {
+      if (pending) clearTimeout(pending)
+      document.removeEventListener('pointerup', onUp, true)
+      document.removeEventListener('pointercancel', onCancel, true)
+      document.removeEventListener('click', onClick, true)
+    }
+  }, [])
+}
+
+/** Hold the logo this long to toggle fullscreen (attract hero logo and the rail logo). */
+export const LOGO_HOLD_MS = 3000
+const LOGO_SEL = '.hero-lockup img, [data-a="attract"]'
+
+/**
+ * Fullscreen by gesture (2026-10-19, Alex): browsers only allow fullscreen on a user gesture, so the kiosk cannot
+ * enter it at startup by itself. Holding the logo for 3 s enters fullscreen; holding it again leaves. The call
+ * is made while the pointer's transient activation is still valid (browsers grant ~5 s); if it is refused, the
+ * release of the same hold tries once more. A moved finger (> 24 px) or an early release cancels. Taps on the
+ * logo keep their meanings (5 taps = staff panel; rail logo = back to the start screen).
+ */
+function useLogoHold() {
+  useEffect(() => {
+    if (typeof document === 'undefined' || !document.fullscreenEnabled) return
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let start: { x: number; y: number; id: number } | null = null
+    let retryOnRelease = false
+    const log = (event: string, data?: Record<string, unknown>) => {
+      try {
+        getRuntime().log(event, data)
+      } catch {
+        /* before boot */
+      }
+    }
+    const toast = (text: string) => useEngine.setState({ toast: { text, at: Date.now() } })
+    const toggle = async (): Promise<boolean> => {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen()
+          log('fullscreen.exit')
+        } else {
+          await document.documentElement.requestFullscreen({ navigationUI: 'hide' })
+          log('fullscreen.enter')
+          toast(t('fsAction'))
+        }
+        return true
+      } catch (err) {
+        log('fullscreen.refused', { error: err instanceof Error ? err.message : String(err) })
+        return false
+      }
+    }
+    const clear = () => {
+      if (timer) clearTimeout(timer)
+      timer = null
+      start = null
+    }
+    const onDown = (e: PointerEvent) => {
+      const el = e.target instanceof Element ? e.target.closest(LOGO_SEL) : null
+      if (!el || !e.isPrimary) return
+      clear()
+      retryOnRelease = false
+      start = { x: e.clientX, y: e.clientY, id: e.pointerId }
+      timer = setTimeout(() => {
+        timer = null
+        void toggle().then((ok) => {
+          retryOnRelease = !ok
+        })
+      }, LOGO_HOLD_MS)
+    }
+    const onMove = (e: PointerEvent) => {
+      if (!start || e.pointerId !== start.id) return
+      if (Math.hypot(e.clientX - start.x, e.clientY - start.y) > 24) clear()
+    }
+    const onUp = (e: PointerEvent) => {
+      if (start && e.pointerId === start.id) clear()
+      if (retryOnRelease) {
+        retryOnRelease = false
+        void toggle()
+      }
+    }
+    const onContext = (e: Event) => {
+      if (e.target instanceof Element && e.target.closest(LOGO_SEL)) e.preventDefault()
+    }
+    document.addEventListener('pointerdown', onDown, true)
+    document.addEventListener('pointermove', onMove, true)
+    document.addEventListener('pointerup', onUp, true)
+    document.addEventListener('pointercancel', clear, true)
+    document.addEventListener('contextmenu', onContext, true)
+    return () => {
+      clear()
+      document.removeEventListener('pointerdown', onDown, true)
+      document.removeEventListener('pointermove', onMove, true)
+      document.removeEventListener('pointerup', onUp, true)
+      document.removeEventListener('pointercancel', clear, true)
+      document.removeEventListener('contextmenu', onContext, true)
+    }
+  }, [])
+}
+
 function useStaffTaps() {
   const taps = useRef<number[]>([])
   return () => {
@@ -221,6 +381,8 @@ export function App() {
   const pay = usePayState()
   const staffTap = useStaffTaps()
   useIdle()
+  useTapDiagnostics()
+  useLogoHold()
   useMenuRetry(menuError)
 
   useEffect(() => {

@@ -77,6 +77,9 @@ function Done() {
   const tg = pay.snapshot?.tag
   const lbl = tg ? { table: 'tag_tableL', pager: 'tag_pagerL', name: 'tag_nameL' }[tg.type] : null
   const doneText = tg ? tf({ table: 'tag_doneTable', pager: 'tag_donePager', name: 'tag_doneName' }[tg.type], { v: tg.value }) : service === 'eatin' ? t('pickupCounter') : t('callNo')
+  const problems: { text: string; cls: string }[] = []
+  if (!pay.accepted) problems.push({ text: t('orderPending'), cls: 'text-mute' })
+  if (pay.receipt === 'failed') problems.push({ text: '⚠ ' + t('receiptFailed'), cls: 'text-ember' })
   return (
     <div className="flex-1 relative grid place-items-center enter overflow-hidden">
       <div className="text-center px-16 relative">
@@ -100,17 +103,23 @@ function Done() {
         <div className="text-[24px] text-mute font-semibold mt-8">{t('orderNo')}</div>
         <div className="hd text-[170px] leading-none tracking-[.04em] num mt-2">{pay.orderNo}</div>
         <p className="text-[26px] font-medium text-ink/80 max-w-[680px] mx-auto mt-9 leading-relaxed">{doneText}</p>
-        <div className="flex justify-center gap-6 flex-wrap mt-6 text-[20px] font-semibold">
-          <span className="text-jade">✓ {t('payApproved')}</span>
-          <span className={pay.accepted ? 'text-jade' : 'text-mute'}>{pay.accepted ? '✓ ' + t('orderAccepted') : t('orderPending')}</span>
-          <span className={pay.receipt === 'printed' ? 'text-jade' : pay.receipt === 'failed' ? 'text-ember' : 'text-mute'} role="status">
-            {pay.receipt === 'printed' ? '✓ ' + t('receiptPrinted') : pay.receipt === 'failed' ? '⚠ ' + t('receiptFailed') : t('receiptPrinting')}
-          </span>
-        </div>
-        <div className="text-[19px] text-mute font-semibold mt-4">
-          {t('refT')}: {pay.orderId || '—'}
-          {pay.txRef ? ' · ' + pay.txRef : ''}
-        </div>
+        {/* Status lines and the technical reference only when something needs the guest's or staff's
+            attention (2026-10-19, Alex): a clean success shows the order number and nothing else. */}
+        {problems.length ? (
+          <>
+            <div className="flex justify-center gap-6 flex-wrap mt-6 text-[20px] font-semibold" role="status">
+              {problems.map((p) => (
+                <span key={p.text} className={p.cls}>
+                  {p.text}
+                </span>
+              ))}
+            </div>
+            <div className="text-[19px] text-mute font-semibold mt-4">
+              {t('refT')}: {pay.orderId || '—'}
+              {pay.txRef ? ' · ' + pay.txRef : ''}
+            </div>
+          </>
+        ) : null}
         <button type="button" data-a="newOrder" className="press h-[104px] px-14 mt-12 rounded-full bg-jade text-white hd text-[26px] tracking-[.12em]" onClick={newOrder}>
           {t('newOrder')}
         </button>

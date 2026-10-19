@@ -22,6 +22,10 @@ export function StaffPanel() {
   const [wrong, setWrong] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useModal(ref, () => setStaffOpen(false))
+  const key = (d: string) => {
+    setWrong(false)
+    setPin((p) => (d === 'del' ? p.slice(0, -1) : (p + d).slice(0, 4)))
+  }
   useEffect(() => {
     if (pin.length !== 4 || authed) return
     void getRuntime()
@@ -43,23 +47,31 @@ export function StaffPanel() {
         </button>
       </div>
       {!authed ? (
-        <div className="flex-1 grid place-items-center">
-          <div className="text-center">
+        // The pad needs a real width: inside `place-items-center` the column would otherwise shrink to the
+        // width of the heading and the keys came out as narrow slivers.
+        <div className="flex-1 grid place-items-center px-10">
+          <div className="text-center w-full max-w-[640px]">
             <div className="text-[24px] font-semibold text-mute mb-4">Enter the PIN</div>
-            <div className="hd text-[64px] tracking-[.3em]">{'●'.repeat(pin.length).padEnd(4, '○')}</div>
-            {wrong ? <div className="text-ember font-bold mt-2">Wrong PIN</div> : null}
-            <div className="tag-pad mt-8">
+            <div className="hd text-[64px] tracking-[.3em]" style={{ paddingLeft: '.3em' }} aria-label={`${pin.length} of 4`}>
+              {'●'.repeat(pin.length).padEnd(4, '○')}
+            </div>
+            <div className="text-ember font-bold text-[20px] mt-2" style={{ height: 32 }} role="status">
+              {wrong ? 'Wrong PIN' : ''}
+            </div>
+            <div className="tag-pad mt-6" role="group" aria-label="PIN keypad">
               {'123456789'.split('').map((d) => (
-                <button key={d} type="button" className="press tag-k num" onClick={() => setPin((p) => (p + d).slice(0, 4))}>
+                <button key={d} type="button" className="press tag-k num" onClick={() => key(d)}>
                   {d}
                 </button>
               ))}
-              <span />
-              <button type="button" className="press tag-k num" onClick={() => setPin((p) => (p + '0').slice(0, 4))}>
+              <span aria-hidden="true" />
+              <button type="button" className="press tag-k num" onClick={() => key('0')}>
                 0
               </button>
-              <button type="button" className="press tag-k tag-kdel" onClick={() => setPin((p) => p.slice(0, -1))}>
-                ⌫
+              <button type="button" className="press tag-k tag-kdel" aria-label="Delete last digit" onClick={() => key('del')}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M3 12l5-7h13v14H8l-5-7Zm8-3 6 6m0-6-6 6" />
+                </svg>
               </button>
             </div>
           </div>

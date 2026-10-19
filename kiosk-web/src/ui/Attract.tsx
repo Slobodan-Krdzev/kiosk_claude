@@ -26,9 +26,11 @@ export function Attract() {
     const id = setInterval(() => setNow(new Date()), 60_000)
     return () => clearInterval(id)
   }, [])
+  // A slide that fails to load is dropped from the rotation by state, never by removing React's DOM node.
+  const [broken, setBroken] = useState<string[]>([])
   const images = currentSlides(ss, lang, now)
     .map((s) => s.img)
-    .filter((u, i, arr) => arr.indexOf(u) === i)
+    .filter((u, i, arr) => arr.indexOf(u) === i && !broken.includes(u))
   const interval = ss?.intervalMs || 7000
   // API menu: the venue's slides carry their own copy, so the brand overlay (headline, tagline) is hidden
   // and the venue logo (ThemeResponse.LogoImage) replaces the brand logo.
@@ -37,21 +39,36 @@ export function Attract() {
   const logo = venueMode && venue?.logoImg ? { src: venue.logoImg, alt: venue.name || '', filter: 'drop-shadow(0 6px 24px rgba(0,0,0,.5))' } : { src: b.logoImg, alt: b.name, filter: `${b.logoFilter || 'invert(1) brightness(1.6)'} drop-shadow(0 6px 24px rgba(0,0,0,.5))` }
 
   // Bottom controls hide after Screensaver.ActivationTime without a touch and come back on the next touch.
-  // The revealing touch never starts an order: the controls are not hit-testable while hidden.
+  // The revealing touch never starts an order: the controls are not hit-testable while invisible.
   const idleMs = ss?.idleMs || 0
   const [idle, setIdle] = useState(false)
+  // Hit-testing is only switched off once the fade-out has finished (longest row transition ≈ 560 ms):
+  // a tap on a button that is still visible must always count. Waking re-enables it at once.
+  const [gone, setGone] = useState(false)
   useEffect(() => {
     if (!idleMs) return
-    let timer = setTimeout(() => setIdle(true), idleMs)
-    const wake = () => {
-      setIdle(false)
-      clearTimeout(timer)
-      timer = setTimeout(() => setIdle(true), idleMs)
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let goneTimer: ReturnType<typeof setTimeout> | null = null
+    const arm = () => {
+      timer = setTimeout(() => {
+        setIdle(true)
+        goneTimer = setTimeout(() => setGone(true), 650)
+      }, idleMs)
     }
+    const wake = () => {
+      if (timer) clearTimeout(timer)
+      if (goneTimer) clearTimeout(goneTimer)
+      goneTimer = null
+      setIdle(false)
+      setGone(false)
+      arm()
+    }
+    arm()
     const ev: (keyof WindowEventMap)[] = ['pointerdown', 'touchstart', 'keydown', 'wheel']
     for (const e of ev) window.addEventListener(e, wake, { passive: true })
     return () => {
-      clearTimeout(timer)
+      if (timer) clearTimeout(timer)
+      if (goneTimer) clearTimeout(goneTimer)
       for (const e of ev) window.removeEventListener(e, wake)
     }
   }, [idleMs])
@@ -100,7 +117,7 @@ export function Attract() {
     <>
       <div className="heromedia" style={ss && ss.opacity < 1 ? { opacity: ss.opacity } : undefined}>
         {images.map((u, i) => (
-          <img key={u} className={`heroimg${i === heroIdx % images.length ? ' on' : ''}`} src={u} alt="" width={2160} height={3840} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" onError={(e) => e.currentTarget.remove()} />
+          <img key={u} className={`heroimg${i === heroIdx % images.length ? ' on' : ''}`} src={u} alt="" width={2160} height={3840} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" onError={() => setBroken((b) => (b.includes(u) ? b : [...b, u]))} />
         ))}
       </div>
       {venueMode ? (
@@ -132,7 +149,7 @@ export function Attract() {
             <p className="text-[24px] font-semibold tracking-[.3em] leading-[1.7]">{lines(L(b.copy.sub))}</p>
           </div>
         )}
-        <div className="absolute inset-x-0 bottom-0" style={{ pointerEvents: idle ? 'none' : undefined }} aria-hidden={idle || undefined}>
+        <div className="absolute inset-x-0 bottom-0" style={{ pointerEvents: gone ? 'none' : undefined }} aria-hidden={gone || undefined}>
           <div className="px-[105px]">
             {b.features.loyalty ? (
               <div className="flex justify-center lty-att" style={rowMotion(0)}>

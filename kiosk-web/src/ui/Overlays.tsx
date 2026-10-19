@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/shallow'
 import { useEffect, useRef, useState } from 'react'
 import { useModal } from './useModal'
 import { availBack, availRetry, priceBack, priceConfirm } from '../app/checkout'
+import { printSkipNo, printSkipYes } from '../app/orderPrompts'
 import { getRuntime } from '../app/runtime'
 import { clearSession } from '../app/session'
 import { cartCount, line, lineUnit, xsLinesOf } from '../engine/cart'
@@ -299,6 +300,23 @@ function Confirms() {
         </div>
       </Dialog>
     )
+  if (confirm === 'printProblem')
+    return (
+      <Dialog label={t('printProblemT')}>
+        <div id="printProblemT" className="hd text-[44px] leading-[1.05] tracking-[.02em]">
+          {t('printProblemT')}
+        </div>
+        <p className="text-[23px] text-mute font-medium mt-3">{t('printProblemB')}</p>
+        <div className="grid gap-4 mt-10">
+          <button type="button" data-a="printYes" className="press h-[92px] rounded-full bg-jade text-white hd text-[23px] tracking-[.08em]" onClick={printSkipYes}>
+            {t('printYes')}
+          </button>
+          <button type="button" data-a="printNo" className="press h-[92px] rounded-full bg-card shadow-soft text-[22px] font-bold" onClick={printSkipNo}>
+            {t('cancel')}
+          </button>
+        </div>
+      </Dialog>
+    )
   if (confirm === 'availFail' || confirm === 'authChanged')
     return (
       <Dialog>
@@ -445,14 +463,18 @@ function ConnBanner() {
 
 export function Overlays() {
   const sheet = useEngine((s) => s.sheet)
+  const confirm = useEngine((s) => s.confirm)
   const pay = usePayState()
+  // Confirm dialogs stay off during an active payment, except the order adapter's own question
+  // ("continue without receipt?"), which is asked while payment.start() is pending.
+  const confirms = pay.status === 'idle' || NOTHING_CHARGED.has(pay.status) || confirm === 'printProblem'
   return (
     <>
       {sheet === 'voucher' || sheet === 'loyalty' ? <VoucherSheet /> : null}
       {sheet && typeof sheet === 'object' ? <AllergenSheet pid={sheet.allergens} /> : null}
       {sheet === 'alfilter' ? <AlFilterSheet /> : null}
       {sheet === 'price' ? <PriceSheet /> : null}
-      {pay.status === 'idle' || NOTHING_CHARGED.has(pay.status) ? <Confirms /> : null}
+      {confirms ? <Confirms /> : null}
       <Toast />
       <ConnBanner />
     </>

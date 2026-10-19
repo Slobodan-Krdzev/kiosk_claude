@@ -11,7 +11,8 @@
     "source": "api",
     "apiBase": "https://kioskapi.dev.revelapps.com/api",
     "testUrl": "https://my.tabletmenukaart.nl/service/kioskTestModeResources",
-    "menuId": 2408
+    "menuId": 2408,
+    "tableNumber": "9"
   },
   "staffPin": "2468",
   "orderTag": {
@@ -27,7 +28,7 @@
     "nameBlocklist": []
   },
   "timeouts": {
-    "paymentStart": 90000,
+    "paymentStart": 180000,
     "paymentStatus": 12000,
     "paymentCancel": 12000,
     "posSubmit": 15000,

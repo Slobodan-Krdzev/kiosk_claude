@@ -1118,3 +1118,8 @@ html.brand-sojubar{ --sj-blue:#5DB3E6; --sj-blue-text:#1A6FB0; --sj-pink:#E4479B
 .perf-low .ob-wait{ animation:none !important; }
 /* information-only product (API NoInteraction): the bar holds a note instead of quantity + add */
 .r44-info-only{ min-height:64px; display:grid; place-items:center; font-size:21px; font-weight:600; color:rgb(var(--c-mute)); }
+/* touch (2026-10-19): the button is always the target. Taps on the label or icon inside a button were lost
+   on touch panels (the engine already did this for .ob-i); a <button> never has interactive children. */
+button.press *{ pointer-events:none; }
+/* the desktop-preview caption never takes a tap: when the window is short it overlaps the bottom row */
+#hint{ pointer-events:none; }

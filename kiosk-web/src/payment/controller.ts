@@ -292,7 +292,7 @@ export class PaymentController {
     this.armProgress(session, attemptId)
     this.armGuard(session, attemptId)
 
-    const req = { attemptId, orderId, amountMinor: snapshot.totals.totalCents, currency: this.deps.currency }
+    const req = { attemptId, orderId, amountMinor: snapshot.totals.totalCents, currency: this.deps.currency, snapshot }
     let result: PaymentStartResult | undefined
     try {
       result = await this.deps.adapters.payment.start(req, (p) => this.onProgress(session, attemptId, p))
