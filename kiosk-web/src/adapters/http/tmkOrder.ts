@@ -269,6 +269,14 @@ export class TmkOrderPayment implements PaymentAdapter, PosAdapter, PrinterAdapt
   // ----- the POST -----
 
   private async post(attemptId: string, body: TmkOrderRequest, skip: boolean): Promise<Outcome> {
+    // What goes out, per line: product id, quantity and the option product ids (modifiers / upsell picks).
+    this.log('order.sent', {
+      attemptId,
+      skip,
+      orderGuid: body.Order.OrderGuid,
+      table: body.tableNumber,
+      items: body.Order.Items.map((i) => ({ id: i.Item.Id, qty: i.Quantity, price: i.Item.Price, options: i.UpsaleCollection.map((u) => `${u.UpsaleStepOptionModel.ProductId}×${u.Quantity}`) })),
+    })
     const ctl = new AbortController()
     const timer = setTimeout(() => ctl.abort(), this.startTimeoutMs)
     let outcome: Outcome
