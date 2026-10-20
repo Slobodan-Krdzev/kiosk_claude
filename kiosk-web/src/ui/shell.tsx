@@ -60,14 +60,15 @@ export function Rail() {
   )
 
   const sb = b.sidebar
-  // API menu: the venue's logo and name, no brand taglines (audit F10). The sidebar background photo stays the
-  // brand pack's until the venue's own image is decided (Alex, 2026-10-16).
+  // API menu: the venue's logo and name, no brand photo / taglines (audit F10). The brand pack's sidebar photo was
+  // shown on API menus from 2026-10-16 to 2026-10-20 while the venue image was undecided; since 2026-10-20 the rail
+  // is the plain dark surface again (Alex: "remove it and instead add the plain color as you did previously").
   const venue = venueMenu()
   const logo = venue ? E().venue!.logoImg : b.logoImg
   return (
     <nav id="railSide" className="flex-none relative z-20 flex flex-col text-cream overflow-hidden" style={{ width: b.layout.sidebarWidth, boxShadow: '16px 0 40px -18px rgba(20,17,12,.38)' }}>
-      <div className="absolute inset-0" style={{ background: sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
-        {sb.backgroundType === 'image' ? (
+      <div className="absolute inset-0" style={{ background: !venue && sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
+        {!venue && sb.backgroundType === 'image' ? (
           <img
             src={SIDEBAR_FALLBACK}
             alt=""
