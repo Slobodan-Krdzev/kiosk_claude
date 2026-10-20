@@ -55,6 +55,14 @@ export function buildOrderPayload(snapshot: OrderSnapshot, tableNumber: string):
     const id = Number(l.productId)
     if (!Number.isInteger(id)) throw new Error(`order: line ${l.lineId} has no numeric ProductId (${l.productId})`)
     const UpsaleCollection: TmkOrderItem['UpsaleCollection'] = []
+    // Single-choice modifiers (API wizards with max 1) travel like extras. A choice without a backend product id
+    // is a design-only option (static menus) and has nothing to send.
+    for (const c of l.choices || []) {
+      if (!c.productId) continue
+      const pid = Number(c.productId)
+      if (!Number.isInteger(pid)) throw new Error(`order: choice ${c.groupId} has no numeric ProductId (${c.productId})`)
+      UpsaleCollection.push({ UpsaleStepOptionModel: { ProductId: pid, Name: c.name ?? '', Price: euros(c.priceCents ?? 0) }, Quantity: 1 })
+    }
     for (const x of l.extras || []) {
       const pid = Number(x.productId)
       if (!x.productId || !Number.isInteger(pid)) throw new Error(`order: option ${x.extraId} has no ProductId`)

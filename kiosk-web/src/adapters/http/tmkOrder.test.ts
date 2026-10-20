@@ -72,10 +72,10 @@ describe('request body (kiosk-payment-flow.md "Request body")', () => {
     setLang('nl')
     const p = E().products.find((x) => x.id === '469180')! // "7up (copy)", HasUpsaleCollection
     const d = newDraft(p)
-    // Since D3 was revived the product also has a mandatory modifier ("Something", 1/1); it comes first in the chain.
-    const md = p.steps!.find((k) => k.startsWith('md') && E().mods[k].req)!
+    // Since D3 was revived the product also has a mandatory modifier ("Something", 1/1 → required choice group).
+    const md = p.choice![0]
     const modOpt = E().mods[md].items[0]
-    grpSet(d, md, modOpt.id, 1)
+    d.choices[md] = modOpt.id
     const g = 'up9_8'
     const opt = E().mods[g].items[0]
     grpSet(d, g, opt.id, 2)

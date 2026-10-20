@@ -141,57 +141,60 @@ describe('product details', () => {
   })
 })
 
-describe('modifiers (D3 revived 2026-10-20): one step group per wizard, every option with its ProductId', () => {
-  it('menu 2408: a mandatory 1/1 wizard and an optional 0/4 wizard become step groups with the right rules', () => {
+describe('modifiers (D3 revived 2026-10-20): max 1 → choice group, max > 1 → step group, every option with its ProductId', () => {
+  it('menu 2408: a mandatory 1/1 wizard is a required choice group; an optional 0/4 wizard is a step group', () => {
     const d = map(withMainFirst(FULL, 54949)) // FRISDRANKEN
     use(d)
     const wine = prod(d, 443538) // "Aantal glazen", mandatory, 1/1, 4 options
-    expect(wine.steps).toHaveLength(1)
-    const g = d.mods[wine.steps![0]]
-    expect(g.type).toBe('step')
+    expect(wine.choice).toHaveLength(1)
+    expect(wine.steps).toBeUndefined()
+    const g = d.mods[wine.choice![0]]
+    expect(g.type).toBe('choice')
     expect(g.req).toBe(true)
-    expect([g.min, g.max]).toEqual([1, 1])
+    expect(g.def).toBeUndefined()
     expect(g.items.map((i) => i.pid)).toEqual(['444511', '444512', '444513', '444514'])
-    expect(g.items.every((i) => i.maxQty === 1 && Number.isInteger(Number(i.pid)))).toBe(true)
+    expect(g.items.every((i) => Number.isInteger(Number(i.pid)) && !i.sub)).toBe(true) // Description "." is no sub line
     expect(obNeedsDetail(wine)).toBe(true)
     const d2 = map(withMainFirst(FULL, 54995)) // KINDERMENU
     const dessert = prod(d2, 443961) // "Extra", optional, 0/4
+    expect(dessert.choice).toBeUndefined()
     const e = d2.mods[dessert.steps![0]]
-    expect([e.req, e.min, e.max]).toEqual([false, 0, 4])
+    expect([e.type, e.req, e.min, e.max]).toEqual(['step', false, 0, 4])
   })
-  it('a mandatory wizard blocks the order until picked; the pick reaches the cart line and the order POST as UpsaleCollection', () => {
+  it('a required choice blocks the order until picked; the pick reaches the cart line and the order POST as UpsaleCollection', () => {
     const d = map(withMainFirst(FULL, 54949))
     use(d)
     const wine = prod(d, 443538)
-    const g = wine.steps![0]
+    const g = wine.choice![0]
     const dr = newDraft(wine)
+    expect(dr.choices[g]).toBeNull()
     expect(firstIncomplete(dr)).toBe(g)
     expect(blockReason(dr)).not.toBe('')
-    grpSet(dr, g, d.mods[g].items[1].id, 1) // "3 Glazen"
-    expect(draftValid(dr)).toBe(true)
-    // the group is 1/1: picking another option swaps the pick (radio behaviour), never two at once
     const opt = d.mods[g].items[2] // "4 Glazen"
-    grpSet(dr, g, opt.id, 1)
-    expect(grpCount(dr, g)).toBe(1)
-    expect(exQty(dr, g, opt.id)).toBe(1)
+    dr.choices[g] = opt.id
+    expect(draftValid(dr)).toBe(true)
     const { cart } = addToCart([], dr)
     const snap = buildSnapshot(cart, 'eat-in', 'nl', { type: 'table', value: '4' }, null)
-    expect(snap.lines[0].extras).toEqual([{ extraId: `${g}:${opt.id}`, qty: 1, productId: opt.pid, name: expect.any(String), priceCents: 0 }])
+    expect(snap.lines[0].choices).toEqual([{ groupId: g, optionIds: [opt.id], productId: opt.pid, name: expect.any(String), priceCents: 0 }])
+    expect(snap.lines[0].extras).toEqual([])
     const body = buildOrderPayload({ ...snap, orderId: 'K1-x-1', startedAt: '2026-10-20T10:00:00.000Z', paidAt: null }, '9')
     expect(body.Order.Items[0].Item.Id).toBe(443538)
     expect(body.Order.Items[0].UpsaleCollection).toEqual([{ UpsaleStepOptionModel: { ProductId: Number(opt.pid), Name: expect.any(String), Price: 0 }, Quantity: 1 }])
   })
-  it('menu 2490: modifiers come first, then the upsell steps, as one chain on the product page', () => {
+  it('menu 2490: the 1/1 wizard is a choice, the 0/5 wizard a step before the upsell steps, as one chain', () => {
     const d = map(TEST)
     use(d)
-    const p = prod(d, 469180) // wizards "Something" + "Test" and upsell collection 9
+    const p = prod(d, 469180) // wizards "Test" (0/5) + "Something" (1/1) and upsell collection 9
+    expect(p.choice).toHaveLength(1)
+    expect(d.mods[p.choice![0]].type).toBe('choice')
     const md = p.steps!.filter((k) => k.startsWith('md'))
-    expect(md.length).toBeGreaterThan(0)
+    expect(md).toHaveLength(1)
     expect(p.steps!.slice(md.length)).toEqual(['up9_8', 'up9_9', 'up9_10'])
-    expect(d.mods[md[md.length - 1]].next).toBe('up9_8')
+    expect(d.mods[md[0]].next).toBe('up9_8')
     const dr = newDraft(p)
     expect(activeSteps(p, dr)).toEqual(p.steps)
-    const plain = prod(d, 465452) // modifiers only, no upsell
+    const plain = prod(d, 465452) // "Test" mandatory 1/5, no upsell: one step group
+    expect(plain.choice).toBeUndefined()
     expect(plain.steps!.every((k) => k.startsWith('md'))).toBe(true)
     expect(obNeedsDetail(plain)).toBe(true)
   })
@@ -200,10 +203,11 @@ describe('modifiers (D3 revived 2026-10-20): one step group per wizard, every op
     const p = raw.TMKData[0].MainCategories[0].SubCategories.flatMap((s) => s.Products || []).find((x) => x.ProductId === 443538)!
     p.ModifierWizards![0].ModifierItemElements[0].ProductId = null
     const d = map(raw)
-    const g = d.mods[prod(d, 443538).steps![0]]
+    const g = d.mods[prod(d, 443538).choice![0]]
     expect(g.items.map((i) => i.pid)).toEqual(['444512', '444513', '444514'])
     p.ModifierWizards![0].ModifierItemElements.forEach((e) => (e.ProductId = null))
     const d2 = map(raw)
+    expect(prod(d2, 443538).choice ?? []).toEqual([])
     expect(prod(d2, 443538).steps ?? []).toEqual([])
   })
 })

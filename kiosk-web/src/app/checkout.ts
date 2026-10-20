@@ -236,7 +236,10 @@ export function buildSnapshot(cart: CartLine[], service: 'eat-in' | 'takeaway', 
       servingName: sv ? L(sv.short) : '',
       choices: Object.entries(l.choices || {})
         .filter(([, v]) => !!v)
-        .map(([groupId, v]) => ({ groupId, optionIds: [v as string] })),
+        .map(([groupId, v]) => {
+          const it = E().mods[groupId]?.items.find((i) => i.id === v)
+          return { groupId, optionIds: [v as string], ...(it?.pid ? { productId: it.pid, name: typeof it.name === 'string' ? it.name : it.name.en, priceCents: it.price } : {}) }
+        }),
       extras: (l.extras || []).map(([g, id]) => {
         const it = modItem(g, id)
         return { extraId: `${g}:${id}`, qty: exQty(l, g, id), ...(it.pid ? { productId: it.pid } : {}), name: typeof it.name === 'string' ? it.name : it.name.en, priceCents: it.price }

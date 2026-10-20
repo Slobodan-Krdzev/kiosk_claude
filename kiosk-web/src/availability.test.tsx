@@ -192,10 +192,9 @@ describe('checkout preflight on the live API', () => {
     const d = newDraft(p)
     const g = 'up9_8'
     const item = E().mods[g].items[0]
-    // the product's mandatory modifier ("Something", 1/1) comes first in the chain
-    const md = p.steps!.filter((k) => k.startsWith('md') && E().mods[k].req)
-    const modPids = md.map((k) => {
-      grpSet(d, k, E().mods[k].items[0].id, 1)
+    // the product's mandatory modifier ("Something", 1/1) is a required choice group; its option is a product too
+    const modPids = (p.choice || []).map((k) => {
+      d.choices[k] = E().mods[k].items[0].id
       return E().mods[k].items[0].pid!
     })
     grpSet(d, g, item.id, 1)
