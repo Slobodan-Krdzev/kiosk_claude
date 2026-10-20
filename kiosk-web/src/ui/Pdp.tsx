@@ -234,6 +234,7 @@ function StepTile({ g, it, d, full }: { g: string; it: ModItem; d: Draft; full: 
 }
 
 /** One upsell step on the product page. Steps after it appear as the guest picks (chain from the API collection). */
+// Kept for the revert described at the step rendering below (picture tiles for upsell collections).
 function StepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; need: boolean; hint: string; nudge: () => void }) {
   const grp = E().mods[g]
   const full = grpCount(d, g) >= grpMax(g)
@@ -277,10 +278,18 @@ function StepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; need: b
  * refuses new chips, a locked step (earlier required step unfinished) nudges the guest there.
  */
 function ChipStepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; need: boolean; hint: string; nudge: () => void }) {
-  const pick = useEngine((s) => s.pick)
+  const a = useEngine(useShallow((s) => ({ pick: s.pick, pickQty: s.pickQty })))
   const grp = E().mods[g]
   const full = grpCount(d, g) >= grpMax(g)
   const locked = stepLocked(d, g)
+  // An option that may be taken more than once (upsell: its own MaxSelection) cycles on each tap: 1 → 2 → … → max → off.
+  const tap = (id: string) => {
+    const q = exQty(d, g, id)
+    const max = exMax(id, g)
+    if (q === 0) a.pick(g, id)
+    else if (q < max) a.pickQty(g, id, 1)
+    else a.pickQty(g, id, -q)
+  }
   return (
     <section
       className={`grp r44-grp${need ? ' grp-need' : ''}`}
@@ -306,9 +315,11 @@ function ChipStepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; nee
       </div>
       <div className="r44-opts" style={{ gridTemplateColumns: `repeat(${r44Cols(grp.items)},minmax(0,1fr))` }}>
         {grp.items.map((it) => {
-          const on = exQty(d, g, it.id) > 0
+          const q = exQty(d, g, it.id)
+          const on = q > 0
           const na = optionUnavailable(g, it.id)
-          const blocked = (!on && (full || na)) || (na && !on)
+          const blocked = !on && (full || na)
+          const max = exMax(it.id, g)
           return (
             <button
               key={it.id}
@@ -316,11 +327,15 @@ function ChipStepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; nee
               data-a={blocked ? 'r44Blocked' : 'pick'}
               aria-pressed={on}
               aria-disabled={blocked ? true : undefined}
+              aria-label={max > 1 ? `${L(it.name)} ×${q}` : undefined}
               className={`press optBtn r44-opt${blocked ? ' blk' : ''}`}
-              onClick={() => !blocked && pick(g, it.id)}
+              onClick={() => !blocked && tap(it.id)}
             >
               <span className="r44-ol">
-                <span className="r44-on">{L(it.name)}</span>
+                <span className="r44-on">
+                  {L(it.name)}
+                  {q > 1 ? <span className="num"> ×{q}</span> : null}
+                </span>
                 {na ? <span className="r44-os text-ember">{t('unavailT')}</span> : it.sub ? <span className="r44-os">{L(it.sub)}</span> : null}
               </span>
               {it.price ? (
@@ -339,6 +354,9 @@ function ChipStepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; nee
     </section>
   )
 }
+
+// Referenced so the kept tile section compiles while unused (see the revert note at the step rendering).
+void StepSection
 
 function EnhTile({ v, d }: { v: CmsItem; d: Draft }) {
   const exQtyAct = useEngine((s) => s.exQty)
@@ -755,13 +773,15 @@ function ProductPage({ p, d, xp, editing, nudge, need, hint }: { p: Product; d: 
           {opt.map((g) => (
             <Group key={g.id} g={g.id} d={d} need={false} hint="" />
           ))}
-          {activeSteps(p, d).map((g) =>
-            E().mods[g].ui === 'chips' ? (
-              <ChipStepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
-            ) : (
-              <StepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
-            ),
-          )}
+          {/* 2026-10-20 (Alex): upsell steps are drawn as the chip grid too, no pictures. To bring the picture tiles
+              back for upsell collections, replace the line below with the commented branch (StepSection stays in
+              the file for that):
+              activeSteps(p, d).map((g) =>
+                E().mods[g].ui === 'chips' ? <ChipStepSection key={g} … /> : <StepSection key={g} … />,
+              ) */}
+          {activeSteps(p, d).map((g) => (
+            <ChipStepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
+          ))}
           {vu ? <EnhSection xp={xp} d={d} /> : null}
           {vu && xp.menuUpgrade ? (
             <div className="r44-menu">
