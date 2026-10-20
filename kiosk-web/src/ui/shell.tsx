@@ -3,7 +3,8 @@ import { useShallow } from 'zustand/shallow'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { baseTotal, cartCount, cartTotal, rewardClaimed, rewardLeft } from '../engine/cart'
-import { alHidden, byId, catLabel, catOf, homeHasContent, obVarCard, pname, prodsInCards, venueMenu, venueName, visible } from '../engine/catalog'
+import { alHidden, byId, catLabel, catOf, homeHasContent, obVarCard, pname, popularProducts, prodsInCards, venueMenu, venueName, visible } from '../engine/catalog'
+import { usePopularityVersion } from '../engine/popularity'
 import { cmsAddable, cmsFinishBlock, obwMode, presentationFor } from '../engine/cms'
 import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
@@ -60,14 +61,15 @@ export function Rail() {
   )
 
   const sb = b.sidebar
-  // API menu: the venue's logo and name, no brand taglines (audit F10). The sidebar background photo stays the
-  // brand pack's until the venue's own image is decided (Alex, 2026-10-16).
+  // API menu: the venue's logo and name, no brand photo / taglines (audit F10). The brand pack's sidebar photo was
+  // shown on API menus from 2026-10-16 to 2026-10-20 while the venue image was undecided; since 2026-10-20 the rail
+  // is the plain dark surface again (Alex: "remove it and instead add the plain color as you did previously").
   const venue = venueMenu()
   const logo = venue ? E().venue!.logoImg : b.logoImg
   return (
     <nav id="railSide" className="flex-none relative z-20 flex flex-col text-cream overflow-hidden" style={{ width: b.layout.sidebarWidth, boxShadow: '16px 0 40px -18px rgba(20,17,12,.38)' }}>
-      <div className="absolute inset-0" style={{ background: sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
-        {sb.backgroundType === 'image' ? (
+      <div className="absolute inset-0" style={{ background: !venue && sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
+        {!venue && sb.backgroundType === 'image' ? (
           <img
             src={SIDEBAR_FALLBACK}
             alt=""
@@ -181,16 +183,34 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
   // Information-only products (API NoInteraction) promote a message, not a price.
   const chip = p.infoOnly ? '' : pr.menu ? `${tf('menuPriceA', { price: fmt(p.price + E().menuDeal.price) })} · ${tf('menuBaseA', { price: fmt(p.price) })}` : fmt(p.price)
   const open = () => openProduct(p, { menu: !!pr.menu, from: 'home' })
+  // API menus (2026-10-19, Alex): the venue's promo pictures carry their own text, so the card shows no title
+  // and no sub line — only the flag, the price and the button.
+  const noText = !!E().venue
+  // Information-only promotion (API NoInteraction, 2026-10-20, Alex): a plain banner — picture and flag, no button,
+  // not tappable. There is nothing to open: the product page could not add it either.
+  const banner = !!p.infoOnly
+  const flag = <span className={`badge ${pr.menu ? 'b-dea' : 'b-new'} self-start`}>{L(pr.flag)}</span>
+  if (big && banner)
+    return (
+      <div data-a="promoBanner" role="img" aria-label={`${L(pr.flag)} · ${pname(p)}`} className="relative w-full rounded-[30px] overflow-hidden" style={{ height: b.layout.promoHeight || b.hero.height || b.layout.heroHeight }}>
+        <FoodImg p={{ ...pr, _pos: `${b.hero.contentFocalPoint.x}% ${b.hero.contentFocalPoint.y}%`, _eager: true }} cls="absolute inset-0" em="150px" />
+        <div className="absolute inset-0 p-9 flex flex-col text-cream">{flag}</div>
+      </div>
+    )
   if (big)
     return (
       <button type="button" data-a="promo" className="press relative w-full rounded-[30px] overflow-hidden text-left" style={{ height: b.layout.promoHeight || b.hero.height || b.layout.heroHeight }} onClick={open}>
         <FoodImg p={{ ...pr, _pos: `${b.hero.contentFocalPoint.x}% ${b.hero.contentFocalPoint.y}%`, _eager: true }} cls="absolute inset-0" em="150px" />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(84deg, rgba(10,9,7,.60) 0%, rgba(10,9,7,.22) 46%, rgba(10,9,7,0) 66%)' }} />
         <div className="absolute inset-0 p-9 flex flex-col text-cream" style={{ maxWidth: `${b.hero.textSafeWidth}%` }}>
-          <span className={`badge ${pr.menu ? 'b-dea' : 'b-new'} self-start`}>{L(pr.flag)}</span>
+          {flag}
           <div className="flex-1" />
-          <div className="heroTitle hd text-[52px] leading-[53px] tracking-[.5px] clamp2">{L(pr.title)}</div>
-          <div className="text-[20px] leading-[28px] font-normal opacity-90 mt-2">{L(pr.sub)}</div>
+          {noText ? null : (
+            <>
+              <div className="heroTitle hd text-[52px] leading-[53px] tracking-[.5px] clamp2">{L(pr.title)}</div>
+              <div className="text-[20px] leading-[28px] font-normal opacity-90 mt-2">{L(pr.sub)}</div>
+            </>
+          )}
           {chip ? <div className="num text-[28px] leading-[34px] tracking-[-0.3px] font-extrabold mt-2">{chip}</div> : null}
           <span className="mt-6 self-start h-[76px] px-10 rounded-full bg-cream text-ink flex items-center gap-3">
             <span className="text-[22px] font-bold leading-[26px]">{t('promoView')}</span>
@@ -201,6 +221,15 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
         </div>
       </button>
     )
+  if (banner)
+    return (
+      <div data-a="promoBanner" role="img" aria-label={`${L(pr.flag)} · ${pname(p)}`} className="bg-card rounded-[26px] overflow-hidden shadow-soft">
+        <div className="relative">
+          <span className={`absolute top-4 left-4 z-10 badge badge-sm ${pr.menu ? 'b-dea' : 'b-new'}`}>{L(pr.flag)}</span>
+          <FoodImg p={{ ...pr, _eager: true }} cls="h-[210px] w-full" em="96px" />
+        </div>
+      </div>
+    )
   return (
     <button type="button" data-a="promo" className="press bg-card rounded-[26px] overflow-hidden text-left shadow-soft" onClick={open}>
       <div className="relative">
@@ -208,8 +237,12 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
         <FoodImg p={{ ...pr, _eager: true }} cls="h-[210px] w-full" em="96px" />
       </div>
       <div className="px-6 pt-4 pb-5">
-        <div className="hd text-[34px] leading-[37px] tracking-[.4px] clamp2">{L(pr.title)}</div>
-        <div className="text-[18px] leading-[25px] font-normal text-mute mt-1.5">{L(pr.sub)}</div>
+        {noText ? null : (
+          <>
+            <div className="hd text-[34px] leading-[37px] tracking-[.4px] clamp2">{L(pr.title)}</div>
+            <div className="text-[18px] leading-[25px] font-normal text-mute mt-1.5">{L(pr.sub)}</div>
+          </>
+        )}
         <div className="flex items-center justify-between mt-2.5">
           <span className="num text-[25px] leading-[30px] tracking-[-0.2px] font-extrabold">{chip || ' '}</span>
           <span className="w-[48px] h-[48px] rounded-full bg-jade text-white grid place-items-center">
@@ -245,10 +278,13 @@ export function HomeMain() {
   const ref = useScroller('home')
   useEngine((s) => s.allergenFilter) // promos / popular / new follow the allergen filter
   useEngine((s) => s.availVersion)
+  usePopularityVersion() // the per-device "Popular" tally changes after every accepted order
   const promos = b.promos.filter((pr) => !alHidden(byId(pr.pid)) && !(pr.menu && alHidden(byId(E().menuDeal.side))))
   const [P0, ...rest] = promos
   const news = visible(E().products.filter((p) => p.badges.includes('new'))).slice(0, 3)
-  const pops = visible(E().products.filter((p) => p.badges.includes('pop'))).slice(0, 3)
+  // Popular (2026-10-20, Alex): the five products this device sold most (then the catalog's `pop` badges), every
+  // card wearing the POPULAR badge; laid out as one row of three and one row of two wider cards.
+  const pops = popularProducts(5).map((p) => (p.badges.includes('pop') ? p : { ...p, badges: ['pop', ...p.badges] }))
   const grid = { gridTemplateColumns: `repeat(${b.layout.gridColumns},1fr)`, gap: b.layout.gridGap }
   return (
     <>
@@ -260,10 +296,17 @@ export function HomeMain() {
           <>
             <H2 txt={t('cat_popular')} seeAllCat="popular" />
             <div className="grid" style={grid}>
-              {pops.map((p) => (
+              {pops.slice(0, 3).map((p) => (
                 <ProductCard key={p.id} p={p} />
               ))}
             </div>
+            {pops.length > 3 ? (
+              <div className="grid grid-cols-2 mt-6" style={{ gap: b.layout.gridGap }}>
+                {pops.slice(3, 5).map((p) => (
+                  <ProductCard key={p.id} p={p} />
+                ))}
+              </div>
+            ) : null}
           </>
         ) : null}
         <div className="grid grid-cols-2 gap-5 mt-10">

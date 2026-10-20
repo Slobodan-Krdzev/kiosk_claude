@@ -285,10 +285,19 @@ export const stepOptionPids = (d: Draft): [string, string, string][] =>
     return pid ? [[g, id, pid] as [string, string, string]] : []
   })
 
-/** Every product a configured line depends on: main product, menu parts, cross-sells and upsell options (audit F06). */
+/** Picked single-choice options that are backed by a product (API modifiers): [group, optionId, productId]. */
+export const choiceOptionPids = (d: Draft): [string, string, string][] =>
+  Object.entries(d.choices || {}).flatMap(([g, id]) => {
+    if (!id) return []
+    const pid = E().mods[g]?.items.find((i) => i.id === id)?.pid
+    return pid ? [[g, id, pid] as [string, string, string]] : []
+  })
+
+/** Every product a configured line depends on: main product, menu parts, cross-sells, upsell and modifier options (audit F06). */
 export const includedPids = (d: Draft): string[] => [
   d.pid,
   ...stepOptionPids(d).map(([, , pid]) => pid),
+  ...choiceOptionPids(d).map(([, , pid]) => pid),
   ...(d.menu ? [E().menuDeal.side, d.drink].filter((x): x is string => !!x) : []),
   ...((d.crossSells || []).map((x) => cmsById(x.id)?.pid).filter((x): x is string => !!x) as string[]),
 ]
@@ -362,7 +371,8 @@ export function unavailParts(d: Draft): UnavailPart[] {
     const pid = v?.pid
     if (pid && na.has(pid)) out.push({ pid, role: 'cross-sell', id: x.id, name: pname(mustId(pid)), fix: 'xs' })
   })
-  stepOptionPids(d).forEach(([g, id, pid]) => {
+  // upsell step options and single-choice modifier options alike
+  ;[...stepOptionPids(d), ...choiceOptionPids(d)].forEach(([g, id, pid]) => {
     if (na.has(pid)) out.push({ pid, role: 'option', id, group: g, name: L(modItem(g, id).name), fix: 'option' })
   })
   return out

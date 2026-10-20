@@ -88,3 +88,16 @@ Findings:
 
 Final run, kiosk screen: "Bedankt! Eet smakelijk · Pieper 55 · Jouw bestelnummer C3497F · ✓ Betaling geslaagd ·
 ✓ Bestelling geaccepteerd · ⚠ Bon kon niet worden geprint — toon je nummer aan de balie".
+
+## 2026-10-20, 15:20–15:35 — every order answers HTTP 500
+
+Sent from the kiosk page (same origin and headers as the adapter), `?skip=false`, `tableNumber: "9"`:
+
+| Body | Answer | Time |
+| --- | --- | --- |
+| Item 443538 (Sourcy 0.75 l, €5) + `UpsaleCollection` [{ProductId 444511 "2 Glazen", 0, ×1}] | `500 {"Message":"An error has occurred."}` | 0.4 s |
+| Item 443538 alone, `UpsaleCollection: []` | 500, same body | 0.2 s |
+| Item 454992 (Herten carpaccio, €0) alone — the body that answered 409 "Printing problem" the same morning (11:38, order `KBX30YK-mvf2aqt2-dbbe5ed3`) | 500, same body | 0.2 s |
+| Item 454992 + `UpsaleCollection` [{444511 ×1}] | 500, same body | 0.1 s |
+
+`getfullresources` (200, 245 products, same main categories) and `checkProductAvailable?idProduct=454992` (200, `true`) were fine at the same time. Conclusion: the order endpoint's state changed on the backend side during the day; the modifier entry is not the cause. Open with the backend owner (B10). No resend was attempted.

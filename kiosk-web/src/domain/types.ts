@@ -226,7 +226,8 @@ export interface SnapshotLine {
   productName: string // English, for KDS/receipt
   servingId: string
   servingName: string
-  choices: { groupId: string; optionIds: string[] }[]
+  /** Single-choice groups. API modifier options carry the backend product that is ordered (sent with the order). */
+  choices: { groupId: string; optionIds: string[]; productId?: string; name?: string; priceCents?: number }[]
   /** Picked options; `productId`/`name`/`priceCents` are the API option's own values (upsale steps) for the order payload. */
   extras: { extraId: string; qty: number; productId?: string; name?: string; priceCents?: number }[]
   qty: number

@@ -4,7 +4,7 @@
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { describe, expect, it } from 'vitest'
-import { addToCart, cartTotal, lineSummary, validateCart } from '../../engine/cart'
+import { addToCart, validateCart } from '../../engine/cart'
 import { obNeedsDetail, visible } from '../../engine/catalog'
 import { finalizeEngineData } from '../../engine/data'
 import { activeSteps, blockReason, draftValid, exQty, firstIncomplete, grpCount, grpSet, newDraft, stepLocked, unitPrice, validateDraft } from '../../engine/draft'
@@ -14,6 +14,8 @@ import { currentSlides, slideOn } from '../../engine/slides'
 import { catalogUrl, proxiedImg, resolveCatalogSource } from './catalogSource'
 import type { TmkRoot } from './tmk'
 import { htmlToText, mapTmkToEngine } from './tmkMapper'
+import { buildOrderPayload } from './tmkOrder'
+import { buildSnapshot } from '../../app/checkout'
 
 const SAMPLES = resolve(process.cwd(), '../failover-handover/docs/reference/api-samples')
 const sample = (f: string): TmkRoot => JSON.parse(readFileSync(resolve(SAMPLES, f), 'utf8'))
@@ -51,6 +53,14 @@ function use(d: EngineData) {
   setUnavailable([])
   setAllergenFilter(new Set())
 }
+
+/** The same response without any ModifierWizards: for tests that are about the upsell steps alone. */
+function noMods(raw: TmkRoot): TmkRoot {
+  const c = structuredClone(raw)
+  for (const t of c.TMKData) for (const m of t.MainCategories) for (const sc of m.SubCategories) for (const p of sc.Products || []) delete p.ModifierWizards
+  return c
+}
+const NM = () => noMods(TEST)
 
 describe('menu structure (decision 1: SubCategories of MainCategories[0])', () => {
   it('sidebar categories are the subcategories of the first main category, in display order', () => {
@@ -131,44 +141,89 @@ describe('product details', () => {
   })
 })
 
-describe('modifiers are not used (as in the old kiosk, 2026-10-15)', () => {
-  it('ModifierWizards produce no groups; the product page only has its upsell steps', () => {
-    const d = map(TEST)
+describe('modifiers (D3 revived 2026-10-20): max 1 → choice group, max > 1 → step group, every option with its ProductId', () => {
+  it('menu 2408: a mandatory 1/1 wizard is a required choice group; an optional 0/4 wizard is a step group', () => {
+    const d = map(withMainFirst(FULL, 54949)) // FRISDRANKEN
     use(d)
-    expect(Object.keys(d.mods).some((k) => k.startsWith('mw'))).toBe(false)
-    const p = prod(d, 469180) // has ModifierWizards "Something" + "Test" and upsell collection 9
-    expect(p.choice).toBeUndefined()
-    expect(p.steps).toEqual(['up9_8', 'up9_9', 'up9_10'])
-    const plain = prod(d, 465452) // modifiers only, no upsell: added straight from the card
-    expect(plain.choice).toBeUndefined()
-    expect(obNeedsDetail(plain)).toBe(false)
+    const wine = prod(d, 443538) // "Aantal glazen", mandatory, 1/1, 4 options
+    expect(wine.choice).toHaveLength(1)
+    expect(wine.steps).toBeUndefined()
+    const g = d.mods[wine.choice![0]]
+    expect(g.type).toBe('choice')
+    expect(g.req).toBe(true)
+    expect(g.def).toBeUndefined()
+    expect(g.items.map((i) => i.pid)).toEqual(['444511', '444512', '444513', '444514'])
+    expect(g.items.every((i) => Number.isInteger(Number(i.pid)) && !i.sub)).toBe(true) // Description "." is no sub line
+    expect(obNeedsDetail(wine)).toBe(true)
+    const d2 = map(withMainFirst(FULL, 54995)) // KINDERMENU
+    const dessert = prod(d2, 443961) // "Extra", optional, 0/4
+    expect(dessert.choice).toBeUndefined()
+    const e = d2.mods[dessert.steps![0]]
+    expect([e.type, e.req, e.min, e.max]).toEqual(['step', false, 0, 4])
+    expect(e.ui).toBe('chips') // modifier steps: chip grid, no pictures; upsell steps keep their tiles
+    expect(map(TEST).mods['up9_8'].ui).toBeUndefined()
   })
-  it('a required upsell step blocks the order; the configured line reaches the cart with its picks', () => {
-    const d = map(TEST)
+  it('a required choice blocks the order until picked; the pick reaches the cart line and the order POST as UpsaleCollection', () => {
+    const d = map(withMainFirst(FULL, 54949))
     use(d)
-    const p = prod(d, 469180)
-    const dr = newDraft(p)
-    expect(firstIncomplete(dr)).toBe('up9_8')
+    const wine = prod(d, 443538)
+    const g = wine.choice![0]
+    const dr = newDraft(wine)
+    expect(dr.choices[g]).toBeNull()
+    expect(firstIncomplete(dr)).toBe(g)
     expect(blockReason(dr)).not.toBe('')
-    const esp = d.mods['up9_8'].items[0]
-    grpSet(dr, 'up9_8', esp.id, 2)
+    const opt = d.mods[g].items[2] // "4 Glazen"
+    dr.choices[g] = opt.id
     expect(draftValid(dr)).toBe(true)
     const { cart } = addToCart([], dr)
-    expect(lineSummary(cart, cart[0])).toContain('2× ' + (typeof esp.name === 'string' ? esp.name : esp.name.nl))
-    expect(cartTotal(cart)).toBe(p.price + esp.price * 2)
+    const snap = buildSnapshot(cart, 'eat-in', 'nl', { type: 'table', value: '4' }, null)
+    expect(snap.lines[0].choices).toEqual([{ groupId: g, optionIds: [opt.id], productId: opt.pid, name: expect.any(String), priceCents: 0 }])
+    expect(snap.lines[0].extras).toEqual([])
+    const body = buildOrderPayload({ ...snap, orderId: 'K1-x-1', startedAt: '2026-10-20T10:00:00.000Z', paidAt: null }, '9')
+    expect(body.Order.Items[0].Item.Id).toBe(443538)
+    expect(body.Order.Items[0].UpsaleCollection).toEqual([{ UpsaleStepOptionModel: { ProductId: Number(opt.pid), Name: expect.any(String), Price: 0 }, Quantity: 1 }])
+  })
+  it('menu 2490: the 1/1 wizard is a choice, the 0/5 wizard a step before the upsell steps, as one chain', () => {
+    const d = map(TEST)
+    use(d)
+    const p = prod(d, 469180) // wizards "Test" (0/5) + "Something" (1/1) and upsell collection 9
+    expect(p.choice).toHaveLength(1)
+    expect(d.mods[p.choice![0]].type).toBe('choice')
+    const md = p.steps!.filter((k) => k.startsWith('md'))
+    expect(md).toHaveLength(1)
+    expect(p.steps!.slice(md.length)).toEqual(['up9_8', 'up9_9', 'up9_10'])
+    expect(d.mods[md[0]].next).toBe('up9_8')
+    const dr = newDraft(p)
+    expect(activeSteps(p, dr)).toEqual(p.steps)
+    const plain = prod(d, 465452) // "Test" mandatory 1/5, no upsell: one step group
+    expect(plain.choice).toBeUndefined()
+    expect(plain.steps!.every((k) => k.startsWith('md'))).toBe(true)
+    expect(obNeedsDetail(plain)).toBe(true)
+  })
+  it('an option without a ProductId is never offered (the order POST needs the id)', () => {
+    const raw = withMainFirst(FULL, 54949)
+    const p = raw.TMKData[0].MainCategories[0].SubCategories.flatMap((s) => s.Products || []).find((x) => x.ProductId === 443538)!
+    p.ModifierWizards![0].ModifierItemElements[0].ProductId = null
+    const d = map(raw)
+    const g = d.mods[prod(d, 443538).choice![0]]
+    expect(g.items.map((i) => i.pid)).toEqual(['444512', '444513', '444514'])
+    p.ModifierWizards![0].ModifierItemElements.forEach((e) => (e.ProductId = null))
+    const d2 = map(raw)
+    expect(prod(d2, 443538).choice ?? []).toEqual([])
+    expect(prod(d2, 443538).steps ?? []).toEqual([])
   })
 })
 
 describe('upsell on the product page (decision 4)', () => {
   it('collection 9: three chained steps are all on the page by NextStepId', () => {
-    const d = map(TEST)
+    const d = map(NM())
     use(d)
     const p = prod(d, 465447)
     expect(p.steps).toEqual(['up9_8', 'up9_9', 'up9_10'])
     expect(activeSteps(p, newDraft(p))).toEqual(['up9_8', 'up9_9', 'up9_10'])
   })
   it('collection 12: OverrideNextStepId equal to its own step is "no override" (as sent by the API)', () => {
-    const d = map(withMainFirst(TEST, 57071))
+    const d = map(withMainFirst(NM(), 57071))
     use(d)
     const p = prod(d, 465550)
     const dr = newDraft(p)
@@ -179,7 +234,7 @@ describe('upsell on the product page (decision 4)', () => {
     expect(grpCount(dr, 'up12_11')).toBe(1) // one different option
   })
   it('step limits count DIFFERENT options; each option is capped by its own MaxSelection (old kiosk rule)', () => {
-    const d = map(TEST)
+    const d = map(NM())
     use(d)
     const p = prod(d, 465447) // collection 9, step 8: 6 coffees, step max 6, each coffee max 2
     const g = 'up9_8'
@@ -195,7 +250,7 @@ describe('upsell on the product page (decision 4)', () => {
     expect(unitPrice(dr)).toBe(p.price + its.reduce((a, it) => a + it.price * 2, 0))
   })
   it('a full step refuses a new option but still lets a picked option go up; min counts different options', () => {
-    const c = structuredClone(TEST)
+    const c = NM()
     for (const t of c.TMKData) for (const u of t.UpsaleColletions || []) if (u.Id === 9) Object.assign(u.UpsaleSteps.find((s) => s.Id === 8)!, { MinSelection: 2, MaxSelection: 2 })
     const d = map(c)
     use(d)
@@ -212,7 +267,7 @@ describe('upsell on the product page (decision 4)', () => {
     expect([exQty(dr, g, a.id), exQty(dr, g, b.id), exQty(dr, g, x.id)]).toEqual([2, 2, 0])
   })
   it('later steps are locked until every earlier required step is finished; picks there are refused', () => {
-    const d = map(withMainFirst(TEST, 57071))
+    const d = map(withMainFirst(NM(), 57071))
     use(d)
     const p = prod(d, 465550) // collection 12: Flavors (min 1) → Side dish (min 1) → Drinks (optional)
     const dr = newDraft(p)
@@ -230,7 +285,7 @@ describe('upsell on the product page (decision 4)', () => {
     expect(firstIncomplete(dr)).toBe('up12_11')
   })
   it('a real override jumps to its step', () => {
-    const c = withMainFirst(TEST, 57071)
+    const c = withMainFirst(NM(), 57071)
     for (const t of c.TMKData) for (const u of t.UpsaleColletions || []) if (u.Id === 12) u.UpsaleSteps.find((s) => s.Id === 11)!.Options[0].OverrideNextStepId = 13
     const d = map(c)
     use(d)
@@ -240,7 +295,7 @@ describe('upsell on the product page (decision 4)', () => {
     expect(activeSteps(p, dr)).toEqual(['up12_11', 'up12_13'])
   })
   it('an option with Finish ends the chain; picks in steps that left the page are dropped', () => {
-    const c = structuredClone(TEST)
+    const c = NM()
     for (const t of c.TMKData) for (const u of t.UpsaleColletions || []) if (u.Id === 9) u.UpsaleSteps.find((s) => s.Id === 8)!.Options[0].Finish = true
     const d = map(c)
     use(d)

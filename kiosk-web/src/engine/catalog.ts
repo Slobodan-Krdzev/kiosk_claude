@@ -1,3 +1,4 @@
+import { POPULAR_LIMIT, popularPids } from './popularity'
 import { E, L, checkProducts, getAllergenFilter, t } from './state'
 import { MAX_LINE_QTY, type Allergens, type Cat, type Draft, type ModItem, type Product, type Serving } from './types'
 
@@ -124,12 +125,33 @@ export function homeHasContent(): boolean {
   const d = E()
   const promos = (d.brand.promos || []).filter((pr) => byId(pr.pid) && !alHidden(byId(pr.pid)))
   if (promos.length) return true
-  return visible(d.products.filter((p) => p.badges.includes('pop') || p.badges.includes('new'))).length > 0
+  return popularProducts().length > 0 || visible(d.products.filter((p) => p.badges.includes('new'))).length > 0
+}
+
+/**
+ * "Popular" (2026-10-20): the products this device sold most (per-device tally, `engine/popularity.ts`), most sold
+ * first, then the catalog's own `pop` badges to fill up to `limit`. Only products visible right now.
+ */
+export function popularProducts(limit = POPULAR_LIMIT): Product[] {
+  const d = E()
+  const sold = popularPids(limit, (pid) => {
+    const p = byId(pid)
+    return !!p && visible([p]).length > 0
+  })
+  const out: Product[] = sold.map((pid) => byId(pid)!)
+  if (out.length < limit) {
+    const seen = new Set(sold)
+    for (const p of visible(d.products.filter((p) => p.badges.includes('pop')))) {
+      if (out.length >= limit) break
+      if (!seen.has(p.id)) out.push(p)
+    }
+  }
+  return out
 }
 
 export function prodsIn(cat: string): Product[] {
   const d = E()
-  if (cat === 'popular') return visible(d.products.filter((p) => p.badges.includes('pop')))
+  if (cat === 'popular') return popularProducts(Number.MAX_SAFE_INTEGER)
   if (cat === 'new') return visible(d.products.filter((p) => p.badges.includes('new')))
   return visible(d.products.filter((p) => p.cat === cat))
 }

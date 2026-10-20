@@ -7,7 +7,10 @@
 //   finish strips, reward) comes from the venue design file (venueDesign.ts), keyed by API ids (D2, closed
 //   2026-10-16). Promo cards come from the API's IsPromotion window. Menu deal, product enhancements and premium
 //   drinks have no API counterpart and are off; the brand pack's own entries are never shown on an API menu.
-// - Modifiers (Products[].ModifierWizards) are not used, as in the old kiosk (decision 2026-10-15).
+// - Modifiers (Products[].ModifierWizards) are option groups on the product page again (D3 revived 2026-10-20):
+//   max 1 → 'choice' group (the engine's chip grid), max > 1 → 'step' group chained before the upsell steps;
+//   every option carries its backend ProductId, options without one are never offered, so the order POST
+//   always has a numeric id to send (choices and extras both travel as UpsaleCollection entries).
 // - Upsell collections are shown on the product page, one section per step.
 // - Products priced 0 show their 0 price.
 // - http image URLs go through the image proxy (imgUrl).
@@ -117,14 +120,21 @@ interface Translations {
   prod: Map<number, { name: string; desc: string }>
   step: Map<string, string>
   opt: Map<string, string>
+  /** Modifier wizard titles (`md<pid>_<mid>`) and option names (`…/<ProductId>`). */
+  mod: Map<string, string>
 }
 
 function indexLanguage(t: TmkLangData): Translations {
-  const tr: Translations = { sub: new Map(), prod: new Map(), step: new Map(), opt: new Map() }
+  const tr: Translations = { sub: new Map(), prod: new Map(), step: new Map(), opt: new Map(), mod: new Map() }
   for (const s of t.MainCategories[0]?.SubCategories || []) {
     tr.sub.set(s.SubCategoryId, s.Name)
     for (const p of s.Products || []) {
       tr.prod.set(p.ProductId, { name: p.Name, desc: descOf(p) })
+      for (const w of p.ModifierWizards || []) {
+        const k = modKey(p.ProductId, w.ModifierId)
+        tr.mod.set(k, w.Title)
+        for (const e of w.ModifierItemElements || []) if (e.ProductId != null) tr.mod.set(k + '/' + e.ProductId, e.Name)
+      }
     }
   }
   for (const c of t.UpsaleColletions || []) {
@@ -137,6 +147,8 @@ function indexLanguage(t: TmkLangData): Translations {
 }
 
 const stepKey = (cid: number, sid: number) => `up${cid}_${sid}`
+/** Group key of a product's modifier wizard (per product: the same wizard id may serve several products). */
+const modKey = (pid: number, mid: number) => `md${pid}_${mid}`
 
 function descOf(p: TmkProduct): string {
   const it = (p.ProductDetails?.MenuItems || []).find((m) => m.Name === 'Description' && m.Active !== false)
@@ -254,6 +266,55 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
     return keys
   }
 
+  /**
+   * ModifierWizards → option groups (D3 revived 2026-10-20, layout = the engine's own product page):
+   * max 1 → 'choice' group (numbered header, "Verplicht" when mandatory, chip grid, price difference, sub line);
+   * max > 1 → 'step' group (min/max, chained before the upsell steps). An option is offered only with an
+   * integer ProductId (the order POST sends that id); a wizard without usable options is dropped.
+   */
+  const modifierGroups = (p: TmkProduct): { choice: string[]; steps: string[] } => {
+    const choice: string[] = []
+    const steps: string[] = []
+    const order = <T extends { DisplayOrder?: number }>(a: T, b: T) => (a.DisplayOrder ?? 0) - (b.DisplayOrder ?? 0)
+    for (const w of [...(p.ModifierWizards || [])].sort(order)) {
+      const k = modKey(p.ProductId, w.ModifierId)
+      const items: ModItem[] = []
+      const seen = new Set<number>()
+      let def: string | undefined
+      for (const e of [...(w.ModifierItemElements || [])].sort(order)) {
+        if (!Number.isInteger(e.ProductId) || seen.has(e.ProductId as number)) continue
+        seen.add(e.ProductId as number)
+        const sub = (e.Description || '').trim()
+        const id = String(e.ProductId)
+        if (e.DefaultSelected && !def) def = id
+        items.push({
+          id,
+          name: tr((x) => x.mod.get(k + '/' + e.ProductId), (e.Name || '').trim()),
+          price: cents(e.Price || 0),
+          pid: id,
+          maxQty: 1,
+          ...(sub && sub !== '.' ? { sub } : {}),
+          ...(isPicture(e.ProductPictureUrl) ? { img: img(e.ProductPictureUrl as string) } : {}),
+        })
+      }
+      if (!items.length) continue
+      const label = tr((x) => x.mod.get(k), (w.Title || '').trim())
+      const min0 = Math.max(0, w.SelectionMin | 0)
+      const min = Math.min(items.length, w.IsMandatory ? Math.max(1, min0) : min0)
+      const maxRaw = w.SelectionMax | 0
+      const max = Math.min(items.length, Math.max(min, maxRaw > 0 ? maxRaw : w.ListType === 1 ? 1 : items.length))
+      if (max <= 1) {
+        mods[k] = { label, type: 'choice', req: !!w.IsMandatory, items, ...(def ? { def } : {}) }
+        choice.push(k)
+      } else {
+        mods[k] = { label, type: 'step', req: !!w.IsMandatory, items, min, max, next: null, ui: 'chips' }
+        if (steps.length) mods[steps[steps.length - 1]].next = k
+        steps.push(k)
+      }
+    }
+    return { choice, steps }
+  }
+
   for (const s of subs) {
     const sid = String(s.SubCategoryId)
     const cid = 's' + sid
@@ -272,7 +333,10 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
       }
       for (const b of design.badges[pid] || []) if (badgeKeys.has(b)) badges.add(b)
 
-      const steps = p.HasUpsaleCollection && p.UpsaleCollectionId != null ? collectionSteps(p.UpsaleCollectionId) : []
+      const mg = modifierGroups(p)
+      const upSteps = p.HasUpsaleCollection && p.UpsaleCollectionId != null ? collectionSteps(p.UpsaleCollectionId) : []
+      if (mg.steps.length && upSteps.length) mods[mg.steps[mg.steps.length - 1]].next = upSteps[0]
+      const steps = [...mg.steps, ...upSteps]
       const desc = descOf(p)
       const names = tr((x) => x.prod.get(p.ProductId)?.name.trim(), p.Name.trim())
       products.push({
@@ -286,6 +350,7 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
         em: '🍽',
         allergens,
         desc: tr((x) => x.prod.get(p.ProductId)?.desc, desc),
+        ...(mg.choice.length ? { choice: mg.choice } : {}),
         ...(steps.length ? { steps } : {}),
         ...(p.IdOtherPos ? { plu: p.IdOtherPos } : {}),
         ...(isPicture(p.SmallPictureUrl) ? { apiImg: p.SmallPictureUrl! } : {}),

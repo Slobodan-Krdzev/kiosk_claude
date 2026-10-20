@@ -250,6 +250,8 @@ describe('F06 — selected upsell options take part in stock validation', () => 
     const item = d.mods[g].items[0]
     expect(item.pid).toBeTruthy()
     const draft = newDraft(p)
+    // 469180 also carries a mandatory modifier ("Something", 1/1 → choice group) since D3 was revived.
+    for (const k of p.choice || []) draft.choices[k] = d.mods[k].items[0].id
     grpSet(draft, g, item.id, 1)
     expect(validateDraft(draft)).toHaveLength(0)
     setUnavailable([item.pid!])

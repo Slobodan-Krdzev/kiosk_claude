@@ -97,6 +97,8 @@ export interface ModGroup {
   max?: number
   /** step: the step that follows (null = last). */
   next?: string | null
+  /** step: 'chips' renders the options as the choice-group chip grid (no pictures) — API modifier wizards. */
+  ui?: 'chips'
 }
 
 export interface Cat {

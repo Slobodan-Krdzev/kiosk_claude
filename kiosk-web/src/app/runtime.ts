@@ -1,6 +1,7 @@
 // Process-wide singletons: adapters, payment controller, structured log.
 // Created once in the boot sequence; React reads them through hooks.
 
+import { recordAcceptedOrder } from '../engine/popularity'
 import { resolveAdapters, type ResolvedAdapters } from '../adapters'
 import { getDeviceId, newOrderId } from '../domain/ids'
 import type { GuestitConfig } from '../domain/types'
@@ -47,6 +48,8 @@ export function createRuntime(resolved: ResolvedAdapters, config: GuestitConfig)
     onAccepted: ({ orderNo, snapshot, orderId }) => {
       // The cart is emptied only now — after the POS accepted the order.
       useEngine.getState().setCart([])
+      // Per-device "Popular" tally (simulated on the frontend, 2026-10-20).
+      recordAcceptedOrder(snapshot)
       resolved.adapters.analytics.send([{ type: 'order_accepted', at: new Date().toISOString(), data: { orderNo, totalCents: snapshot.totals.totalCents, count: snapshot.totals.count } }])
       if (snapshot.loyalty) {
         void resolved.adapters.loyalty.commit({ key: `LTY-${orderId}`, memberId: snapshot.loyalty.memberId, orderId, totalCents: snapshot.totals.totalCents })

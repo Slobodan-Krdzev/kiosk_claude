@@ -82,6 +82,8 @@ export interface TmkProduct {
   IsVegetarian?: boolean
   IsPregnancyNotSuitable?: boolean
   HasModifiers?: boolean
+  /** Modifier wizards of the product (one group each). Used again since 2026-10-20 (decision D3 revived). */
+  ModifierWizards?: TmkModifierWizard[] | null
   HasUpsaleCollection?: boolean
   UpsaleCollectionId?: number | null
   ProductDetails?: {
@@ -121,4 +123,31 @@ export interface TmkUpsaleStep {
     Finish: boolean
     OverrideNextStepId?: number | null
   }[]
+}
+
+/** A modifier group of a product. ListType 0|1 (meaning undocumented; 1 seen with 1/1, 0 with 0/n). */
+export interface TmkModifierWizard {
+  MainProductId: number
+  ModifierId: number
+  Title: string
+  SubTitle?: string | null
+  ListType?: number
+  IsMandatory: boolean
+  SelectionMin: number
+  SelectionMax: number
+  DisplayOrder: number
+  ModifierItemElements: TmkModifierItem[]
+}
+
+/** One option of a modifier group. `ProductId` is the backend product that is ordered when it is picked. */
+export interface TmkModifierItem {
+  ProductId: number | null
+  Name: string
+  Description?: string | null
+  ProductPictureUrl?: string | null
+  Price: number
+  DisplayOrder: number
+  IdOtherPos?: string | null
+  DefaultSelected?: boolean
+  ModifiersWizardId?: number
 }

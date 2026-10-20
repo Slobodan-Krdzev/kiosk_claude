@@ -192,13 +192,18 @@ describe('checkout preflight on the live API', () => {
     const d = newDraft(p)
     const g = 'up9_8'
     const item = E().mods[g].items[0]
+    // the product's mandatory modifier ("Something", 1/1) is a required choice group; its option is a product too
+    const modPids = (p.choice || []).map((k) => {
+      d.choices[k] = E().mods[k].items[0].id
+      return E().mods[k].items[0].pid!
+    })
     grpSet(d, g, item.id, 1)
     const cart = addToCart([], d).cart
     useEngine.getState().setCart(cart)
-    expect(cartPids(cart).sort()).toEqual([p.id, item.pid!].sort())
+    expect(cartPids(cart).sort()).toEqual([...new Set([p.id, item.pid!, ...modPids])].sort())
     expect(await catalogRefresh()).toBe(true)
     expect(check).toHaveBeenCalledWith(cartPids(cart))
-    expect(check.mock.calls[0][0]).toHaveLength(2) // the old scope was one request per menu product
+    expect(check.mock.calls[0][0]).toHaveLength(new Set([p.id, item.pid!, ...modPids]).size) // the old scope was one request per menu product
   })
 
   it('an UNKNOWN availability refuses to charge: "could not verify" dialog, no payment attempt', async () => {

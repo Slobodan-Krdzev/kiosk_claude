@@ -72,6 +72,10 @@ describe('request body (kiosk-payment-flow.md "Request body")', () => {
     setLang('nl')
     const p = E().products.find((x) => x.id === '469180')! // "7up (copy)", HasUpsaleCollection
     const d = newDraft(p)
+    // Since D3 was revived the product also has a mandatory modifier ("Something", 1/1 → required choice group).
+    const md = p.choice![0]
+    const modOpt = E().mods[md].items[0]
+    d.choices[md] = modOpt.id
     const g = 'up9_8'
     const opt = E().mods[g].items[0]
     grpSet(d, g, opt.id, 2)
@@ -81,10 +85,10 @@ describe('request body (kiosk-payment-flow.md "Request body")', () => {
     const s = buildSnapshot(cart, 'eat-in', 'nl', { type: 'table', value: '12' }, null)
     const line = s.lines[0]
     expect(line.basePriceCents).toBe(p.price)
-    expect(line.unitPriceCents).toBe(p.price + opt.price * 2)
+    expect(line.unitPriceCents).toBe(p.price + modOpt.price + opt.price * 2)
     expect(line.image).toMatch(/^http/) // the API's own URL, not the proxy
     expect(line.image).not.toContain('img-proxy')
-    expect(line.extras[0]).toMatchObject({ productId: opt.pid, priceCents: opt.price, qty: 2 })
+    expect(line.extras.find((e) => e.productId === opt.pid)).toMatchObject({ productId: opt.pid, priceCents: opt.price, qty: 2 })
 
     const body = buildOrderPayload({ ...s, orderId: 'K1-x-1', startedAt: '', paidAt: null }, tableNumberFor({ ...s, orderId: 'K1-x-1', startedAt: '', paidAt: null }, '9'))
     expect(body).toEqual({
@@ -95,7 +99,10 @@ describe('request body (kiosk-payment-flow.md "Request body")', () => {
           {
             Item: { Id: 469180, PluCode: '', Image: line.image, Name: p.name, Price: p.price / 100 },
             Variants: [],
-            UpsaleCollection: [{ UpsaleStepOptionModel: { ProductId: Number(opt.pid), Name: typeof opt.name === 'string' ? opt.name : opt.name.en, Price: opt.price / 100 }, Quantity: 2 }],
+            UpsaleCollection: [
+              { UpsaleStepOptionModel: { ProductId: Number(modOpt.pid), Name: typeof modOpt.name === 'string' ? modOpt.name : modOpt.name.en, Price: modOpt.price / 100 }, Quantity: 1 },
+              { UpsaleStepOptionModel: { ProductId: Number(opt.pid), Name: typeof opt.name === 'string' ? opt.name : opt.name.en, Price: opt.price / 100 }, Quantity: 2 },
+            ],
             Quantity: 1,
             ItemGuid: '',
             CoursePosition: 0,
