@@ -8,10 +8,10 @@ selected with `public/mock/config.json → catalogSource` or `?source=api|test|s
 On an API menu, **product availability is checked live** (`checkProductAvailable`, one request per product: on the
 first add or product-page open, and again for the whole cart before any charge; `src/adapters/http/tmkLive.ts`,
 `src/app/availability.ts`). The API has no price endpoint, so prices are never re-checked client-side
-(`../failover-handover/status/BACKEND-DEPENDENCIES.md`). Design data the API does not carry (popular/new badges,
-sidebar icons, subtitles, cross-sells, finish strips, reward) comes from the **venue design file**
-`public/venue/<menuId>.json` (`src/adapters/http/venueDesign.ts`, format in
-`../failover-handover/docs/reference/venue-design-layer.md`); promo cards come from the API's `IsPromotion` window.
+(`../failover-handover/status/BACKEND-DEPENDENCIES.md`). Design the API does not carry is coded in the kiosk, never
+read from a file: promo cards come from the API's `IsPromotion` window, sidebar icons from the subcategory name
+(`src/adapters/http/tmkRules.ts`), "Popular" from the device's order tally; the rest of that list is off until
+the backend carries it (B6).
 On an API menu **order + payment go through the API's one blocking POST** `CreateKioskOrderWithPinPayment`
 (`src/adapters/http/tmkOrder.ts`): it backs the payment, POS and printer adapters of the payment controller
 (`../failover-handover/docs/reference/order-payment-integration.md`). Test mode and the static menu keep the

@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { DEFAULT_MENU_TIMEOUT_MS, designFor, designUrl, fetchDesign, fetchMenu, mapMenu, resolveCatalogSource } from '../adapters/http/catalogSource'
-import type { VenueDesign } from '../adapters/http/venueDesign'
+import { DEFAULT_MENU_TIMEOUT_MS, fetchMenu, mapMenu, resolveCatalogSource } from '../adapters/http/catalogSource'
 import { askContinueWithoutReceipt } from './orderPrompts'
 import { withLiveAdapters } from '../adapters/http/tmkLive'
 import { withTimeout } from '../adapters/withTimeout'
@@ -29,7 +28,7 @@ import { clearSession, restoreSession, startSessionPersistence } from './session
 
 let bootStarted = false
 let brandName = 'Guestit'
-let menuRetry: { source: CatalogSourceConfig; pack: EngineData; timeoutMs: number; design?: VenueDesign } | null = null
+let menuRetry: { source: CatalogSourceConfig; pack: EngineData; timeoutMs: number } | null = null
 /** When the API menu in use was loaded (ms); stamped into snapshots as the catalog version (no price endpoint exists). */
 let menuLoadedAt = 0
 /** Live checks against the kiosk API are in use (API / test menu on the static simulation). */
@@ -63,7 +62,7 @@ async function retryMenu(): Promise<void> {
   const s = useEngine.getState()
   if (!menuRetry || !s.config) return
   try {
-    const engine = mapMenu(await fetchMenu(menuRetry.source, menuRetry.timeoutMs), menuRetry.pack, import.meta.env.BASE_URL, undefined, menuRetry.design)
+    const engine = mapMenu(await fetchMenu(menuRetry.source, menuRetry.timeoutMs), menuRetry.pack, import.meta.env.BASE_URL)
     const lang = applyMenu(engine, s.config)
     useEngine.getState().setMenuError(null)
     useEngine.getState().setReady(s.config, lang)
@@ -110,8 +109,6 @@ async function boot(): Promise<void> {
     // The remote menu request starts now, in parallel with the brand pack; it is awaited only after restore().
     const menuP = source.source === 'static' ? null : fetchMenu(source, timeoutMs)
     menuP?.catch(() => undefined) // observed below; avoid an unhandled rejection if restore() throws first
-    // The venue design file (badges, icons, cross-sells … by API ids) loads alongside; it never fails the menu.
-    const designP = source.source === 'static' ? null : fetchDesign(designUrl(source, base), timeoutMs)
     const pack = await withTimeout(fetchEngineData(base), timeoutMs, 'brandPack')
     applyMenu(pack, config) // texts + brand for the recovery UI, even if the menu never arrives
     config.orderTag = resolveOrderTagConfig(config.orderTag)
@@ -120,20 +117,12 @@ async function boot(): Promise<void> {
 
     let engine = pack
     let menuError: string | null = null
-    let design: VenueDesign | undefined
-    if (designP) {
-      const dz = await designP
-      if (dz.error) rt.log('design.loadFailed', { error: dz.error })
-      const v = designFor(dz.raw, pack)
-      design = v.design
-      if (v.problems.length) rt.log('design.ignored', { problems: v.problems })
-    }
     if (menuP) {
       try {
-        engine = mapMenu(await menuP, pack, base, undefined, design)
+        engine = mapMenu(await menuP, pack, base)
       } catch (e) {
         menuError = String(e)
-        menuRetry = { source, pack, timeoutMs, design }
+        menuRetry = { source, pack, timeoutMs }
         rt.log('menu.loadFailed', { error: menuError })
       }
     }
@@ -152,7 +141,7 @@ async function boot(): Promise<void> {
     })
     if (!menuError) void catalogRefresh(refreshScope())
     rt.log('config.source', { origin: kc.origin, api: source.source === 'api' ? source.apiBase : null, source: source.source, problems: kc.problems })
-    rt.log('boot.ok', { adapters: resolved.adapters.kind, liveChecks, mode: config.mode, brand: engine.brand.id, catalog: source.source, design: !!design, menuError })
+    rt.log('boot.ok', { adapters: resolved.adapters.kind, liveChecks, mode: config.mode, brand: engine.brand.id, catalog: source.source, menuError })
   } catch (e) {
     store.setBootError(String(e))
   }

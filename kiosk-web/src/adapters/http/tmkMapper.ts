@@ -3,10 +3,11 @@
 // Decisions (Alex, 2026-10-15):
 // - The menu is MainCategories[0] of the TMKData entry for the current language (fallback: the first entry);
 //   its SubCategories are the sidebar categories.
-// - Design-only data the API does not carry (badges popular/new, category icons and subtitles, cross-sells,
-//   finish strips, reward) comes from the venue design file (venueDesign.ts), keyed by API ids (D2, closed
-//   2026-10-16). Promo cards come from the API's IsPromotion window. Menu deal, product enhancements and premium
-//   drinks have no API counterpart and are off; the brand pack's own entries are never shown on an API menu.
+// - Design the API does not carry is coded in the kiosk, not read from a file (Alex, 2026-10-20; the per-venue
+//   design file of D2 was withdrawn): promo cards from the API's IsPromotion window, sidebar icons from the
+//   subcategory name (tmkRules.ts), "Popular" from the device's order tally. Category subtitles, cross-sells,
+//   finish strips, cart block and reward are off on API menus. Menu deal, product enhancements and premium drinks
+//   have no API counterpart and are off; the brand pack's own entries are never shown on an API menu.
 // - Modifiers (Products[].ModifierWizards) are option groups on the product page again (D3 revived 2026-10-20):
 //   max 1 → 'choice' group (the engine's chip grid), max > 1 → 'step' group chained before the upsell steps;
 //   every option carries its backend ProductId, options without one are never offered, so the order POST
@@ -17,7 +18,7 @@
 
 import type { Allergens, Cat, CmsBlock, CmsItem, EngineData, L10n, Lang, ModGroup, ModItem, Product, Promo, Screensaver, Slide } from '../../engine/types'
 import type { TmkLangData, TmkProduct, TmkRoot, TmkSlide, TmkUpsaleCollection } from './tmk'
-import { EMPTY_DESIGN, iconForCategory, promoActive, type VenueDesign } from './venueDesign'
+import { iconForCategory, promoActive } from './tmkRules'
 
 const SUPPORTED: Lang[] = ['nl', 'en', 'mk']
 
@@ -60,8 +61,6 @@ export interface TmkMapOptions {
   asset?: (path: string) => string
   /** Preferred language; the TMKData entry for it defines the menu structure. */
   lang?: Lang
-  /** The venue's design layer (normalised); absent = API data only. */
-  design?: VenueDesign
   /** "Now" for the promotion windows (tests). */
   now?: number
 }
@@ -211,11 +210,9 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
     return l10n(vals, primary)
   }
   const img = (u: string | null | undefined): string | undefined => (isPicture(u) ? opts.img(u!) : undefined)
-  const design = opts.design ?? EMPTY_DESIGN
   const now = opts.now ?? Date.now()
   /** Engine text in every language the pack has, as an L10n for CMS titles. */
   const i18nL = (key: string): L10n => ({ en: pack.i18n.en?.[key] ?? key, ...(pack.i18n.nl?.[key] ? { nl: pack.i18n.nl[key] } : {}), ...(pack.i18n.mk?.[key] ? { mk: pack.i18n.mk[key] } : {}) })
-  const badgeKeys = new Set(Object.keys(pack.bdg))
   const catsub: Record<string, L10n> = {}
   const apiPromos: string[] = []
 
@@ -318,8 +315,7 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
   for (const s of subs) {
     const sid = String(s.SubCategoryId)
     const cid = 's' + sid
-    cats.push({ id: cid, icon: design.icons[sid] || iconForCategory(s.Name), name: tr((x) => x.sub.get(s.SubCategoryId), s.Name) })
-    if (design.catsub[sid]) catsub[cid] = design.catsub[sid]
+    cats.push({ id: cid, icon: iconForCategory(s.Name), name: tr((x) => x.sub.get(s.SubCategoryId), s.Name) })
     for (const p of [...(s.Products || [])].sort(byOrder)) {
       const pid = String(p.ProductId)
       const { allergens, diet } = allergensOf(p)
@@ -331,7 +327,6 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
         badges.add('dea')
         apiPromos.push(pid)
       }
-      for (const b of design.badges[pid] || []) if (badgeKeys.has(b)) badges.add(b)
 
       const mg = modifierGroups(p)
       const upSteps = p.HasUpsaleCollection && p.UpsaleCollectionId != null ? collectionSteps(p.UpsaleCollectionId) : []
@@ -363,67 +358,18 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
     }
   }
 
-  // ---- venue design layer: everything below points at API products / categories only ----
+  // ---- promo cards: only the API's own promotions (IsPromotion within its window) ----
   const byPid = new Map(products.map((p) => [p.id, p]))
-  const catIds = new Set(cats.map((c) => c.id))
-  const toCids = (sids: string[] | undefined) => (sids || []).map((x) => 's' + x).filter((c) => catIds.has(c))
-  const toPids = (pids: string[] | undefined) => (pids || []).filter((x) => byPid.has(x))
-
   const promos: Promo[] = []
-  const promoOf = (pid: string, v: Partial<Promo> = {}): Promo | null => {
-    const p = byPid.get(pid)
-    if (!p || promos.some((x) => x.pid === pid)) return null
-    return { pid, ...(p.img ? { img: p.img } : {}), em: p.em, flag: v.flag ?? i18nL('promoFlag'), title: v.title ?? p.names ?? p.name, sub: v.sub ?? mapL10n(p.desc, firstLine), ...(v.img ? { img: v.img } : {}) }
-  }
-  for (const v of design.promos) {
-    const pr = promoOf(v.pid, v)
-    if (pr) promos.push(pr)
-  }
   for (const pid of apiPromos) {
-    const pr = promoOf(pid)
-    if (pr) promos.push(pr)
+    const p = byPid.get(pid)
+    if (!p || promos.some((x) => x.pid === pid)) continue
+    promos.push({ pid, ...(p.img ? { img: p.img } : {}), em: p.em, flag: i18nL('promoFlag'), title: p.names ?? p.name, sub: mapL10n(p.desc, firstLine) })
   }
-
-  // Cross-sells: price always the product's menu price (no price variants on API menus).
+  // Nothing in the API describes cross-sells, finish strips, the cart block or an order-value reward: off.
   const crossSells: CmsItem[] = []
-  design.crossSells.forEach((x, i) => {
-    const p = byPid.get(x.pid)
-    if (!p) return
-    const xcats = x.cats ? toCids(x.cats) : []
-    const prods = x.products ? toPids(x.products) : []
-    if ((x.cats && !xcats.length) || (x.products && !prods.length)) return
-    const target = xcats.length || prods.length ? { ...(xcats.length ? { cats: xcats } : {}), ...(prods.length ? { products: prods } : {}) } : { cats: [...catIds] }
-    crossSells.push({
-      id: 'xs' + p.id,
-      role: 'cross-sell',
-      enabled: true,
-      priority: 10 + i,
-      pid: p.id,
-      target,
-      ...(p.img ? { img: p.img } : {}),
-      em: p.em,
-      minSelections: 0,
-      maxSelections: 1,
-      title: p.names ?? p.name,
-      ...(x.qtyLabel ? { qtyLabel: x.qtyLabel } : {}),
-    })
-  })
-
   const blocks: CmsBlock[] = []
-  design.finish.forEach((f, i) => {
-    const cats = toCids(f.cats)
-    const items = toPids(f.pids).map((pid) => ({ pid }))
-    if (!cats.length || !items.length) return
-    blocks.push({ id: 'finish' + (i + 1), role: 'category-finish', enabled: true, priority: 10, target: { cats }, title: f.title ?? i18nL('finishT'), subtitle: f.subtitle ?? i18nL('finishS'), display: { mode: 'compact-horizontal', maxVisible: f.maxVisible ?? 4 }, items })
-  })
-  if (design.inspire) {
-    const items = toPids(design.inspire.pids).map((pid) => ({ pid }))
-    const linkCat = design.inspire.linkCat ? toCids([design.inspire.linkCat])[0] : undefined
-    if (items.length || linkCat) {
-      blocks.push({ id: 'inspire', role: 'cart-inspire', enabled: true, priority: 10, title: design.inspire.title ?? i18nL('inspireT'), subtitle: design.inspire.subtitle ?? i18nL('finishS'), items, ...(linkCat ? { link: { cat: linkCat, label: i18nL('seeAll') } } : {}) })
-    }
-  }
-  const reward = design.reward && byPid.has(design.reward.pid) ? { threshold: design.reward.threshold, pid: design.reward.pid } : undefined
+  const reward = undefined
 
   const languages = apiLangs.length ? apiLangs : [primary]
   const asset = opts.asset || ((path: string) => path)
