@@ -271,6 +271,75 @@ function StepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; need: b
   )
 }
 
+/**
+ * A multi-pick modifier wizard (API, max > 1) in the choice-group chip layout (2026-10-20, Alex: no pictures for
+ * modifiers): numbered header with the "kies 1–4" rule, chips that toggle, each option at most once, a full step
+ * refuses new chips, a locked step (earlier required step unfinished) nudges the guest there.
+ */
+function ChipStepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; need: boolean; hint: string; nudge: () => void }) {
+  const pick = useEngine((s) => s.pick)
+  const grp = E().mods[g]
+  const full = grpCount(d, g) >= grpMax(g)
+  const locked = stepLocked(d, g)
+  return (
+    <section
+      className={`grp r44-grp${need ? ' grp-need' : ''}`}
+      id={`grp-${g}`}
+      role="group"
+      aria-labelledby={`grpl-${g}`}
+      aria-disabled={locked || undefined}
+      data-locked={locked || undefined}
+      style={{ opacity: locked ? 0.38 : 1, filter: locked ? 'grayscale(1)' : undefined, transition: 'opacity 250ms ease, filter 250ms ease' }}
+      onClickCapture={
+        locked
+          ? (e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              nudge()
+            }
+          : undefined
+      }
+    >
+      <R44Head title={<span id={`grpl-${g}`}>{L(grp.label)}</span>} note={grp.req ? 'req' : 'opt'} rule={ruleText(g)} numbered />
+      <div id={`hint-${g}`} className="reqHint r44-hint" role="status" aria-live="polite">
+        {hint}
+      </div>
+      <div className="r44-opts" style={{ gridTemplateColumns: `repeat(${r44Cols(grp.items)},minmax(0,1fr))` }}>
+        {grp.items.map((it) => {
+          const on = exQty(d, g, it.id) > 0
+          const na = optionUnavailable(g, it.id)
+          const blocked = (!on && (full || na)) || (na && !on)
+          return (
+            <button
+              key={it.id}
+              type="button"
+              data-a={blocked ? 'r44Blocked' : 'pick'}
+              aria-pressed={on}
+              aria-disabled={blocked ? true : undefined}
+              className={`press optBtn r44-opt${blocked ? ' blk' : ''}`}
+              onClick={() => !blocked && pick(g, it.id)}
+            >
+              <span className="r44-ol">
+                <span className="r44-on">{L(it.name)}</span>
+                {na ? <span className="r44-os text-ember">{t('unavailT')}</span> : it.sub ? <span className="r44-os">{L(it.sub)}</span> : null}
+              </span>
+              {it.price ? (
+                <span className="r44-op hd num">
+                  {it.price > 0 ? '+' : ''}
+                  {fmt(it.price)}
+                </span>
+              ) : null}
+              <span className="r44-ck" aria-hidden="true">
+                <Ic n="check" sw={3} />
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 function EnhTile({ v, d }: { v: CmsItem; d: Draft }) {
   const exQtyAct = useEngine((s) => s.exQty)
   const g = E().roleGroup[v.role]
@@ -686,9 +755,13 @@ function ProductPage({ p, d, xp, editing, nudge, need, hint }: { p: Product; d: 
           {opt.map((g) => (
             <Group key={g.id} g={g.id} d={d} need={false} hint="" />
           ))}
-          {activeSteps(p, d).map((g) => (
-            <StepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
-          ))}
+          {activeSteps(p, d).map((g) =>
+            E().mods[g].ui === 'chips' ? (
+              <ChipStepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
+            ) : (
+              <StepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
+            ),
+          )}
           {vu ? <EnhSection xp={xp} d={d} /> : null}
           {vu && xp.menuUpgrade ? (
             <div className="r44-menu">

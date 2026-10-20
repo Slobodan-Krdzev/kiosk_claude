@@ -307,7 +307,7 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
         mods[k] = { label, type: 'choice', req: !!w.IsMandatory, items, ...(def ? { def } : {}) }
         choice.push(k)
       } else {
-        mods[k] = { label, type: 'step', req: !!w.IsMandatory, items, min, max, next: null }
+        mods[k] = { label, type: 'step', req: !!w.IsMandatory, items, min, max, next: null, ui: 'chips' }
         if (steps.length) mods[steps[steps.length - 1]].next = k
         steps.push(k)
       }

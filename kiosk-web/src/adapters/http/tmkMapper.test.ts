@@ -160,6 +160,8 @@ describe('modifiers (D3 revived 2026-10-20): max 1 → choice group, max > 1 →
     expect(dessert.choice).toBeUndefined()
     const e = d2.mods[dessert.steps![0]]
     expect([e.type, e.req, e.min, e.max]).toEqual(['step', false, 0, 4])
+    expect(e.ui).toBe('chips') // modifier steps: chip grid, no pictures; upsell steps keep their tiles
+    expect(map(TEST).mods['up9_8'].ui).toBeUndefined()
   })
   it('a required choice blocks the order until picked; the pick reaches the cart line and the order POST as UpsaleCollection', () => {
     const d = map(withMainFirst(FULL, 54949))
