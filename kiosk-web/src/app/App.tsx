@@ -8,6 +8,7 @@ import type { CatalogSourceConfig } from '../domain/types'
 import { fetchEngineData, resolveOrderTagConfig } from '../engine/data'
 import { E, setEngine, t } from '../engine/state'
 import { startLogoHoldWatch } from './fullscreen'
+import { readKioskConfig } from './kioskConfig'
 import type { EngineData, Lang } from '../engine/types'
 import { setAvailabilityGate, useEngine } from '../store/engine'
 import { liveGate } from './availability'
@@ -88,7 +89,10 @@ async function boot(): Promise<void> {
       throw new Error('production mode requires real adapters (window.GuestitAdapters) — refusing to run on the simulation')
     }
     const base = import.meta.env.BASE_URL
-    const source = resolveCatalogSource(config.catalogSource, window.location.search)
+    // config.js (per-location backend address) replaces config.json's apiBase and selects the API menu;
+    // ?testMode=true / ?source=static still win inside resolveCatalogSource.
+    const kc = readKioskConfig()
+    const source = resolveCatalogSource(kc.api ? { ...(config.catalogSource || {}), apiBase: kc.api, source: 'api' } : config.catalogSource, window.location.search)
     const timeoutMs = config.timeouts.menuLoad ?? DEFAULT_MENU_TIMEOUT_MS
     // API menu on the simulation: availability (and the no-op price check) go to the kiosk API, as the old kiosk did.
     // Order + payment on the API menu: one POST (CreateKioskOrderWithPinPayment) behind payment / POS / printer.
@@ -147,6 +151,7 @@ async function boot(): Promise<void> {
       rt.log('connectivity.state', { kind: c.kind, ...(c.kind === 'connected' ? { role: c.role, epoch: c.epoch } : {}) })
     })
     if (!menuError) void catalogRefresh(refreshScope())
+    rt.log('config.source', { origin: kc.origin, api: source.source === 'api' ? source.apiBase : null, source: source.source, problems: kc.problems })
     rt.log('boot.ok', { adapters: resolved.adapters.kind, liveChecks, mode: config.mode, brand: engine.brand.id, catalog: source.source, design: !!design, menuError })
   } catch (e) {
     store.setBootError(String(e))

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useModal } from './useModal'
 import type { SimSettings } from '../adapters/static/sim'
 import { getRuntime } from '../app/runtime'
+import { apiHost, readKioskConfig } from '../app/kioskConfig'
 import { numberRange, resolveTagMode } from '../domain/orderTag'
 import { popularityStats, resetPopularity, usePopularityVersion } from '../engine/popularity'
 import { E } from '../engine/state'
@@ -112,6 +113,7 @@ function Body() {
             <div>Device ID · {rt.deviceId}</div>
             <div>Adapters · {rt.resolved.adapters.kind === 'static' ? 'static (simulation — not evidence)' : rt.resolved.adapters.kind}</div>
             <div>Mode · {config.mode}</div>
+            <ApiRow />
             <div>
               Brand · {E().brand.name} · products {E().products.length}
             </div>
@@ -199,6 +201,19 @@ function Body() {
       ) : null}
       {tab === 'sim' ? <SimPanel /> : null}
       {tab === 'logs' ? <Logs /> : null}
+    </div>
+  )
+}
+
+/** Which backend this kiosk talks to and where the address came from (config.js per location, else config.json). */
+function ApiRow() {
+  const kc = readKioskConfig()
+  const cfg = useEngine((s) => s.config)
+  const api = kc.api ?? cfg?.catalogSource?.apiBase ?? null
+  return (
+    <div className="break-all">
+      Backend · {api ? apiHost(api) : '—'} · {kc.origin}
+      {kc.problems.length ? <span className="text-ember"> · {kc.problems.join(' · ')}</span> : null}
     </div>
   )
 }

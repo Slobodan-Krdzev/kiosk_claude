@@ -36,6 +36,25 @@ Staff panel: tap the brand logo 5 times within 3 seconds, PIN `staffPin` from `p
 Fullscreen: hold the logo (attract screen or the rail) for 3 seconds; with a mouse that enters fullscreen at once, on a touch screen a "Volledig scherm" pill appears and one tap on it enters (touch grants the needed activation only for a tap). Same gesture to leave. Browsers do not allow fullscreen without a gesture, so for true startup fullscreen launch Chrome with `--kiosk --app=<url>`, or run inside the Launcher, where the gesture does nothing.
 Simulation tab: terminal / POS / printer / health outcomes, hangs, connectivity scenarios, sold-out products, price changes.
 
+## Deploying to a location: `config.js`
+
+The backend address of an installed kiosk comes from a plain script next to `index.html`, not from the build
+(handover `failover-handover/docs/reference/kiosk-config-js-setup.md`):
+
+```js
+window.kioskConfig = { api: "https://<this-location-backend>/api" }   // full URL, ends in /api, no trailing slash
+```
+
+- `config.js` in the project root is the dev copy (dev backend); the dev server serves it, `npm run build` does not
+  include it. `config.example.js` is the template. An installer copies `dist/` to the web root and writes `config.js`
+  beside `index.html`; a later build never overwrites it.
+- When present, `api` replaces `catalogSource.apiBase` from `public/mock/config.json` and selects the API menu.
+  `?testMode=true` and `?source=static` still win. When absent or unusable, `config.json` applies and the staff
+  panel's Device card says `Backend · <host> · config.json` with the reason (the old kiosk went blank instead).
+- Checks after install: `https://<kiosk-host>/config.js` must show the file (not the app's HTML — the server must
+  not rewrite it), `<api>/getfullresources` must return the menu. Product images are plain `http://`: the host
+  must serve the `/img-proxy` route the dev server provides, or the backend must serve https images (B5).
+
 ## Where things live
 
 ```
