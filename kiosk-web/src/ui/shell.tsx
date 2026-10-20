@@ -185,13 +185,24 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
   // API menus (2026-10-19, Alex): the venue's promo pictures carry their own text, so the card shows no title
   // and no sub line — only the flag, the price and the button.
   const noText = !!E().venue
+  // Information-only promotion (API NoInteraction, 2026-10-20, Alex): a plain banner — picture and flag, no button,
+  // not tappable. There is nothing to open: the product page could not add it either.
+  const banner = !!p.infoOnly
+  const flag = <span className={`badge ${pr.menu ? 'b-dea' : 'b-new'} self-start`}>{L(pr.flag)}</span>
+  if (big && banner)
+    return (
+      <div data-a="promoBanner" role="img" aria-label={`${L(pr.flag)} · ${pname(p)}`} className="relative w-full rounded-[30px] overflow-hidden" style={{ height: b.layout.promoHeight || b.hero.height || b.layout.heroHeight }}>
+        <FoodImg p={{ ...pr, _pos: `${b.hero.contentFocalPoint.x}% ${b.hero.contentFocalPoint.y}%`, _eager: true }} cls="absolute inset-0" em="150px" />
+        <div className="absolute inset-0 p-9 flex flex-col text-cream">{flag}</div>
+      </div>
+    )
   if (big)
     return (
       <button type="button" data-a="promo" className="press relative w-full rounded-[30px] overflow-hidden text-left" style={{ height: b.layout.promoHeight || b.hero.height || b.layout.heroHeight }} onClick={open}>
         <FoodImg p={{ ...pr, _pos: `${b.hero.contentFocalPoint.x}% ${b.hero.contentFocalPoint.y}%`, _eager: true }} cls="absolute inset-0" em="150px" />
         <div className="absolute inset-0" style={{ background: 'linear-gradient(84deg, rgba(10,9,7,.60) 0%, rgba(10,9,7,.22) 46%, rgba(10,9,7,0) 66%)' }} />
         <div className="absolute inset-0 p-9 flex flex-col text-cream" style={{ maxWidth: `${b.hero.textSafeWidth}%` }}>
-          <span className={`badge ${pr.menu ? 'b-dea' : 'b-new'} self-start`}>{L(pr.flag)}</span>
+          {flag}
           <div className="flex-1" />
           {noText ? null : (
             <>
@@ -208,6 +219,15 @@ function PromoCard({ pr, big }: { pr: Promo; big: boolean }) {
           </span>
         </div>
       </button>
+    )
+  if (banner)
+    return (
+      <div data-a="promoBanner" role="img" aria-label={`${L(pr.flag)} · ${pname(p)}`} className="bg-card rounded-[26px] overflow-hidden shadow-soft">
+        <div className="relative">
+          <span className={`absolute top-4 left-4 z-10 badge badge-sm ${pr.menu ? 'b-dea' : 'b-new'}`}>{L(pr.flag)}</span>
+          <FoodImg p={{ ...pr, _eager: true }} cls="h-[210px] w-full" em="96px" />
+        </div>
+      </div>
     )
   return (
     <button type="button" data-a="promo" className="press bg-card rounded-[26px] overflow-hidden text-left shadow-soft" onClick={open}>
