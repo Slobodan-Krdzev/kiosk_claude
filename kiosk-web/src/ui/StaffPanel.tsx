@@ -5,6 +5,7 @@ import { useModal } from './useModal'
 import type { SimSettings } from '../adapters/static/sim'
 import { getRuntime } from '../app/runtime'
 import { numberRange, resolveTagMode } from '../domain/orderTag'
+import { popularityStats, resetPopularity, usePopularityVersion } from '../engine/popularity'
 import { E } from '../engine/state'
 import { useEngine } from '../store/engine'
 import { usePayState } from '../store/payment'
@@ -114,6 +115,7 @@ function Body() {
             <div>
               Brand · {E().brand.name} · products {E().products.length}
             </div>
+            <PopularityRow />
           </section>
           <section className={card}>
             <div className="hd text-[26px]">Connection</div>
@@ -197,6 +199,22 @@ function Body() {
       ) : null}
       {tab === 'sim' ? <SimPanel /> : null}
       {tab === 'logs' ? <Logs /> : null}
+    </div>
+  )
+}
+
+/** The per-device "Popular" tally (simulated on the frontend, 2026-10-20): what it holds and a reset. */
+function PopularityRow() {
+  usePopularityVersion()
+  const st = popularityStats()
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      <span>
+        Popular (this device) · {st.orders} orders · {st.products} products{st.updatedAt ? ` · ${st.updatedAt.slice(0, 16).replace('T', ' ')}` : ''}
+      </span>
+      <button type="button" className={btn} disabled={!st.orders && !st.products} onClick={resetPopularity}>
+        Reset popular
+      </button>
     </div>
   )
 }

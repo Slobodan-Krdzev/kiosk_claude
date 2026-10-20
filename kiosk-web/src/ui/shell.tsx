@@ -3,7 +3,8 @@ import { useShallow } from 'zustand/shallow'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { baseTotal, cartCount, cartTotal, rewardClaimed, rewardLeft } from '../engine/cart'
-import { alHidden, byId, catLabel, catOf, homeHasContent, obVarCard, pname, prodsInCards, venueMenu, venueName, visible } from '../engine/catalog'
+import { alHidden, byId, catLabel, catOf, homeHasContent, obVarCard, pname, popularProducts, prodsInCards, venueMenu, venueName, visible } from '../engine/catalog'
+import { usePopularityVersion } from '../engine/popularity'
 import { cmsAddable, cmsFinishBlock, obwMode, presentationFor } from '../engine/cms'
 import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
@@ -277,10 +278,13 @@ export function HomeMain() {
   const ref = useScroller('home')
   useEngine((s) => s.allergenFilter) // promos / popular / new follow the allergen filter
   useEngine((s) => s.availVersion)
+  usePopularityVersion() // the per-device "Popular" tally changes after every accepted order
   const promos = b.promos.filter((pr) => !alHidden(byId(pr.pid)) && !(pr.menu && alHidden(byId(E().menuDeal.side))))
   const [P0, ...rest] = promos
   const news = visible(E().products.filter((p) => p.badges.includes('new'))).slice(0, 3)
-  const pops = visible(E().products.filter((p) => p.badges.includes('pop'))).slice(0, 3)
+  // Popular (2026-10-20, Alex): the five products this device sold most (then the catalog's `pop` badges), every
+  // card wearing the POPULAR badge; laid out as one row of three and one row of two wider cards.
+  const pops = popularProducts(5).map((p) => (p.badges.includes('pop') ? p : { ...p, badges: ['pop', ...p.badges] }))
   const grid = { gridTemplateColumns: `repeat(${b.layout.gridColumns},1fr)`, gap: b.layout.gridGap }
   return (
     <>
@@ -292,10 +296,17 @@ export function HomeMain() {
           <>
             <H2 txt={t('cat_popular')} seeAllCat="popular" />
             <div className="grid" style={grid}>
-              {pops.map((p) => (
+              {pops.slice(0, 3).map((p) => (
                 <ProductCard key={p.id} p={p} />
               ))}
             </div>
+            {pops.length > 3 ? (
+              <div className="grid grid-cols-2 mt-6" style={{ gap: b.layout.gridGap }}>
+                {pops.slice(3, 5).map((p) => (
+                  <ProductCard key={p.id} p={p} />
+                ))}
+              </div>
+            ) : null}
           </>
         ) : null}
         <div className="grid grid-cols-2 gap-5 mt-10">
