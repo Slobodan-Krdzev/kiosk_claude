@@ -55,6 +55,28 @@ window.kioskConfig = { api: "https://<this-location-backend>/api" }   // full UR
   not rewrite it), `<api>/getfullresources` must return the menu. Product images are plain `http://`: the host
   must serve the `/img-proxy` route the dev server provides, or the backend must serve https images (B5).
 
+## PWA and fullscreen
+
+The kiosk is an installable PWA (`public/manifest.webmanifest`, `public/sw.js`, `src/app/swRegister.ts`,
+`src/app/kioskMode.ts`):
+
+- **Installed** (Chrome menu → "Install app", or Android "Add to home screen"): starts fullscreen in portrait with no
+  browser UI (`display: fullscreen`). On Android this is true fullscreen from the first frame.
+- **Plain browser tab**: browsers forbid fullscreen without a touch, so the first tap enters fullscreen and every
+  later tap re-enters it if anything left it (sticky fullscreen). Holding the logo 3 s to leave pauses that until the
+  next start (staff use). For fullscreen before any touch, start Chrome with `--kiosk --app=<url>`.
+- **Screen stays on** (Screen Wake Lock) and portrait is locked where the browser allows it.
+- **Service worker**: caches the app itself and the menu pictures, so the kiosk starts and shows pictures even when
+  its web server is briefly unreachable. It never caches API calls, the menu data or orders; `config.js` and the
+  JSON settings are network-first. A new build installs in the background and takes over only on the start screen
+  with an empty cart and no payment, then reloads once.
+- **https required for install, the service worker and wake lock.** Browsers allow them only on `https://` or
+  `localhost`. On a plain-http LAN address such as `http://192.168.0.2:9544` the kiosk runs normally with sticky
+  fullscreen, but cannot be installed and has no offline start. Options: serve the kiosk over https, or start Chrome
+  on the device with `--unsafely-treat-insecure-origin-as-secure=http://192.168.0.2:9544` (plus `--kiosk`).
+- Staff panel → Device card: `App · fullscreen|standalone|browser · service worker registered|insecure|… ·
+  secure / not secure`.
+
 ## Where things live
 
 ```

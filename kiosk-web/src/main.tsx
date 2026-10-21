@@ -3,18 +3,19 @@ import { createRoot } from 'react-dom/client'
 import './reference.css'
 import { App } from './app/App'
 
-// The old kiosk registered a service worker (service-worker.js) on the same origin a venue now serves this
-// kiosk from. A leftover worker keeps serving the OLD bundle from its cache, so touch fixes never arrive on
-// the device. This kiosk has no service worker: unregister any found and drop their caches, once per boot.
+// The old kiosk registered its own service worker (service-worker.js) on the same origin a venue now serves this
+// kiosk from; it would keep serving the OLD bundle. Remove workers that are not this kiosk's sw.js and caches that
+// are not this kiosk's (kiosk-*), once per boot. This kiosk's own worker is registered in swRegister.ts.
 void (async () => {
   try {
     const regs = (await navigator.serviceWorker?.getRegistrations?.()) ?? []
-    for (const r of regs) await r.unregister()
-    const names = (await window.caches?.keys?.()) ?? []
+    const foreign = regs.filter((r) => ![r.active, r.waiting, r.installing].some((w) => w && /\/sw\.js(\?|$)/.test(w.scriptURL)))
+    for (const r of foreign) await r.unregister()
+    const names = ((await window.caches?.keys?.()) ?? []).filter((n) => !n.startsWith('kiosk-'))
     for (const n of names) await caches.delete(n)
-    if (regs.length || names.length) {
-      console.warn('[kiosk] removed legacy service worker(s) / caches', { workers: regs.length, caches: names.length })
-      if (regs.length) window.location.reload()
+    if (foreign.length || names.length) {
+      console.warn('[kiosk] removed legacy service worker(s) / caches', { workers: foreign.length, caches: names.length })
+      if (foreign.length) window.location.reload()
     }
   } catch {
     /* no service worker API */

@@ -6,6 +6,7 @@
 // browser that grants activation on press); if it succeeds the pill never shows.
 
 import { useSyncExternalStore } from 'react'
+import { pauseStickyFullscreen, resumeStickyFullscreen } from './kioskMode'
 import { getRuntime } from './runtime'
 
 export const LOGO_HOLD_MS = 3000
@@ -70,9 +71,12 @@ export function hidePrompt(): void {
 export async function toggleFullscreen(): Promise<boolean> {
   try {
     if (document.fullscreenElement) {
+      // Staff left fullscreen on purpose: sticky fullscreen stays off until the next start (kioskMode.ts).
+      pauseStickyFullscreen()
       await document.exitFullscreen()
       log('fullscreen.exit')
     } else {
+      resumeStickyFullscreen()
       await document.documentElement.requestFullscreen({ navigationUI: 'hide' })
       log('fullscreen.enter')
     }

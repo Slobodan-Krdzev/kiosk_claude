@@ -62,10 +62,30 @@ function buildStamp(): { sha: string; at: string } {
   return { sha, at: new Date().toISOString().slice(0, 16).replace('T', ' ') + 'Z' }
 }
 
+const STAMP = buildStamp()
+
+/** Writes the build stamp into dist/sw.js so every build gets new cache names and the old worker is replaced. */
+function swStampPlugin(): Plugin {
+  return {
+    name: 'guestit-sw-stamp',
+    apply: 'build',
+    async writeBundle(opts) {
+      const { readFile, writeFile } = await import('node:fs/promises')
+      const { join } = await import('node:path')
+      const file = join(opts.dir ?? 'dist', 'sw.js')
+      try {
+        await writeFile(file, (await readFile(file, 'utf8')).replaceAll('__BUILD__', `${STAMP.sha}-${STAMP.at.replace(/\D/g, '')}`))
+      } catch {
+        /* no sw.js in this build */
+      }
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), imgProxyPlugin()],
+  plugins: [react(), imgProxyPlugin(), swStampPlugin()],
   base: './',
-  define: { __KIOSK_BUILD__: JSON.stringify(buildStamp()) },
+  define: { __KIOSK_BUILD__: JSON.stringify(STAMP) },
   build: {
     target: 'es2018', // older Android WebViews on 2–4 GB kiosks
     sourcemap: true,

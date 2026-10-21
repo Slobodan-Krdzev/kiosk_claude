@@ -8,7 +8,7 @@ function fit(screen: HTMLElement | null, device: HTMLElement | null, hint: HTMLE
   const vh = window.visualViewport?.height || innerHeight
   const a = vw / Math.max(1, vh)
   const coarse = window.matchMedia?.('(pointer:coarse)').matches
-  const standalone = window.matchMedia?.('(display-mode: standalone)').matches
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || window.matchMedia?.('(display-mode: fullscreen)').matches
   const kiosk = a <= 0.66 || ((coarse || standalone) && a < 1.75)
   const B = document.body.classList
   if (kiosk) {

@@ -9,6 +9,8 @@ import { E, setEngine, t } from '../engine/state'
 import { startLogoHoldWatch } from './fullscreen'
 import { readKioskConfig } from './kioskConfig'
 import { startTapRescue } from './tapRescue'
+import { startStickyFullscreen, startWakeLock } from './kioskMode'
+import { registerServiceWorker } from './swRegister'
 import { preconnect, warmImages, warmupOrder } from './imageWarmup'
 import type { EngineData, Lang } from '../engine/types'
 import { setAvailabilityGate, useEngine } from '../store/engine'
@@ -304,6 +306,39 @@ function useLogoHold() {
 }
 
 /**
+ * PWA kiosk mode (2026-10-21): sticky fullscreen from the first tap, screen kept awake, and the service worker
+ * (production, secure context only) whose updates take over only while nobody is ordering.
+ */
+function useKioskMode() {
+  useEffect(() => {
+    const log = (ev: string, data?: Record<string, unknown>) => {
+      try {
+        getRuntime().log(ev, data)
+      } catch {
+        console.info('[kiosk]', ev, data)
+      }
+    }
+    const stopSticky = startStickyFullscreen(document, log)
+    const stopWake = startWakeLock(log)
+    const idle = () => {
+      const s = useEngine.getState()
+      let payIdle = true
+      try {
+        payIdle = getRuntime().controller.state.status === 'idle'
+      } catch {
+        /* before boot: nothing to protect */
+      }
+      return s.screen === 'attract' && s.cart.length === 0 && payIdle && !s.staffOpen
+    }
+    void registerServiceWorker({ idle, subscribe: (cb) => useEngine.subscribe(cb) }, log)
+    return () => {
+      stopSticky()
+      stopWake()
+    }
+  }, [])
+}
+
+/**
  * Staff shortcut: 5 taps within 3 s on the logo (attract hero logo, rail logo, boot card admin spot). A document
  * capture listener since 2026-10-21 (the same mechanism as the tap diagnostics), with every counted tap logged as
  * `staff.tap {n}` so a support call can see how far a guest or staff member got. Taps slower than 3 s apart reset.
@@ -348,6 +383,7 @@ export function App() {
   const staffTap = useStaffTaps()
   useIdle()
   useTapDiagnostics()
+  useKioskMode()
   useEffect(
     () =>
       startTapRescue(document, (ev, data) => {

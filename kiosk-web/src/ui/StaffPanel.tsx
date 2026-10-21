@@ -6,6 +6,8 @@ import type { SimSettings } from '../adapters/static/sim'
 import { getRuntime } from '../app/runtime'
 import { parkedPayments, removeParked, useParkedVersion } from '../payment/parked'
 import { apiHost, readKioskConfig } from '../app/kioskConfig'
+import { displayMode } from '../app/kioskMode'
+import { swStatus } from '../app/swRegister'
 import { numberRange, resolveTagMode } from '../domain/orderTag'
 import { popularityStats, resetPopularity, usePopularityVersion } from '../engine/popularity'
 import { E } from '../engine/state'
@@ -113,6 +115,9 @@ function Body() {
             <div className="hd text-[26px]">Device</div>
             <div>Device ID · {rt.deviceId}</div>
             <div className="num">Build · {__KIOSK_BUILD__.sha} · {__KIOSK_BUILD__.at}</div>
+            <div>
+              App · {displayMode()} · service worker {swStatus()} · {typeof isSecureContext !== 'undefined' && isSecureContext ? 'secure' : 'not secure (http): no install, no offline, no wake lock'}
+            </div>
             <div>Adapters · {rt.resolved.adapters.kind === 'static' ? 'static (simulation — not evidence)' : rt.resolved.adapters.kind}</div>
             <div>Mode · {config.mode}</div>
             <ApiRow />
