@@ -37,9 +37,11 @@ export function catalogUrl(s: CatalogSourceConfig): string {
  *   missing on the test server, 2026-10-21), and both image hosts answer https (checked 2026-10-21); an https
  *   kiosk page would block or auto-upgrade http images anyway.
  */
-export function proxiedImg(base: string, url: string, dev: boolean = import.meta.env.DEV): string {
+export function proxiedImg(base: string, url: string, dev: boolean = import.meta.env.DEV, pageProtocol: string = typeof location !== 'undefined' ? location.protocol : 'https:'): string {
   if (!/^http:\/\//i.test(url)) return url
-  if (!dev) return url.replace(/^http:\/\//i, 'https://')
+  // Production: an http kiosk page (e.g. a venue's local server http://192.168.0.2:9544) loads the image exactly
+  // as the menu gives it; only an https page upgrades it, because browsers block http images there.
+  if (!dev) return pageProtocol === 'https:' ? url.replace(/^http:\/\//i, 'https://') : url
   const root = base.endsWith('/') ? base : base + '/'
   return `${root}img-proxy?u=${encodeURIComponent(url)}`
 }
