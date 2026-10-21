@@ -10,7 +10,7 @@ import { setAllergenFilter, setEngine, setLang, setUnavailable } from '../../eng
 import type { EngineData } from '../../engine/types'
 import type { TmkRoot } from './tmk'
 import { mapTmkToEngine } from './tmkMapper'
-import { iconForCategory, promoActive } from './tmkRules'
+import { CATEGORY_ICON, iconForCategory, promoActive } from './tmkRules'
 
 const SAMPLES = resolve(process.cwd(), '../failover-handover/docs/reference/api-samples')
 const sample = (f: string): TmkRoot => JSON.parse(readFileSync(resolve(SAMPLES, f), 'utf8'))
@@ -56,14 +56,11 @@ describe('what the API itself carries', () => {
     expect(promoActive({ IsPromotion: false, PromotionFrom: null, PromotionTo: null }, NOW)).toBe(false)
     expect(map(FULL, Date.parse('2032-01-01T00:00:00')).brand.promos).toEqual([])
   })
-  it('sidebar icons follow the subcategory name; unknown names fall back to "dish"', () => {
-    expect(iconForCategory('SUSHI')).toBe('sushi')
-    expect(iconForCategory('Nagerechten')).toBe('cake')
-    expect(iconForCategory('Frisdranken')).toBe('cup')
-    expect(iconForCategory('Vega gerechten')).toBe('heart')
-    expect(iconForCategory('Zomaar iets')).toBe('dish')
+  it('every API subcategory gets the neutral fork-and-bottle icon until the backend carries icons (2026-10-21)', () => {
+    for (const n of ['SUSHI', 'Nagerechten', 'Frisdranken', 'Vega gerechten', 'Zomaar iets']) expect(iconForCategory(n)).toBe(CATEGORY_ICON)
     const d = map(FULL)
-    expect(d.cats.every((c) => Object.keys(d.icons).includes(c.icon))).toBe(true)
+    expect(d.cats.map((c) => c.icon)).toEqual(d.cats.map(() => CATEGORY_ICON))
+    expect(Object.keys(d.icons)).toContain(CATEGORY_ICON) // the glyph exists in the icon set
   })
   it('nothing on an API menu points at brand-pack content: no cross-sells, finish strips, cart block, reward, subtitles', () => {
     const d = map(FULL)
