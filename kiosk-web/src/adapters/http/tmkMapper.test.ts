@@ -108,6 +108,14 @@ describe('menu structure (decision 1: SubCategories of MainCategories[0])', () =
   })
 })
 
+describe('images in the production build (2026-10-21)', () => {
+  it('http images become https, https stays, nothing points at the dev-only /img-proxy route', () => {
+    expect(proxiedImg('./', 'http://my.tabletmenukaart.nl/sharedfiles/a.jpg', false)).toBe('https://my.tabletmenukaart.nl/sharedfiles/a.jpg')
+    expect(proxiedImg('./', 'https://kioskapi.dev.revelapps.com/x.png', false)).toBe('https://kioskapi.dev.revelapps.com/x.png')
+    expect(proxiedImg('./', 'http://my.tabletmenukaart.nl/a.jpg', true)).toContain('img-proxy?u=')
+  })
+})
+
 describe('images (decision 6: proxy)', () => {
   it('http image URLs go through /img-proxy, https stays direct', () => {
     expect(proxiedImg('./', 'http://my.tabletmenukaart.nl/a b.png')).toBe('./img-proxy?u=' + encodeURIComponent('http://my.tabletmenukaart.nl/a b.png'))

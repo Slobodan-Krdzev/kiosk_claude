@@ -31,12 +31,15 @@ export function catalogUrl(s: CatalogSourceConfig): string {
 }
 
 /**
- * Image proxy (decision 2026-10-15): plain-http images from the API are fetched through the kiosk host
- * so an https kiosk does not block them as mixed content. Served by the Vite dev/preview server
- * (vite.config.ts); the production host or the Launcher must provide the same /img-proxy route.
+ * Plain-http menu images (the test menu's my.tabletmenukaart.nl serves all of them as http://).
+ * - Development (`vite` dev/preview server): fetched through the server's /img-proxy route (vite.config.ts).
+ * - Production build: the same image over https. No proxy route exists on a venue's web server (images were
+ *   missing on the test server, 2026-10-21), and both image hosts answer https (checked 2026-10-21); an https
+ *   kiosk page would block or auto-upgrade http images anyway.
  */
-export function proxiedImg(base: string, url: string): string {
+export function proxiedImg(base: string, url: string, dev: boolean = import.meta.env.DEV): string {
   if (!/^http:\/\//i.test(url)) return url
+  if (!dev) return url.replace(/^http:\/\//i, 'https://')
   const root = base.endsWith('/') ? base : base + '/'
   return `${root}img-proxy?u=${encodeURIComponent(url)}`
 }
