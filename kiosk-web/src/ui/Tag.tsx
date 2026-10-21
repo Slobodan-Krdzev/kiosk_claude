@@ -8,6 +8,7 @@ import { t } from '../engine/state'
 import { clean, tagState } from '../app/tag'
 import { useEngine } from '../store/engine'
 import { Ic } from './primitives'
+import { NO_HIT } from './style'
 import { TAG_ILL } from './tagIll'
 
 const BKSP = (
@@ -110,10 +111,10 @@ export function Tag() {
           </button>
         )}
         <button type="button" id="tagGo" data-a="tagGo" disabled={dis} aria-disabled={dis} className="press cta w-full h-[112px] rounded-full bg-jade text-white flex items-center justify-center gap-6" onClick={() => void tagGo(st)}>
-          <span className="hd text-[28px] tracking-[.12em]">
+          <span className="hd text-[28px] tracking-[.12em]" style={NO_HIT}>
             {checking ? t('availCheckT') : t('tag_go')} · <span className="num">{fmt(total)}</span>
           </span>
-          <span className="w-9 h-9">
+          <span className="w-9 h-9" style={NO_HIT}>
             <Ic n="arrR" sw={2.4} />
           </span>
         </button>

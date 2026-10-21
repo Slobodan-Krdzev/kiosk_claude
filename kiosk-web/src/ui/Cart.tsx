@@ -13,6 +13,7 @@ import { useEngine } from '../store/engine'
 import { toPay } from '../app/checkout'
 import { CardCtl } from './cards'
 import { FoodImg, Ic, Stepper } from './primitives'
+import { NO_HIT } from './style'
 
 function CartInspire() {
   const cart = useEngine((s) => s.cart)
@@ -276,7 +277,7 @@ export function Cart() {
             </div>
           ) : null}
           <button type="button" data-a="toPay" disabled={blocked} aria-disabled={blocked} className="press cta w-full h-[112px] mt-5 rounded-full bg-jade text-white flex items-center justify-center gap-6" onClick={() => void toPay()}>
-            <span className="hd text-[28px] tracking-[.12em]">
+            <span className="hd text-[28px] tracking-[.12em]" style={NO_HIT}>
               {checking ? (
                 t('availCheckT')
               ) : (
@@ -285,7 +286,7 @@ export function Cart() {
                 </>
               )}
             </span>
-            <span className="w-9 h-9">
+            <span className="w-9 h-9" style={NO_HIT}>
               <Ic n="arrR" sw={2.4} />
             </span>
           </button>
