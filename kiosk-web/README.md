@@ -33,7 +33,7 @@ Popular on the home screen is a per-device tally of accepted orders in `localSto
 
 Staff panel: tap the brand logo 5 times within 3 seconds, PIN `staffPin` from `public/mock/config.json` (demo 2468).
 
-Fullscreen: hold the logo (attract screen or the rail) for 3 seconds; with a mouse that enters fullscreen at once, on a touch screen a "Volledig scherm" pill appears and one tap on it enters (touch grants the needed activation only for a tap). Same gesture to leave. Browsers do not allow fullscreen without a gesture, so for true startup fullscreen launch Chrome with `--kiosk --app=<url>`, or run inside the Launcher, where the gesture does nothing.
+Fullscreen: the first tap anywhere (a language button or one of the start buttons) enters fullscreen and the tap still works; if anything leaves fullscreen, the next tap re-enters it. Staff can also hold the logo (attract screen or the rail) for 3 seconds; with a mouse that enters fullscreen at once, on a touch screen a "Volledig scherm" pill appears and one tap on it enters (touch grants the needed activation only for a tap). Same gesture to leave. Browsers do not allow fullscreen without a gesture, so for true startup fullscreen launch Chrome with `--kiosk --app=<url>`, or run inside the Launcher, where the gesture does nothing.
 Simulation tab: terminal / POS / printer / health outcomes, hangs, connectivity scenarios, sold-out products, price changes.
 
 ## Deploying to a location: `config.js`

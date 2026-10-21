@@ -9,6 +9,7 @@ import { E, setEngine, t } from '../engine/state'
 import { startLogoHoldWatch } from './fullscreen'
 import { readKioskConfig } from './kioskConfig'
 import { startTapRescue } from './tapRescue'
+import { startStickyFullscreen } from './kioskMode'
 import { preconnect, warmImages, warmupOrder } from './imageWarmup'
 import type { EngineData, Lang } from '../engine/types'
 import { setAvailabilityGate, useEngine } from '../store/engine'
@@ -348,6 +349,18 @@ export function App() {
   const staffTap = useStaffTaps()
   useIdle()
   useTapDiagnostics()
+  // Fullscreen from the first tap anywhere, back on the next tap if anything leaves it (kioskMode.ts).
+  useEffect(
+    () =>
+      startStickyFullscreen(document, (ev, data) => {
+        try {
+          getRuntime().log(ev, data)
+        } catch {
+          console.info('[kiosk]', ev, data)
+        }
+      }),
+    [],
+  )
   useEffect(
     () =>
       startTapRescue(document, (ev, data) => {
