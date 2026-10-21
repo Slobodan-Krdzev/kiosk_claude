@@ -230,6 +230,19 @@ function useTapDiagnostics() {
       }
     }
     let pending: ReturnType<typeof setTimeout> | null = null
+    // Every touch-down, button or not (2026-10-21): if a tap "on the text" never reaches the button, this line
+    // shows what the device hit instead — the element path under the finger and the topmost element there.
+    const path = (el: Element | null) => {
+      const out: string[] = []
+      for (let n = el, i = 0; n && i < 4; n = n.parentElement, i++) out.push(`${n.tagName.toLowerCase()}${n.id ? '#' + n.id : ''}${n.getAttribute('data-a') ? '[' + n.getAttribute('data-a') + ']' : ''}`)
+      return out.join(' < ')
+    }
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse') return
+      const el = e.target instanceof Element ? e.target : null
+      const top = document.elementFromPoint(e.clientX, e.clientY)
+      safeLog('tap.down', { pointerType: e.pointerType, x: Math.round(e.clientX), y: Math.round(e.clientY), target: path(el), top: top === el ? 'same' : path(top), button: describe(e.target).button })
+    }
     const onUp = (e: PointerEvent) => {
       const d = describe(e.target)
       if (!d.button) return
@@ -251,11 +264,13 @@ function useTapDiagnostics() {
       const d = describe(e.target)
       if (d.button) safeLog('tap.click', d)
     }
+    document.addEventListener('pointerdown', onDown, true)
     document.addEventListener('pointerup', onUp, true)
     document.addEventListener('pointercancel', onCancel, true)
     document.addEventListener('click', onClick, true)
     return () => {
       if (pending) clearTimeout(pending)
+      document.removeEventListener('pointerdown', onDown, true)
       document.removeEventListener('pointerup', onUp, true)
       document.removeEventListener('pointercancel', onCancel, true)
       document.removeEventListener('click', onClick, true)
