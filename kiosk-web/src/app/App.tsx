@@ -8,6 +8,7 @@ import { fetchEngineData, resolveOrderTagConfig } from '../engine/data'
 import { E, setEngine, t } from '../engine/state'
 import { startLogoHoldWatch } from './fullscreen'
 import { readKioskConfig } from './kioskConfig'
+import { startTapRescue } from './tapRescue'
 import type { EngineData, Lang } from '../engine/types'
 import { setAvailabilityGate, useEngine } from '../store/engine'
 import { liveGate } from './availability'
@@ -312,6 +313,17 @@ export function App() {
   const staffTap = useStaffTaps()
   useIdle()
   useTapDiagnostics()
+  useEffect(
+    () =>
+      startTapRescue(document, (ev, data) => {
+        try {
+          getRuntime().log(ev, data)
+        } catch {
+          console.info('[kiosk]', ev, data)
+        }
+      }),
+    [],
+  )
   useLogoHold()
   useMenuRetry(menuError)
 
