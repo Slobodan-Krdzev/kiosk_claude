@@ -267,16 +267,35 @@ function useLogoHold() {
   useEffect(() => startLogoHoldWatch(), [])
 }
 
+/**
+ * Staff shortcut: 5 taps within 3 s on the logo (attract hero logo, rail logo, boot card admin spot). A document
+ * capture listener since 2026-10-21 (the same mechanism as the tap diagnostics), with every counted tap logged as
+ * `staff.tap {n}` so a support call can see how far a guest or staff member got. Taps slower than 3 s apart reset.
+ */
 function useStaffTaps() {
   const taps = useRef<number[]>([])
-  return () => {
+  const tap = () => {
     const now = Date.now()
     taps.current = [...taps.current.filter((x) => now - x < 3000), now]
+    try {
+      getRuntime().log('staff.tap', { n: taps.current.length })
+    } catch {
+      /* before boot */
+    }
     if (taps.current.length >= 5) {
       taps.current = []
       useEngine.getState().setStaffOpen(true)
     }
   }
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const el = e.target instanceof Element ? e.target : null
+      if (el && el.closest('img[alt]') && el.closest('[data-a="attract"], .hero-lockup')) tap()
+    }
+    document.addEventListener('click', onClick, true)
+    return () => document.removeEventListener('click', onClick, true)
+  }, [])
+  return tap
 }
 
 export function App() {
@@ -323,10 +342,7 @@ export function App() {
   const showPdp = ready && pdpOpen && pay.status === 'idle' && screen !== 'pay'
   return (
     <Stage brandName={brandName} overlay={ready ? <Overlays /> : null}>
-      <div className={`screen-root enter-${navDir}`} key={`${screen}-${pay.status === 'idle' ? '' : 'pay'}`} onClickCapture={(e) => {
-        const el = e.target as HTMLElement
-        if (el.closest('img[alt]') && el.closest('[data-a="attract"], .hero-lockup')) staffTap()
-      }}>
+      <div className={`screen-root enter-${navDir}`} key={`${screen}-${pay.status === 'idle' ? '' : 'pay'}`}>
         {body}
       </div>
       {showPdp ? <Pdp /> : null}
