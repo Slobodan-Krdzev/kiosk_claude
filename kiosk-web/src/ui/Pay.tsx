@@ -12,6 +12,7 @@ import { useEngine } from '../store/engine'
 import { usePayState } from '../store/payment'
 import { Ic } from './primitives'
 import { TAG_ILL } from './tagIll'
+import { parkPayment, parkedFrom } from '../payment/parked'
 
 function Btn({ a, label, primary = true, onClick, disabled }: { a: string; label: string; primary?: boolean; onClick: () => void; disabled?: boolean }) {
   return (
@@ -156,6 +157,16 @@ function PayPanel() {
   // ends unknown and the screen used to stay exactly as it was. Now the button says it is checking and the
   // result is written under it.
   const [check, setCheck] = useState<'idle' | 'running' | 'unknown'>('idle')
+  // "Start from the top" (2026-10-21, Alex): the guest may leave the protected screen. The record is parked for
+  // staff (never dropped), the departure is logged, the kiosk returns to the start screen for the next guest.
+  const newOrderReset = useEngine((s) => s.newOrderReset)
+  const startOver = () => {
+    const c = getRuntime().controller
+    const parked = parkedFrom(c.state)
+    parkPayment(parked)
+    getRuntime().log('pay.parkedByGuest', { orderId: parked.orderId, attemptId: parked.attemptId, status: parked.status, txRef: parked.txRef })
+    if (c.staffClear('guest: start from the top (record parked for staff)', 'guest')) newOrderReset()
+  }
   const runCheck = async () => {
     setCheck('running')
     await ctrl().lookup()
@@ -198,11 +209,14 @@ function PayPanel() {
           </>
         }
         actions={
-          st === 'recovery-required' ? (
-            <Btn a="paySubmitRetry" label={t('payRetrySubmit')} onClick={() => void ctrl().submitRetry()} />
-          ) : st === 'timeout' ? (
-            <Btn a="payLookup" label={check === 'running' ? t('payChecking') : t('payCheck')} disabled={check === 'running'} onClick={() => void runCheck()} />
-          ) : null
+          <>
+            {st === 'recovery-required' ? (
+              <Btn a="paySubmitRetry" label={t('payRetrySubmit')} onClick={() => void ctrl().submitRetry()} />
+            ) : st === 'timeout' ? (
+              <Btn a="payLookup" label={check === 'running' ? t('payChecking') : t('payCheck')} disabled={check === 'running'} onClick={() => void runCheck()} />
+            ) : null}
+            <Btn a="startOver" label={t('startOver')} primary={false} onClick={startOver} />
+          </>
         }
         tone="bg-gold/30"
       />
@@ -257,7 +271,12 @@ function PayPanel() {
             ) : null}
           </>
         }
-        actions={<Btn a="payLookup" label={check === 'running' ? t('payChecking') : t('payCheck')} disabled={check === 'running'} onClick={() => void runCheck()} />}
+        actions={
+          <>
+            <Btn a="payLookup" label={check === 'running' ? t('payChecking') : t('payCheck')} disabled={check === 'running'} onClick={() => void runCheck()} />
+            <Btn a="startOver" label={t('startOver')} primary={false} onClick={startOver} />
+          </>
+        }
         tone="bg-gold/30"
       />
     )
