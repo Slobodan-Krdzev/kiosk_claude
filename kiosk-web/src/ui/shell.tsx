@@ -12,7 +12,6 @@ import type { Product, Promo } from '../engine/types'
 import { useEngine } from '../store/engine'
 import { CompactCard, FinishItem, ProductCard, ProductWide } from './cards'
 import { FoodImg, Ic, LangPills } from './primitives'
-import { NO_HIT } from './style'
 
 const SIDEBAR_FALLBACK = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}brand/img/plateTer.webp`
 
@@ -597,35 +596,17 @@ export function BottomBar() {
         data-a="viewOrder"
         id="bar"
         onClick={viewOrder}
-        className="pointer-events-auto press relative w-full rounded-full bg-jade text-white flex items-center justify-center gap-4"
+        className="pointer-events-auto press relative w-full rounded-full bg-jade text-white flex items-center justify-center gap-4 text-[23px] font-bold leading-[30px] num"
         style={{ height: LY.basketHeight, boxShadow: '0 22px 52px -14px rgb(var(--c-primary) / .55)' }}
       >
-        <span className="w-9 h-9" style={NO_HIT}>
-          <Ic n="bag" sw={2} />
-        </span>
-        <span className="text-[23px] font-bold leading-[30px]" style={NO_HIT}>
-          {t('viewOrder')}
-        </span>
-        <span className="text-white/45 text-[23px] font-bold" style={NO_HIT}>
-          ·
-        </span>
-        <span id="bkQty" className="bkv text-[21px] font-medium leading-[30px]" style={NO_HIT}>
-          <span className="bkv-c">
-            {n} {n === 1 ? t('item') : t('items')}
-          </span>
-        </span>
-        <span className="text-white/45 text-[23px] font-bold" style={NO_HIT}>
-          ·
-        </span>
-        <span id="bkTot" className="bkv num text-[21px] font-medium leading-[30px]" style={NO_HIT}>
-          <span className="bkv-c">{fmt(cartTotal(cart))}</span>
-        </span>
-        <span className="w-7 h-7 ml-1" style={NO_HIT}>
-          <Ic n="chevR" sw={2.8} />
-        </span>
-        <span id="bkNote" role="status" aria-live="polite" className={`text-[19px] font-bold${noteOn ? ' on' : ''}`} style={NO_HIT}>
+        {/* Icon and text are direct children of the button (Alex, 2026-10-21): no wrapper element can ever be the tap target.
+            #bkNote is the transient "added" note laid over the bar, not a label; it is not hit-testable (CSS). */}
+        <Ic n="bag" sw={2} cls="w-9 h-9 flex-none" />
+        {`${t('viewOrder')} · ${n} ${n === 1 ? t('item') : t('items')} · ${fmt(cartTotal(cart))}`}
+        <Ic n="chevR" sw={2.8} cls="w-7 h-7 ml-1 flex-none" />
+        <output id="bkNote" role="status" aria-live="polite" className={`text-[19px] font-bold${noteOn ? ' on' : ''}`}>
           {note?.text ?? ''}
-        </span>
+        </output>
       </button>
     </div>
   )

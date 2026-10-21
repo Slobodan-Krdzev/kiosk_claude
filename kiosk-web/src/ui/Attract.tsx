@@ -4,7 +4,6 @@ import { currentSlides } from '../engine/slides'
 import { E, L, t, tf } from '../engine/state'
 import { useEngine } from '../store/engine'
 import { Ic, IcQR, LangPills } from './primitives'
-import { NO_HIT } from './style'
 
 // Original first-screen slides (embedded hero + BRAND.hero.images), kept for later use.
 // Since 2026-10-15 the first screen shows the venue's screensaver slides from the API menu instead.
@@ -99,13 +98,10 @@ export function Attract() {
   }, [images.length, interval])
 
   const startBtn = (id: 'eatin' | 'takeaway') => (
-    <button type="button" data-a="startWith" data-s={id} className="press ctapulse h-[132px] rounded-full bg-cream text-ink flex items-center justify-center gap-5" onClick={() => a.startWith(id)}>
-      <span className="w-10 h-10" style={NO_HIT}>
-        <Ic n={id === 'eatin' ? 'dish' : 'bag'} sw={2.2} />
-      </span>
-      <span className="hd text-[30px] tracking-[.16em]" style={NO_HIT}>
-        {t(id === 'eatin' ? 'eatIn' : 'takeAway')}
-      </span>
+    // Icon and text are direct children of the button (Alex, 2026-10-21): no wrapper element can ever be the tap target.
+    <button type="button" data-a="startWith" data-s={id} className="press ctapulse h-[132px] rounded-full bg-cream text-ink flex items-center justify-center gap-5 hd text-[30px] tracking-[.16em]" onClick={() => a.startWith(id)}>
+      <Ic n={id === 'eatin' ? 'dish' : 'bag'} sw={2.2} cls="w-10 h-10 flex-none" />
+      {t(id === 'eatin' ? 'eatIn' : 'takeAway')}
     </button>
   )
   const lines = (s: string) =>

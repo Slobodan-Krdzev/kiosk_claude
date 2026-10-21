@@ -1,6 +1,6 @@
-// Touch rule (2026-10-19/21): nothing inside a `button.press` may be a hit-test target, so a tap on a label or
-// icon is a tap on the button. This pins the stylesheet rule; the bottom call-to-action buttons also carry the
-// same rule inline (Tag, Cart, basket bar, attract) so no stylesheet order or cache can undo it.
+// Touch rule (2026-10-19/21): nothing inside a `button.press` may be a hit-test target. The stylesheet makes every
+// descendant pointer-events:none, and the bottom call-to-action buttons go one step further (Alex, 2026-10-21):
+// their text and icon are direct children — no span at all between the finger and the button.
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { describe, expect, it } from 'vitest'
@@ -10,7 +10,7 @@ describe('button labels are never the tap target', () => {
   it('reference.css keeps `button.press *{ pointer-events:none }`', () => {
     expect(css).toMatch(/button\.press \*\s*\{\s*pointer-events\s*:\s*none/)
   })
-  it('the bottom buttons carry the rule inline as well', () => {
+  it('the bottom buttons have no span inside: text and icon are direct children', () => {
     for (const [file, marker] of [
       ['src/ui/Tag.tsx', 'data-a="tagGo"'],
       ['src/ui/Cart.tsx', 'data-a="toPay"'],
@@ -21,7 +21,8 @@ describe('button labels are never the tap target', () => {
       const i = src.indexOf(marker)
       expect(i).toBeGreaterThan(-1)
       const block = src.slice(i, src.indexOf('</button>', i))
-      expect(block, `${file} ${marker}`).toContain('NO_HIT')
+      expect(block, `${file} ${marker}`).not.toContain('<span')
+      expect(block, `${file} ${marker}`).toContain('<Ic ')
     }
   })
 })
