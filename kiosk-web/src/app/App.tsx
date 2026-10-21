@@ -9,6 +9,7 @@ import { E, setEngine, t } from '../engine/state'
 import { startLogoHoldWatch } from './fullscreen'
 import { readKioskConfig } from './kioskConfig'
 import { startTapRescue } from './tapRescue'
+import { preconnect, warmImages, warmupOrder } from './imageWarmup'
 import type { EngineData, Lang } from '../engine/types'
 import { setAvailabilityGate, useEngine } from '../store/engine'
 import { liveGate } from './availability'
@@ -46,9 +47,28 @@ const orderLog = (event: string, data?: Record<string, unknown>): void => {
 /** Boot / recovery refresh: the whole menu on the static simulation, only the cart's products on the live API. */
 const refreshScope = (): string[] | undefined => (liveChecks ? undefined : E().products.map((p) => p.id))
 
+let cancelWarmup: (() => void) | null = null
+
 function applyMenu(engine: EngineData, config: { defaultLang: Lang }): Lang {
   setEngine(engine)
-  if (engine.venue) menuLoadedAt = Date.now()
+  if (engine.venue) {
+    menuLoadedAt = Date.now()
+    // Download the menu's pictures into the browser cache in the background, in guest order (imageWarmup.ts).
+    cancelWarmup?.()
+    const urls = warmupOrder(engine, config.defaultLang)
+    if (urls.length) {
+      preconnect(urls)
+      cancelWarmup = warmImages(urls, {
+        onDone: (r) => {
+          try {
+            getRuntime().log('images.warmed', r)
+          } catch {
+            /* before boot */
+          }
+        },
+      })
+    }
+  }
   applyBrand(engine.brand)
   // One identity everywhere (audit F10): the venue's name on API menus, the brand pack's otherwise.
   brandName = engine.venue ? engine.venue.name || 'Kiosk' : engine.brand.name
