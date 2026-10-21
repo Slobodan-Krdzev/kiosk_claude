@@ -141,7 +141,7 @@ async function boot(): Promise<void> {
     })
     if (!menuError) void catalogRefresh(refreshScope())
     rt.log('config.source', { origin: kc.origin, api: source.source === 'api' ? source.apiBase : null, source: source.source, problems: kc.problems })
-    rt.log('boot.ok', { adapters: resolved.adapters.kind, liveChecks, mode: config.mode, brand: engine.brand.id, catalog: source.source, menuError })
+    rt.log('boot.ok', { build: __KIOSK_BUILD__, adapters: resolved.adapters.kind, liveChecks, mode: config.mode, brand: engine.brand.id, catalog: source.source, menuError })
   } catch (e) {
     store.setBootError(String(e))
   }

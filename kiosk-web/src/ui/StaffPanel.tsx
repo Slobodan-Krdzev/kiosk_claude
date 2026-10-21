@@ -112,6 +112,7 @@ function Body() {
           <section className={card}>
             <div className="hd text-[26px]">Device</div>
             <div>Device ID · {rt.deviceId}</div>
+            <div className="num">Build · {__KIOSK_BUILD__.sha} · {__KIOSK_BUILD__.at}</div>
             <div>Adapters · {rt.resolved.adapters.kind === 'static' ? 'static (simulation — not evidence)' : rt.resolved.adapters.kind}</div>
             <div>Mode · {config.mode}</div>
             <ApiRow />
