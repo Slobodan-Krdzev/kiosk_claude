@@ -11,7 +11,7 @@ describe('tap rescue', () => {
   let label: SVGElement
   let onClick: ReturnType<typeof vi.fn<() => void>>
   let stop: () => void
-  let log: ReturnType<typeof vi.fn>
+  let log: ReturnType<typeof vi.fn<(event: string, data?: Record<string, unknown>) => void>>
 
   beforeEach(() => {
     vi.useFakeTimers()
@@ -20,7 +20,7 @@ describe('tap rescue', () => {
     label = btn.querySelector('svg')!
     onClick = vi.fn<() => void>()
     btn.addEventListener('click', onClick)
-    log = vi.fn()
+    log = vi.fn<(event: string, data?: Record<string, unknown>) => void>()
     stop = startTapRescue(document, log)
   })
   afterEach(() => {
