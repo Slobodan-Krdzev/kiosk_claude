@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useModal } from './useModal'
 import type { SimSettings } from '../adapters/static/sim'
 import { getRuntime } from '../app/runtime'
+import { parkedPayments, removeParked, useParkedVersion } from '../payment/parked'
+import { apiHost, readKioskConfig } from '../app/kioskConfig'
 import { numberRange, resolveTagMode } from '../domain/orderTag'
 import { popularityStats, resetPopularity, usePopularityVersion } from '../engine/popularity'
 import { E } from '../engine/state'
@@ -110,8 +112,10 @@ function Body() {
           <section className={card}>
             <div className="hd text-[26px]">Device</div>
             <div>Device ID · {rt.deviceId}</div>
+            <div className="num">Build · {__KIOSK_BUILD__.sha} · {__KIOSK_BUILD__.at}</div>
             <div>Adapters · {rt.resolved.adapters.kind === 'static' ? 'static (simulation — not evidence)' : rt.resolved.adapters.kind}</div>
             <div>Mode · {config.mode}</div>
+            <ApiRow />
             <div>
               Brand · {E().brand.name} · products {E().products.length}
             </div>
@@ -146,6 +150,7 @@ function Body() {
             </div>
             <div>Reason · {pay.uncertainReason ?? pay.lastError ?? '—'}</div>
             <div>Payment confirmed · {pay.paymentConfirmed ? 'yes' : 'no'}</div>
+            <ParkedList />
             <div className="flex gap-3 flex-wrap">
               {pay.status === 'timeout' || pay.status === 'assistance' ? (
                 <button type="button" className={btn} onClick={() => void rt.controller.staffCheckStatus()}>
@@ -199,6 +204,49 @@ function Body() {
       ) : null}
       {tab === 'sim' ? <SimPanel /> : null}
       {tab === 'logs' ? <Logs /> : null}
+    </div>
+  )
+}
+
+/** Uncertain payments the guest left with "Start from the top": kept until staff mark them handled. */
+function ParkedList() {
+  useParkedVersion()
+  const rt = getRuntime()
+  const items = parkedPayments()
+  if (!items.length) return <div className="text-mute">Parked by guests · none</div>
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="font-bold text-ember">Parked by guests ("Start from the top") · {items.length} — check the terminal / POS, then mark done</div>
+      {items.map((x) => (
+        <div key={`${x.orderId}-${x.attemptId}`} className="flex items-center gap-3 flex-wrap rounded-[14px] bg-paper px-3 py-2">
+          <span className="num break-all">
+            {x.parkedAt.slice(0, 16).replace('T', ' ')} · {x.status} · {x.orderId ?? '—'} · attempt {x.attempt} · {x.txRef ?? 'no tx ref'} · {x.totalCents != null ? (x.totalCents / 100).toFixed(2) : '—'} · {x.tag ?? 'no table'}
+          </span>
+          <button
+            type="button"
+            className={btn}
+            onClick={() => {
+              rt.log('pay.parkedHandled', { orderId: x.orderId, attemptId: x.attemptId, by: 'staff-pin' })
+              removeParked(x.orderId, x.attemptId)
+            }}
+          >
+            Mark done (logged)
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Which backend this kiosk talks to and where the address came from (config.js per location, else config.json). */
+function ApiRow() {
+  const kc = readKioskConfig()
+  const cfg = useEngine((s) => s.config)
+  const api = kc.api ?? cfg?.catalogSource?.apiBase ?? null
+  return (
+    <div className="break-all">
+      Backend · {api ? apiHost(api) : '—'} · {kc.origin}
+      {kc.problems.length ? <span className="text-ember"> · {kc.problems.join(' · ')}</span> : null}
     </div>
   )
 }

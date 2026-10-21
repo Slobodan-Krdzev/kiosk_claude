@@ -3,6 +3,24 @@ import { createRoot } from 'react-dom/client'
 import './reference.css'
 import { App } from './app/App'
 
+// The old kiosk registered a service worker (service-worker.js) on the same origin a venue now serves this
+// kiosk from. A leftover worker keeps serving the OLD bundle from its cache, so touch fixes never arrive on
+// the device. This kiosk has no service worker: unregister any found and drop their caches, once per boot.
+void (async () => {
+  try {
+    const regs = (await navigator.serviceWorker?.getRegistrations?.()) ?? []
+    for (const r of regs) await r.unregister()
+    const names = (await window.caches?.keys?.()) ?? []
+    for (const n of names) await caches.delete(n)
+    if (regs.length || names.length) {
+      console.warn('[kiosk] removed legacy service worker(s) / caches', { workers: regs.length, caches: names.length })
+      if (regs.length) window.location.reload()
+    }
+  } catch {
+    /* no service worker API */
+  }
+})()
+
 window.addEventListener('error', (e) => console.error('[kiosk] fatal', e.message, e.error?.stack))
 window.addEventListener('unhandledrejection', (e) => console.error('[kiosk] unhandled', String(e.reason)))
 

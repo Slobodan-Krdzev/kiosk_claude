@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { DEFAULT_MENU_TIMEOUT_MS, designFor, designUrl, fetchDesign, fetchMenu, mapMenu, resolveCatalogSource } from '../adapters/http/catalogSource'
-import type { VenueDesign } from '../adapters/http/venueDesign'
+import { DEFAULT_MENU_TIMEOUT_MS, fetchMenu, mapMenu, resolveCatalogSource } from '../adapters/http/catalogSource'
 import { askContinueWithoutReceipt } from './orderPrompts'
 import { withLiveAdapters } from '../adapters/http/tmkLive'
 import { withTimeout } from '../adapters/withTimeout'
@@ -8,6 +7,8 @@ import type { CatalogSourceConfig } from '../domain/types'
 import { fetchEngineData, resolveOrderTagConfig } from '../engine/data'
 import { E, setEngine, t } from '../engine/state'
 import { startLogoHoldWatch } from './fullscreen'
+import { readKioskConfig } from './kioskConfig'
+import { startTapRescue } from './tapRescue'
 import type { EngineData, Lang } from '../engine/types'
 import { setAvailabilityGate, useEngine } from '../store/engine'
 import { liveGate } from './availability'
@@ -28,7 +29,7 @@ import { clearSession, restoreSession, startSessionPersistence } from './session
 
 let bootStarted = false
 let brandName = 'Guestit'
-let menuRetry: { source: CatalogSourceConfig; pack: EngineData; timeoutMs: number; design?: VenueDesign } | null = null
+let menuRetry: { source: CatalogSourceConfig; pack: EngineData; timeoutMs: number } | null = null
 /** When the API menu in use was loaded (ms); stamped into snapshots as the catalog version (no price endpoint exists). */
 let menuLoadedAt = 0
 /** Live checks against the kiosk API are in use (API / test menu on the static simulation). */
@@ -62,7 +63,7 @@ async function retryMenu(): Promise<void> {
   const s = useEngine.getState()
   if (!menuRetry || !s.config) return
   try {
-    const engine = mapMenu(await fetchMenu(menuRetry.source, menuRetry.timeoutMs), menuRetry.pack, import.meta.env.BASE_URL, undefined, menuRetry.design)
+    const engine = mapMenu(await fetchMenu(menuRetry.source, menuRetry.timeoutMs), menuRetry.pack, import.meta.env.BASE_URL)
     const lang = applyMenu(engine, s.config)
     useEngine.getState().setMenuError(null)
     useEngine.getState().setReady(s.config, lang)
@@ -88,7 +89,10 @@ async function boot(): Promise<void> {
       throw new Error('production mode requires real adapters (window.GuestitAdapters) — refusing to run on the simulation')
     }
     const base = import.meta.env.BASE_URL
-    const source = resolveCatalogSource(config.catalogSource, window.location.search)
+    // config.js (per-location backend address) replaces config.json's apiBase and selects the API menu;
+    // ?testMode=true / ?source=static still win inside resolveCatalogSource.
+    const kc = readKioskConfig()
+    const source = resolveCatalogSource(kc.api ? { ...(config.catalogSource || {}), apiBase: kc.api, source: 'api' } : config.catalogSource, window.location.search)
     const timeoutMs = config.timeouts.menuLoad ?? DEFAULT_MENU_TIMEOUT_MS
     // API menu on the simulation: availability (and the no-op price check) go to the kiosk API, as the old kiosk did.
     // Order + payment on the API menu: one POST (CreateKioskOrderWithPinPayment) behind payment / POS / printer.
@@ -106,8 +110,6 @@ async function boot(): Promise<void> {
     // The remote menu request starts now, in parallel with the brand pack; it is awaited only after restore().
     const menuP = source.source === 'static' ? null : fetchMenu(source, timeoutMs)
     menuP?.catch(() => undefined) // observed below; avoid an unhandled rejection if restore() throws first
-    // The venue design file (badges, icons, cross-sells … by API ids) loads alongside; it never fails the menu.
-    const designP = source.source === 'static' ? null : fetchDesign(designUrl(source, base), timeoutMs)
     const pack = await withTimeout(fetchEngineData(base), timeoutMs, 'brandPack')
     applyMenu(pack, config) // texts + brand for the recovery UI, even if the menu never arrives
     config.orderTag = resolveOrderTagConfig(config.orderTag)
@@ -116,20 +118,12 @@ async function boot(): Promise<void> {
 
     let engine = pack
     let menuError: string | null = null
-    let design: VenueDesign | undefined
-    if (designP) {
-      const dz = await designP
-      if (dz.error) rt.log('design.loadFailed', { error: dz.error })
-      const v = designFor(dz.raw, pack)
-      design = v.design
-      if (v.problems.length) rt.log('design.ignored', { problems: v.problems })
-    }
     if (menuP) {
       try {
-        engine = mapMenu(await menuP, pack, base, undefined, design)
+        engine = mapMenu(await menuP, pack, base)
       } catch (e) {
         menuError = String(e)
-        menuRetry = { source, pack, timeoutMs, design }
+        menuRetry = { source, pack, timeoutMs }
         rt.log('menu.loadFailed', { error: menuError })
       }
     }
@@ -147,7 +141,8 @@ async function boot(): Promise<void> {
       rt.log('connectivity.state', { kind: c.kind, ...(c.kind === 'connected' ? { role: c.role, epoch: c.epoch } : {}) })
     })
     if (!menuError) void catalogRefresh(refreshScope())
-    rt.log('boot.ok', { adapters: resolved.adapters.kind, liveChecks, mode: config.mode, brand: engine.brand.id, catalog: source.source, design: !!design, menuError })
+    rt.log('config.source', { origin: kc.origin, api: source.source === 'api' ? source.apiBase : null, source: source.source, problems: kc.problems })
+    rt.log('boot.ok', { build: __KIOSK_BUILD__, adapters: resolved.adapters.kind, liveChecks, mode: config.mode, brand: engine.brand.id, catalog: source.source, menuError })
   } catch (e) {
     store.setBootError(String(e))
   }
@@ -235,6 +230,19 @@ function useTapDiagnostics() {
       }
     }
     let pending: ReturnType<typeof setTimeout> | null = null
+    // Every touch-down, button or not (2026-10-21): if a tap "on the text" never reaches the button, this line
+    // shows what the device hit instead — the element path under the finger and the topmost element there.
+    const path = (el: Element | null) => {
+      const out: string[] = []
+      for (let n = el, i = 0; n && i < 4; n = n.parentElement, i++) out.push(`${n.tagName.toLowerCase()}${n.id ? '#' + n.id : ''}${n.getAttribute('data-a') ? '[' + n.getAttribute('data-a') + ']' : ''}`)
+      return out.join(' < ')
+    }
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse') return
+      const el = e.target instanceof Element ? e.target : null
+      const top = document.elementFromPoint(e.clientX, e.clientY)
+      safeLog('tap.down', { pointerType: e.pointerType, x: Math.round(e.clientX), y: Math.round(e.clientY), target: path(el), top: top === el ? 'same' : path(top), button: describe(e.target).button })
+    }
     const onUp = (e: PointerEvent) => {
       const d = describe(e.target)
       if (!d.button) return
@@ -256,11 +264,13 @@ function useTapDiagnostics() {
       const d = describe(e.target)
       if (d.button) safeLog('tap.click', d)
     }
+    document.addEventListener('pointerdown', onDown, true)
     document.addEventListener('pointerup', onUp, true)
     document.addEventListener('pointercancel', onCancel, true)
     document.addEventListener('click', onClick, true)
     return () => {
       if (pending) clearTimeout(pending)
+      document.removeEventListener('pointerdown', onDown, true)
       document.removeEventListener('pointerup', onUp, true)
       document.removeEventListener('pointercancel', onCancel, true)
       document.removeEventListener('click', onClick, true)
@@ -273,16 +283,35 @@ function useLogoHold() {
   useEffect(() => startLogoHoldWatch(), [])
 }
 
+/**
+ * Staff shortcut: 5 taps within 3 s on the logo (attract hero logo, rail logo, boot card admin spot). A document
+ * capture listener since 2026-10-21 (the same mechanism as the tap diagnostics), with every counted tap logged as
+ * `staff.tap {n}` so a support call can see how far a guest or staff member got. Taps slower than 3 s apart reset.
+ */
 function useStaffTaps() {
   const taps = useRef<number[]>([])
-  return () => {
+  const tap = () => {
     const now = Date.now()
     taps.current = [...taps.current.filter((x) => now - x < 3000), now]
+    try {
+      getRuntime().log('staff.tap', { n: taps.current.length })
+    } catch {
+      /* before boot */
+    }
     if (taps.current.length >= 5) {
       taps.current = []
       useEngine.getState().setStaffOpen(true)
     }
   }
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const el = e.target instanceof Element ? e.target : null
+      if (el && el.closest('img[alt]') && el.closest('[data-a="attract"], .hero-lockup')) tap()
+    }
+    document.addEventListener('click', onClick, true)
+    return () => document.removeEventListener('click', onClick, true)
+  }, [])
+  return tap
 }
 
 export function App() {
@@ -299,6 +328,17 @@ export function App() {
   const staffTap = useStaffTaps()
   useIdle()
   useTapDiagnostics()
+  useEffect(
+    () =>
+      startTapRescue(document, (ev, data) => {
+        try {
+          getRuntime().log(ev, data)
+        } catch {
+          console.info('[kiosk]', ev, data)
+        }
+      }),
+    [],
+  )
   useLogoHold()
   useMenuRetry(menuError)
 
@@ -329,10 +369,7 @@ export function App() {
   const showPdp = ready && pdpOpen && pay.status === 'idle' && screen !== 'pay'
   return (
     <Stage brandName={brandName} overlay={ready ? <Overlays /> : null}>
-      <div className={`screen-root enter-${navDir}`} key={`${screen}-${pay.status === 'idle' ? '' : 'pay'}`} onClickCapture={(e) => {
-        const el = e.target as HTMLElement
-        if (el.closest('img[alt]') && el.closest('[data-a="attract"], .hero-lockup')) staffTap()
-      }}>
+      <div className={`screen-root enter-${navDir}`} key={`${screen}-${pay.status === 'idle' ? '' : 'pay'}`}>
         {body}
       </div>
       {showPdp ? <Pdp /> : null}

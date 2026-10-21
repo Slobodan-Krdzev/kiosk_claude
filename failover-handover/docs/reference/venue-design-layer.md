@@ -1,3 +1,5 @@
+> **Withdrawn 2026-10-20 (Alex): "we only need fetching the correct menu, not a design file or anything else — the design is coded within the kiosk app."** The file, its loader (`designUrl` / `fetchDesign` / `designFor`), `catalogSource.designUrl` and `public/venue/2408.json` were removed. What survives, from the API data alone: promo cards from `IsPromotion`, sidebar icons from the subcategory name (`tmkRules.ts`), "Popular" from the device's order tally. Kept for history only.
+
 # Venue design layer for API menus
 
 **Why.** The kiosk API (`getfullresources`) carries the menu but none of the design data the v36 engine shows:

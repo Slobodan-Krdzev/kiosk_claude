@@ -259,11 +259,11 @@ describe('§3 MaxAmountInAgenda and §4 NoInteraction from the real menus', () =
     expect(useEngine.getState().draft!.qty).toBe(1)
   })
 
-  it('NoInteraction products stay visible, open the product page and cannot be added', () => {
+  it('NoInteraction products are left out of grids (2026-10-21); reached directly they open the product page and cannot be added', () => {
     const info = FULL.products.find((p) => p.id === '454444')!
     expect(info.infoOnly).toBe(true)
     expect(info.disabled).toBeUndefined()
-    expect(visible([info])).toHaveLength(1)
+    expect(visible([info])).toHaveLength(0)
     expect(obNeedsDetail(info)).toBe(true)
     useEngine.getState().quickAdd(info.id)
     expect(useEngine.getState().pdpOpen).toBe(true)

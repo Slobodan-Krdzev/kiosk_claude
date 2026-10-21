@@ -596,29 +596,17 @@ export function BottomBar() {
         data-a="viewOrder"
         id="bar"
         onClick={viewOrder}
-        className="pointer-events-auto press relative w-full rounded-full bg-jade text-white flex items-center justify-center gap-4"
+        className="pointer-events-auto press relative w-full rounded-full bg-jade text-white flex items-center justify-center gap-4 text-[23px] font-bold leading-[30px] num"
         style={{ height: LY.basketHeight, boxShadow: '0 22px 52px -14px rgb(var(--c-primary) / .55)' }}
       >
-        <span className="w-9 h-9">
-          <Ic n="bag" sw={2} />
-        </span>
-        <span className="text-[23px] font-bold leading-[30px]">{t('viewOrder')}</span>
-        <span className="text-white/45 text-[23px] font-bold">·</span>
-        <span id="bkQty" className="bkv text-[21px] font-medium leading-[30px]">
-          <span className="bkv-c">
-            {n} {n === 1 ? t('item') : t('items')}
-          </span>
-        </span>
-        <span className="text-white/45 text-[23px] font-bold">·</span>
-        <span id="bkTot" className="bkv num text-[21px] font-medium leading-[30px]">
-          <span className="bkv-c">{fmt(cartTotal(cart))}</span>
-        </span>
-        <span className="w-7 h-7 ml-1">
-          <Ic n="chevR" sw={2.8} />
-        </span>
-        <span id="bkNote" role="status" aria-live="polite" className={`text-[19px] font-bold${noteOn ? ' on' : ''}`}>
+        {/* Icon and text are direct children of the button (Alex, 2026-10-21): no wrapper element can ever be the tap target.
+            #bkNote is the transient "added" note laid over the bar, not a label; it is not hit-testable (CSS). */}
+        <Ic n="bag" sw={2} cls="w-9 h-9 flex-none" />
+        {`${t('viewOrder')} · ${n} ${n === 1 ? t('item') : t('items')} · ${fmt(cartTotal(cart))}`}
+        <Ic n="chevR" sw={2.8} cls="w-7 h-7 ml-1 flex-none" />
+        <output id="bkNote" role="status" aria-live="polite" className={`text-[19px] font-bold${noteOn ? ' on' : ''}`}>
           {note?.text ?? ''}
-        </span>
+        </output>
       </button>
     </div>
   )

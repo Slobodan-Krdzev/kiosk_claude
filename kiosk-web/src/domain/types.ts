@@ -212,8 +212,6 @@ export interface CatalogSourceConfig {
   /** Test-mode menu endpoint; ?menu=<menuId> is appended. */
   testUrl: string
   menuId: number
-  /** Venue design file (badges, icons, cross-sells … keyed by API ids); default `venue/<menuId>.json` under the page base. */
-  designUrl?: string
   /** `tableNumber` sent with an API order when the order has no table tag (the old kiosk hard-coded "9"). */
   tableNumber?: string
 }

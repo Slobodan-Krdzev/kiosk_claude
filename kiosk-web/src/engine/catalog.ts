@@ -102,8 +102,13 @@ export function alUnknown(p: Product): boolean {
 }
 
 /** ONE filter for every product list. */
+/**
+ * Products that appear in grids and lists: not disabled, not sold out, not hidden by the allergen filter, and not
+ * information-only (API NoInteraction, 2026-10-21, Alex: "exclude that from the grid"). An information-only
+ * promotion still shows as a banner on the home, which looks the product up directly, not through this list.
+ */
 export function visible(list: Product[]): Product[] {
-  return list.filter((p) => !p.disabled && !checkProducts([p.id]).length && !alHidden(p))
+  return list.filter((p) => !p.disabled && !p.infoOnly && !checkProducts([p.id]).length && !alHidden(p))
 }
 
 export function gtcSoldOut(p: Product): boolean {

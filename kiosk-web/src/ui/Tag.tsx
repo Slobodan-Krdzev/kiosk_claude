@@ -109,13 +109,10 @@ export function Tag() {
             {t('tag_skip')}
           </button>
         )}
-        <button type="button" id="tagGo" data-a="tagGo" disabled={dis} aria-disabled={dis} className="press cta w-full h-[112px] rounded-full bg-jade text-white flex items-center justify-center gap-6" onClick={() => void tagGo(st)}>
-          <span className="hd text-[28px] tracking-[.12em]">
-            {checking ? t('availCheckT') : t('tag_go')} · <span className="num">{fmt(total)}</span>
-          </span>
-          <span className="w-9 h-9">
-            <Ic n="arrR" sw={2.4} />
-          </span>
+        {/* Text and icon are direct children of the button (Alex, 2026-10-21): no wrapper element can ever be the tap target. */}
+        <button type="button" id="tagGo" data-a="tagGo" disabled={dis} aria-disabled={dis} className="press cta w-full h-[112px] rounded-full bg-jade text-white flex items-center justify-center gap-6 hd num text-[28px] tracking-[.12em]" onClick={() => void tagGo(st)}>
+          {checking ? t('availCheckT') : `${t('tag_go')} · ${fmt(total)}`}
+          <Ic n="arrR" sw={2.4} cls="w-9 h-9 flex-none" />
         </button>
       </div>
     </>

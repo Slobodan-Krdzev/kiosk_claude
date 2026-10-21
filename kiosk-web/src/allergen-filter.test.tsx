@@ -74,7 +74,7 @@ describe('allergen filter with real API data', () => {
     // a product without an allergen screen is never hidden by the filter (unknown ≠ free of)
     const unknownCat = E().products.find((p) => alUnknown(p))!.cat
     act(() => useEngine.getState().goCat(unknownCat))
-    expect(cards(container)).toEqual(expect.arrayContaining(E().products.filter((p) => p.cat === unknownCat && alUnknown(p)).map((p) => p.id)))
+    expect(cards(container)).toEqual(expect.arrayContaining(E().products.filter((p) => p.cat === unknownCat && alUnknown(p) && !p.infoOnly).map((p) => p.id)))
 
     act(() => useEngine.getState().alClear())
     act(() => useEngine.getState().goCat(KOUDE))
