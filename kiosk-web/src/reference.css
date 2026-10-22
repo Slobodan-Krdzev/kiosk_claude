@@ -921,8 +921,9 @@ body.tablet .obw{ min-height:260px; } body.tablet .obw-img{ min-height:260px; }
 .r44-round{ pointer-events:auto; width:calc(60px * var(--u)); height:calc(60px * var(--u)); border-radius:999px; background:#fff; color:#000; display:grid; place-items:center;
   box-shadow:0 6px 18px -10px rgba(0,0,0,.35); }
 .r44-round span{ width:calc(24px * var(--u)); height:calc(24px * var(--u)); }
-.r44-intro{ display:grid; grid-template-columns:30% 1fr; gap:calc(36px * var(--u)); align-items:center; padding-top:calc(96px * var(--u)); }
-.r44-hero{ border-radius:calc(18px * var(--u)); overflow:hidden; background:#e9e9e9; aspect-ratio:1.1 / 1; }
+.r44-intro{ display:grid; grid-template-columns:40% 1fr; gap:calc(36px * var(--u)); align-items:center; padding-top:calc(96px * var(--u)); }
+/* Same shape as the menu's product pictures (816 × 580), so the whole picture shows (Alex, 2026-10-22). */
+.r44-hero{ border-radius:calc(18px * var(--u)); overflow:hidden; background:#e9e9e9; aspect-ratio:816 / 580; }
 .r44-hero .hero-shot{ width:100%; height:100%; }
 /* Product picture fills the whole card: no grey margin, no shadow, cropped to the card (Alex, 2026-10-22). */
 .r44-hero .hero-shot .hero-img{ top:0; left:0; width:100%; height:100%; object-fit:cover; filter:none; }
@@ -1034,7 +1035,8 @@ body.tablet .obw{ min-height:260px; } body.tablet .obw-img{ min-height:260px; }
 .r44-reason{ min-height:calc(24px * var(--u)); font-size:calc(15px * var(--u)); font-weight:800; color:var(--r44-err); text-align:center; }
 .r44-reason.flash{ animation:r44-flash .9s ease 2; }
 .r44-barrow{ display:flex; gap:calc(18px * var(--u)); align-items:stretch; }
-.r44-qty{ flex:none; border-radius:calc(14px * var(--u)); box-shadow:inset 0 0 0 1.5px rgb(var(--c-ink) / .25); background:#fff; display:flex; align-items:center; padding:0 calc(6px * var(--u)); }
+.r44-qty{ flex:none; border-radius:calc(14px * var(--u)); box-shadow:inset 0 0 0 1.5px rgb(var(--c-ink) / .25); background:#fff; display:flex; align-items:center; justify-content:center; padding:0 calc(6px * var(--u)); }
+.r44-qty .gt-stp{ justify-content:center; }
 .r44-qty .gt-stp{ background:transparent !important; box-shadow:none !important; gap:calc(10px * var(--u)); }
 .r44-qty .gt-stp-b{ background:transparent !important; color:#000 !important; box-shadow:none !important; width:calc(52px * var(--u)) !important; }
 .r44-qty .gt-stp-b.off{ opacity:.3; }
