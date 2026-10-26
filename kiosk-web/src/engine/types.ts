@@ -321,7 +321,7 @@ export interface Screensaver {
   intervalMs: number
   /** Idle time before the screensaver starts (API ActivationTime, seconds → ms). Not used yet. */
   idleMs: number
-  /** Slide opacity 0..1 (API Transparency). */
+  /** Slide opacity (API Transparency); 0 or missing = fully visible. */
   opacity: number
   /** Slides per language, in display order. */
   slides: Partial<Record<Lang, Slide[]>>

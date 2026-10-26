@@ -189,7 +189,11 @@ export function screensaverOf(trees: TmkLangData[], primary: TmkLangData, img: (
       .map((s) => slideOf(s, img))
   }
   const sec = (n: number, dflt: number) => (Number(n) > 0 ? Number(n) : dflt) * 1000
-  return { intervalMs: sec(ss.SlideTimer, 7), idleMs: sec(ss.ActivationTime, 30), opacity: Math.max(0, Math.min(1, ss.Transparency ?? 1)), slides }
+  // Transparency 0 (or missing) means "not set", not "invisible": a venue backend sent 0.0 and the whole
+  // screensaver disappeared (2026-10-21). Only a value between 0 and 1 dims the slides.
+  const t = Number(ss.Transparency)
+  const opacity = t > 0 && t < 1 ? t : 1
+  return { intervalMs: sec(ss.SlideTimer, 7), idleMs: sec(ss.ActivationTime, 30), opacity, slides }
 }
 
 export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptions): EngineData {

@@ -5,8 +5,11 @@ import react from '@vitejs/plugin-react'
 
 // Image proxy (decision 2026-10-15): the kiosk API serves menu images over plain http, which an https
 // kiosk page would block. GET /img-proxy?u=<http url> fetches the image server-side.
-// Only the API's image hosts are allowed, so this is not an open proxy.
+// Only the API's image hosts and local-network servers (a venue's own backend, e.g. 192.168.0.2:9091 —
+// 2026-10-21) are allowed, so this is not an open proxy.
 const IMG_HOSTS = new Set(['my.tabletmenukaart.nl', 'kioskapi.dev.revelapps.com'])
+const isLanHost = (h: string): boolean =>
+  h === 'localhost' || /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)
 const IMG_MAX_BYTES = 8 * 1024 * 1024
 
 const imgProxy: Connect.NextHandleFunction = async (req, res, next) => {
@@ -18,7 +21,7 @@ const imgProxy: Connect.NextHandleFunction = async (req, res, next) => {
     res.statusCode = 400
     return res.end('bad url')
   }
-  if (!/^https?:$/.test(target.protocol) || !IMG_HOSTS.has(target.hostname)) {
+  if (!/^https?:$/.test(target.protocol) || !(IMG_HOSTS.has(target.hostname) || isLanHost(target.hostname))) {
     res.statusCode = 403
     return res.end('host not allowed')
   }
