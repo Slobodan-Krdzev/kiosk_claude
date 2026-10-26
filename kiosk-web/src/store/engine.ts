@@ -22,7 +22,7 @@ import {
 } from '../engine/cart'
 import { byId, defServingIx, homeHasContent, lineMax, mustId, obBlocked, obNeedsDetail, obSizes, obVarCard, pname, servingsOf, specialGroup, specialHasMore } from '../engine/catalog'
 import { cmsById, experienceFor } from '../engine/cms'
-import { cfgKey, clampQty, exQty, exSet, grpSet, newDraft, stepKey, unavailParts, validateDraft, xsConflicts, xsKey, xsPortion, xsRemove, xsSel, xsSelected, xsSet, draftValid } from '../engine/draft'
+import { cfgKey, clampQty, exQty, exSet, groupLocked, grpSet, newDraft, stepKey, unavailParts, validateDraft, xsConflicts, xsKey, xsPortion, xsRemove, xsSel, xsSelected, xsSet, draftValid } from '../engine/draft'
 import { E, L, checkProducts, hasEngine, setAllergenFilter, setLang as engineSetLang } from '../engine/state'
 import type { CartLine, Draft, Lang, Product } from '../engine/types'
 
@@ -558,6 +558,8 @@ export const useEngine = create<EngineState>((set, get) => {
     },
     choice: (g, id) =>
       mutateDraft((d) => {
+        // A group below an unfinished mandatory group is locked (draft.groupLocked).
+        if (groupLocked(d, g) && d.choices[g] !== id) return
         d.choices[g] = id
       }),
     pick: (g, id) =>

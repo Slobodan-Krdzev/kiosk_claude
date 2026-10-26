@@ -10,6 +10,7 @@ import {
   grpCount,
   grpMax,
   grpMin,
+  groupLocked,
   isStep,
   optionUnavailable,
   stepLocked,
@@ -136,13 +137,32 @@ const r44Cols = (items: ModItem[]): number => {
   return n <= 2 ? n : n === 3 ? 3 : long ? 2 : 4
 }
 
-function Group({ g, d, need, hint }: { g: string; d: Draft; need: boolean; hint: string }) {
+function Group({ g, d, need, hint, nudge }: { g: string; d: Draft; need: boolean; hint: string; nudge: () => void }) {
   const choice = useEngine((s) => s.choice)
   const grp = E().mods[g]
   const req = !!grp.req
   const filter = getAllergenFilter()
+  // Disabled while a mandatory group above it is not done (draft.groupLocked); a tap points to that group.
+  const locked = groupLocked(d, g)
   return (
-    <section className={`grp r44-grp${need ? ' grp-need' : ''}`} id={`grp-${g}`} role="group" aria-labelledby={`grpl-${g}`}>
+    <section
+      className={`grp r44-grp${need ? ' grp-need' : ''}`}
+      id={`grp-${g}`}
+      role="group"
+      aria-labelledby={`grpl-${g}`}
+      aria-disabled={locked || undefined}
+      data-locked={locked || undefined}
+      style={{ opacity: locked ? 0.38 : 1, filter: locked ? 'grayscale(1)' : undefined, transition: 'opacity 250ms ease, filter 250ms ease' }}
+      onClickCapture={
+        locked
+          ? (e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              nudge()
+            }
+          : undefined
+      }
+    >
       <R44Head title={<span id={`grpl-${g}`}>{L(grp.label)}</span>} note={req ? 'req' : 'opt'} />
       <div id={`hint-${g}`} className="reqHint r44-hint" role="status" aria-live="polite">
         {hint}
@@ -764,10 +784,10 @@ function ProductPage({ p, d, xp, editing, nudge, need, hint }: { p: Product; d: 
           </div>
           <SizeSection p={p} d={d} />
           {req.map((g) => (
-            <Group key={g.id} g={g.id} d={d} need={need === g.id} hint={need === g.id ? hint : ''} />
+            <Group key={g.id} g={g.id} d={d} need={need === g.id} hint={need === g.id ? hint : ''} nudge={nudge} />
           ))}
           {opt.map((g) => (
-            <Group key={g.id} g={g.id} d={d} need={false} hint="" />
+            <Group key={g.id} g={g.id} d={d} need={false} hint="" nudge={nudge} />
           ))}
           {/* Modifier groups with several picks (ui 'chips') are the chip grid; upsell collection steps are the
               picture tiles again (2026-10-26, Alex: "rendered with the image, the same way they used to be"). */}
