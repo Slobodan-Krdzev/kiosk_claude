@@ -9,6 +9,7 @@ import { buildSnapshot } from './app/checkout'
 import type { TmkRoot } from './adapters/http/tmk'
 import { mapTmkToEngine } from './adapters/http/tmkMapper'
 import { buildOrderPayload } from './adapters/http/tmkOrder'
+import { specialQty } from './engine/cart'
 import { byId, specialGroup, specialHasMore } from './engine/catalog'
 import { finalizeEngineData } from './engine/data'
 import { E, setEngine, setLang } from './engine/state'
@@ -92,6 +93,18 @@ describe('tile tap', () => {
     const body = buildOrderPayload({ ...snap, orderId: 'K1-x-1', startedAt: '', paidAt: null }, '1')
     expect(body.Order.Items[0].Item.Id).toBe(PID)
     expect(body.Order.Items[0].UpsaleCollection.map((u) => [u.UpsaleStepOptionModel.ProductId, u.Quantity])).toEqual([[Number(opt.pid), 1]])
+  })
+
+  it('the tapped tile counts what is in the basket (it shows coloured with that number); the other tile stays empty', () => {
+    setEngine(menu({ only: true }))
+    const p = byId(String(PID))!
+    const g = specialGroup(p)!
+    const [a, b] = E().mods[g].items
+    useEngine.getState().specialPick(p.id, b.id)
+    useEngine.getState().cartQty(useEngine.getState().cart[0].lid, 1)
+    const cart = useEngine.getState().cart
+    expect(specialQty(cart, p, g, b.id)).toBe(2)
+    expect(specialQty(cart, p, g, a.id)).toBe(0)
   })
 
   it('an unknown option id does nothing', () => {
