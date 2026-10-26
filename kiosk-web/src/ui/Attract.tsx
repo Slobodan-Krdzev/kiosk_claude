@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/shallow'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { venueMenu } from '../engine/catalog'
 import { currentSlides } from '../engine/slides'
 import { E, L, t, tf } from '../engine/state'
 import { useEngine } from '../store/engine'
@@ -8,6 +9,13 @@ import { Ic, IcQR, LangPills } from './primitives'
 // Original first-screen slides (embedded hero + BRAND.hero.images), kept for later use.
 // Since 2026-10-15 the first screen shows the venue's screensaver slides from the API menu instead.
 // const HERO_LOCAL = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}brand/img/hero.webp`
+
+// Last-resort start-screen pictures for API menus without screensaver slides and without ThemeResponse.CoverImage
+// (2026-10-26, Alex). They carry their own logo, so the venue logo is not drawn over them.
+const BASE = import.meta.env.BASE_URL.replace(/\/?$/, '/')
+const FALLBACK_POSTERS = [`${BASE}brand/fallback/poster-1.webp`, `${BASE}brand/fallback/poster-2.webp`]
+/** Screensaver idle time when the menu sets none (API menus only). */
+const DEFAULT_IDLE_MS = 30_000
 
 /** Attract / welcome screen — port of SCR.attract. Remote hero images fall back to the embedded photo. */
 export function Attract() {
@@ -28,29 +36,38 @@ export function Attract() {
   }, [])
   // A slide that fails to load is dropped from the rotation by state, never by removing React's DOM node.
   const [broken, setBroken] = useState<string[]>([])
-  const images = currentSlides(ss, lang, now)
+  const slides = currentSlides(ss, lang, now)
     .map((s) => s.img)
     .filter((u, i, arr) => arr.indexOf(u) === i && !broken.includes(u))
-  const interval = ss?.intervalMs || 7000
   // API menu: the venue's slides carry their own copy, so the brand overlay (headline, tagline) is hidden
   // and the venue logo (ThemeResponse.LogoImage) replaces the brand logo.
-  const venueMode = !!ss
+  const venueMode = !!ss || venueMenu()
   const venue = E().venue
+  // Start-screen pictures on API menus (2026-10-26): the screensaver slides; none → the venue's CoverImage;
+  // that missing or broken too → the bundled posters (which bring their own logo: no venue logo then).
+  const cover = venue?.coverImg && !broken.includes(venue.coverImg) ? venue.coverImg : null
+  const media: 'slides' | 'cover' | 'posters' | 'none' = slides.length ? 'slides' : !venueMode ? 'none' : cover ? 'cover' : 'posters'
+  const images = media === 'slides' ? slides : media === 'cover' ? [cover!] : media === 'posters' ? FALLBACK_POSTERS : []
+  const interval = media === 'slides' ? ss?.intervalMs || 7000 : 7000
   const logo = venueMode && venue?.logoImg ? { src: venue.logoImg, alt: venue.name || '', filter: 'drop-shadow(0 6px 24px rgba(0,0,0,.5))' } : { src: b.logoImg, alt: b.name, filter: `${b.logoFilter || 'invert(1) brightness(1.6)'} drop-shadow(0 6px 24px rgba(0,0,0,.5))` }
 
-  // Bottom controls hide after Screensaver.ActivationTime without a touch and come back on the next touch.
-  // The revealing touch never starts an order: the controls are not hit-testable while invisible.
-  const idleMs = ss?.idleMs || 0
+  // Screensaver on: after Screensaver.ActivationTime (API menus: 30 s when unset) without a touch the bottom controls
+  // hide and one "tap here to start ordering" button takes their place (2026-10-26, Alex). Only that button wakes
+  // the screen, so the waking tap can never start an order; the controls are not hit-testable while invisible.
+  const idleMs = ss?.idleMs || (venueMode ? DEFAULT_IDLE_MS : 0)
   const [idle, setIdle] = useState(false)
   // Hit-testing is only switched off once the fade-out has finished (longest row transition ≈ 560 ms):
   // a tap on a button that is still visible must always count. Waking re-enables it at once.
   const [gone, setGone] = useState(false)
+  const wakeRef = useRef<() => void>(() => {})
   useEffect(() => {
     if (!idleMs) return
     let timer: ReturnType<typeof setTimeout> | null = null
     let goneTimer: ReturnType<typeof setTimeout> | null = null
+    let asleep = false
     const arm = () => {
       timer = setTimeout(() => {
+        asleep = true
         setIdle(true)
         goneTimer = setTimeout(() => setGone(true), 650)
       }, idleMs)
@@ -59,17 +76,23 @@ export function Attract() {
       if (timer) clearTimeout(timer)
       if (goneTimer) clearTimeout(goneTimer)
       goneTimer = null
+      asleep = false
       setIdle(false)
       setGone(false)
       arm()
     }
+    // Activity while the controls are shown keeps them shown; while the screensaver is on only the start button wakes.
+    const activity = () => {
+      if (!asleep) wake()
+    }
+    wakeRef.current = wake
     arm()
     const ev: (keyof WindowEventMap)[] = ['pointerdown', 'touchstart', 'keydown', 'wheel']
-    for (const e of ev) window.addEventListener(e, wake, { passive: true })
+    for (const e of ev) window.addEventListener(e, activity, { passive: true })
     return () => {
       if (timer) clearTimeout(timer)
       if (goneTimer) clearTimeout(goneTimer)
-      for (const e of ev) window.removeEventListener(e, wake)
+      for (const e of ev) window.removeEventListener(e, activity)
     }
   }, [idleMs])
   const fade = { transition: 'opacity 450ms ease', opacity: idle ? 0 : 1 } as const
@@ -114,7 +137,7 @@ export function Attract() {
 
   return (
     <>
-      <div className="heromedia" style={ss && ss.opacity < 1 ? { opacity: ss.opacity } : undefined}>
+      <div className="heromedia" style={media === 'slides' && ss && ss.opacity < 1 ? { opacity: ss.opacity } : undefined}>
         {images.map((u, i) => (
           <img key={u} className={`heroimg${i === heroIdx % images.length ? ' on' : ''}`} src={u} alt="" width={2160} height={3840} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" onError={() => setBroken((b) => (b.includes(u) ? b : [...b, u]))} />
         ))}
@@ -132,10 +155,12 @@ export function Attract() {
         />
       )}
       <div className="absolute inset-0">
-        <div className="hero-lockup absolute top-[40px] left-1/2 -translate-x-1/2 text-center">
-          <img src={logo.src} alt={logo.alt} className="mx-auto" style={{ height: 96, maxWidth: 420, objectFit: 'contain', filter: logo.filter }} />
-          {venueMode ? null : <div className="hd text-[17px] tracking-[.42em] text-cream/90 mt-2.5">– {b.copy.logoTagline} –</div>}
-        </div>
+        {media === 'posters' ? null : (
+          <div className="hero-lockup absolute top-[40px] left-1/2 -translate-x-1/2 text-center">
+            <img src={logo.src} alt={logo.alt} className="mx-auto" style={{ height: 96, maxWidth: 420, objectFit: 'contain', filter: logo.filter }} />
+            {venueMode ? null : <div className="hd text-[17px] tracking-[.42em] text-cream/90 mt-2.5">– {b.copy.logoTagline} –</div>}
+          </div>
+        )}
         <div className="absolute top-[40px] right-[24px]">
           <LangPills dark />
         </div>
@@ -148,6 +173,15 @@ export function Attract() {
             <p className="text-[24px] font-semibold tracking-[.3em] leading-[1.7]">{lines(L(b.copy.sub))}</p>
           </div>
         )}
+        {idle ? (
+          // Same place and height as the "Hier eten / Meenemen" row it replaces (the stylesheet is pre-built: inline sizes).
+          <div className="absolute inset-x-0 flex justify-center" style={{ bottom: 137, padding: '0 105px', animation: 'attWake 420ms ease-out 250ms both' }}>
+            <button type="button" data-a="wakeAttract" className="press ctapulse h-[132px] w-full rounded-full bg-cream text-ink flex items-center justify-center gap-5 hd text-[30px] tracking-[.14em]" onClick={() => wakeRef.current()}>
+              {t('tapToOrder')}
+              <Ic n="arrR" sw={2.4} cls="w-10 h-10 flex-none" />
+            </button>
+          </div>
+        ) : null}
         <div className="absolute inset-x-0 bottom-0" style={{ pointerEvents: gone ? 'none' : undefined }} aria-hidden={gone || undefined}>
           <div className="px-[105px]">
             {b.features.loyalty ? (
