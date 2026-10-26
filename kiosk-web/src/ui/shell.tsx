@@ -15,6 +15,9 @@ import { FoodImg, Ic, LangPills } from './primitives'
 
 const SIDEBAR_FALLBACK = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}brand/img/plateTer.webp`
 
+/** Dark tint over the venue's sidebar cover photo, stronger than the brand pack's so the labels stay readable (Alex, 2026-10-26). */
+const COVER_OVERLAY = 0.75
+
 export function Rail() {
   const b = E().brand
   const screen = useEngine((s) => s.screen)
@@ -90,7 +93,7 @@ export function Rail() {
             onError={(e) => e.currentTarget.remove()}
           />
         ) : null}
-        {(sb.overlayOpacity ?? 0) > 0 ? <div className="absolute inset-0" style={{ background: sb.overlayColor, opacity: sb.overlayOpacity }} /> : null}
+        {(sb.overlayOpacity ?? 0) > 0 ? <div className="absolute inset-0" style={{ background: sb.overlayColor, opacity: venueCover ? COVER_OVERLAY : sb.overlayOpacity }} /> : null}
       </div>
       <div className="relative z-10 flex flex-col h-full">
         <button type="button" data-a="attract" aria-label={venue ? venueName() || t('navHome') : b.name} className="press pt-8 pb-4 px-4 grid place-items-center flex-none" onClick={a.attract}>
