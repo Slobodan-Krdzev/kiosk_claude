@@ -998,6 +998,47 @@ export function PriceRows({ p, d }: { p: Product; d: Draft }) {
   )
 }
 
+/** A group is done when its choice is made (single select) or its maximum is reached (multi select). */
+function groupDone(d: Draft, g: string): boolean {
+  if (!E().mods[g]) return false
+  return isStep(g) ? grpCount(d, g) >= grpMax(g) : !!d.choices[g]
+}
+
+/**
+ * Auto-advance (Alex, 2026-10-26): when a tap completes an option group, the next group scrolls to the top of the
+ * product page. Only a group that turns done after the page opened counts — opening with an option already chosen
+ * (a Special tile) does not move the page. The scroll is smooth and skipped when there is no next group.
+ */
+function useAutoAdvance(pid: string | null, draft: Draft | null) {
+  const prev = useRef<{ pid: string | null; done: Set<string> }>({ pid: null, done: new Set() })
+  useEffect(() => {
+    if (!pid || !draft) {
+      prev.current = { pid: null, done: new Set() }
+      return
+    }
+    const groups = Array.from(document.querySelectorAll<HTMLElement>('#pdp section.r44-grp[id^="grp-"]'))
+    const done = new Set(groups.map((el) => el.id.slice(4)).filter((g) => groupDone(draft, g)))
+    const before = prev.current
+    prev.current = { pid, done }
+    if (before.pid !== pid) return // page just opened (or another product): remember, do not scroll
+    const fresh = groups.findIndex((el) => done.has(el.id.slice(4)) && !before.done.has(el.id.slice(4)))
+    if (fresh < 0) return
+    const next = groups[fresh + 1]
+    const scroller = next?.closest<HTMLElement>('.r44-scroll')
+    if (!next || !scroller) return
+    // The kiosk stage is drawn scaled (Stage.tsx): screen distances ÷ scale = scroll distances.
+    const scale = scroller.getBoundingClientRect().height / (scroller.offsetHeight || 1) || 1
+    const sTop = scroller.getBoundingClientRect().top
+    // Stop just below the floating back / info buttons that sit over the top of the page.
+    const back = document.querySelector<HTMLElement>('#pdp [data-a="backProduct"]')
+    const cover = back && !scroller.contains(back) ? Math.max(0, (back.getBoundingClientRect().bottom - sTop) / scale) : 0
+    const top = (next.getBoundingClientRect().top - sTop) / scale + scroller.scrollTop - cover - 12
+    // Let the tapped chip show its selected state first.
+    const t = setTimeout(() => scroller.scrollTo({ top, behavior: 'smooth' }), 180)
+    return () => clearTimeout(t)
+  }, [pid, draft])
+}
+
 export function Pdp() {
   const pid = useEngine((s) => s.pid)
   const draft = useEngine((s) => s.draft)
@@ -1010,6 +1051,7 @@ export function Pdp() {
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current)
   }, [])
+  useAutoAdvance(pid, draft)
   if (!pid || !draft) return null
   const p = mustId(pid)
   const xp = draftExperience({ cart, editing, draft, pid } as Pick<EngineState, 'cart' | 'editing' | 'draft' | 'pid'>)
