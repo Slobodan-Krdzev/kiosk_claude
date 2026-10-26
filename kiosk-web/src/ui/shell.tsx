@@ -16,7 +16,7 @@ import { FoodImg, Ic, LangPills } from './primitives'
 const SIDEBAR_FALLBACK = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}brand/img/plateTer.webp`
 
 /** Dark tint over the venue's sidebar cover photo, stronger than the brand pack's so the labels stay readable (Alex, 2026-10-26). */
-const COVER_OVERLAY = 0.75
+const COVER_OVERLAY = 0.85
 
 export function Rail() {
   const b = E().brand
