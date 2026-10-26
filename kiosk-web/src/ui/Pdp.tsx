@@ -233,8 +233,7 @@ function StepTile({ g, it, d, full }: { g: string; it: ModItem; d: Draft; full: 
   )
 }
 
-/** One upsell step on the product page. Steps after it appear as the guest picks (chain from the API collection). */
-// Kept for the revert described at the step rendering below (picture tiles for upsell collections).
+/** One upsell step on the product page (picture tiles). Steps after it appear as the guest picks (chain from the API collection). */
 function StepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; need: boolean; hint: string; nudge: () => void }) {
   const grp = E().mods[g]
   const full = grpCount(d, g) >= grpMax(g)
