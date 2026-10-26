@@ -176,7 +176,7 @@ export function Attract() {
         {idle ? (
           // Same place and height as the "Hier eten / Meenemen" row it replaces (the stylesheet is pre-built: inline sizes).
           <div className="absolute inset-x-0 flex justify-center" style={{ bottom: 137, padding: '0 105px', animation: 'attWake 420ms ease-out 250ms both' }}>
-            <button type="button" data-a="wakeAttract" className="press ctapulse cta h-[132px] w-full rounded-full bg-jade text-white flex items-center justify-center gap-5 hd text-[30px] tracking-[.14em]" onClick={() => wakeRef.current()}>
+            <button type="button" data-a="wakeAttract" className="press ctapulse h-[132px] w-full rounded-full bg-cream text-ink flex items-center justify-center gap-5 hd text-[30px] tracking-[.14em]" onClick={() => wakeRef.current()}>
               {t('tapToOrder')}
               <Ic n="arrR" sw={2.4} cls="w-10 h-10 flex-none" />
             </button>
