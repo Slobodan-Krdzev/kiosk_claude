@@ -80,7 +80,8 @@ export function Rail() {
             src={venueCover}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
-            style={{ objectPosition: sb.focalPoint ? `${sb.focalPoint.x}% ${sb.focalPoint.y}%` : sb.backgroundPosition || 'center' }}
+            // The cover is cropped from its left edge, not its middle (Alex, 2026-10-26).
+            style={{ objectPosition: 'left center' }}
             onError={() => setCoverBroken(venueCover)}
           />
         ) : null}
