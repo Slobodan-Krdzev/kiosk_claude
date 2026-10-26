@@ -8,7 +8,8 @@ import { mapTmkToEngine } from './tmkMapper'
 
 export const DEFAULT_SOURCE: CatalogSourceConfig = {
   source: 'static',
-  apiBase: 'https://kioskapi.dev.revelapps.com/api',
+  // Default backend for production too (Alex, 2026-10-26); a config.js next to index.html still overrides it.
+  apiBase: 'http://f.revelapps.com:9543/api',
   testUrl: 'https://my.tabletmenukaart.nl/service/kioskTestModeResources',
   menuId: 2408,
 }

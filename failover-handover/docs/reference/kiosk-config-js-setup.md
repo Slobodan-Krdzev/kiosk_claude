@@ -10,7 +10,7 @@ The whole file is one setting:
 
 ```javascript
 window.kioskConfig = {
-    api: "https://kioskapi.dev.revelapps.com/api"
+    api: "http://f.revelapps.com:9543/api"
 }
 ```
 
@@ -18,7 +18,7 @@ window.kioskConfig = {
 | --- | --- | --- | --- |
 | `api` | string | Base URL of the kiosk backend for this location | Full URL with `https://` (or `http://` for a local server), ending in `/api`, **no trailing slash** |
 
-The value in the repo (`kioskapi.dev.revelapps.com`) is the **dev** backend. A live location must point at its own production or local backend instead.
+Default backend (2026-10-26, Alex): `http://f.revelapps.com:9543/api`, also for production. The release folder ships a `config.js` with it, and the build falls back to it (`mock/config.json`) when `config.js` is missing. A location with another backend changes only this file.
 
 **Why a separate file:** `index.html` loads `config.js` with a plain `<script src="./config.js">` before the app starts. Vite does not bundle it, so the same build can ship to every location and only this file changes. Changing the backend needs no rebuild: edit the file and reload the kiosk.
 
