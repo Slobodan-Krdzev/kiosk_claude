@@ -465,7 +465,8 @@
   "finishS": "Often ordered together",
   "addBtn": "Add",
   "promoOrder": "Order combo",
-  "promoView": "View deal"
+  "promoView": "View deal",
+  "tapToOrder": "Tap here to start ordering"
  },
  "nl": {
   "start": "Start met bestellen",
@@ -933,7 +934,8 @@
   "finishS": "Vaak samen besteld",
   "addBtn": "Toevoegen",
   "promoOrder": "Bestel combo",
-  "promoView": "Bekijk deal"
+  "promoView": "Bekijk deal",
+  "tapToOrder": "Klik hier om te bestellen"
  },
  "mk": {
   "start": "Започни нарачка",
@@ -1401,6 +1403,7 @@
   "finishS": "Често нарачувано заедно",
   "addBtn": "Додај",
   "promoOrder": "Нарачај комбо",
-  "promoView": "Погледни акција"
+  "promoView": "Погледни акција",
+  "tapToOrder": "Допри тука за да нарачаш"
  }
 }
