@@ -11,7 +11,7 @@
     "source": "api",
     "apiBase": "https://kioskapi.dev.revelapps.com/api",
     "testUrl": "https://my.tabletmenukaart.nl/service/kioskTestModeResources",
-    "menuId": 2408,
+    "menuId": 2490,
     "tableNumber": "9"
   },
   "staffPin": "2468",
