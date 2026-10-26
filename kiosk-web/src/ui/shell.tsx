@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/shallow'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { baseTotal, cartCount, cartTotal, rewardClaimed, rewardLeft } from '../engine/cart'
-import { alHidden, byId, catLabel, catOf, homeHasContent, obVarCard, pname, popularProducts, prodsInCards, venueMenu, venueName, visible } from '../engine/catalog'
+import { alHidden, byId, catLabel, catOf, homeHasContent, obVarCard, pname, popularProducts, prodsInCards, specialGroup, venueMenu, venueName, visible } from '../engine/catalog'
 import { usePopularityVersion } from '../engine/popularity'
 import { cmsAddable, cmsFinishBlock, obwMode, presentationFor } from '../engine/cms'
 import { fmt } from '../engine/money'
@@ -445,6 +445,11 @@ function MenuGrid({ cat, filter }: { cat: string; filter: string }) {
     rest = []
   } else if (mode === 'top') {
     wide = list.filter((p) => obVarCard(p) && !alHidden(p))
+    rest = list.filter((p) => !wide.includes(p))
+  }
+  // API "Special" products (option tiles) always take a full row (2026-10-26).
+  if (rest.some((p) => specialGroup(p))) {
+    wide = list.filter((p) => wide.includes(p) || !!specialGroup(p))
     rest = list.filter((p) => !wide.includes(p))
   }
   const Card = PP.card === 'compact' ? CompactCard : ProductCard

@@ -273,9 +273,10 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
    * max > 1 → 'step' group (min/max, chained before the upsell steps). An option is offered only with an
    * integer ProductId (the order POST sends that id); a wizard without usable options is dropped.
    */
-  const modifierGroups = (p: TmkProduct): { choice: string[]; steps: string[] } => {
+  const modifierGroups = (p: TmkProduct): { choice: string[]; steps: string[]; special?: string } => {
     const choice: string[] = []
     const steps: string[] = []
+    let special: string | undefined
     const order = <T extends { DisplayOrder?: number }>(a: T, b: T) => (a.DisplayOrder ?? 0) - (b.DisplayOrder ?? 0)
     for (const w of [...(p.ModifierWizards || [])].sort(order)) {
       const k = modKey(p.ProductId, w.ModifierId)
@@ -307,13 +308,15 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
       if (max <= 1) {
         mods[k] = { label, type: 'choice', req: !!w.IsMandatory, items, ...(def ? { def } : {}) }
         choice.push(k)
+        // SubTitle "Special" (single-select only): the product's tile group on its full-row card.
+        if (!special && (w.SubTitle || '').trim().toLowerCase() === 'special') special = k
       } else {
         mods[k] = { label, type: 'step', req: !!w.IsMandatory, items, min, max, next: null, ui: 'chips' }
         if (steps.length) mods[steps[steps.length - 1]].next = k
         steps.push(k)
       }
     }
-    return { choice, steps }
+    return { choice, steps, ...(special ? { special } : {}) }
   }
 
   for (const s of subs) {
@@ -350,6 +353,7 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
         allergens,
         desc: tr((x) => x.prod.get(p.ProductId)?.desc, desc),
         ...(mg.choice.length ? { choice: mg.choice } : {}),
+        ...(mg.special ? { special: mg.special } : {}),
         ...(steps.length ? { steps } : {}),
         ...(p.IdOtherPos ? { plu: p.IdOtherPos } : {}),
         ...(isPicture(p.SmallPictureUrl) ? { apiImg: p.SmallPictureUrl! } : {}),

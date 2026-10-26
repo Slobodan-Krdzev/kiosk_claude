@@ -72,6 +72,18 @@ export function obNeedsDetail(p: Product): boolean {
   return obHasReq(p) || !!obSizes(p) || !!p.steps?.length || !!p.infoOnly
 }
 
+/** The "Special" tile group of an API product (types.ts Product.special), when its options exist. */
+export function specialGroup(p: Product | undefined | null): string | null {
+  const g = p?.special
+  return g && E().mods[g]?.items.length ? g : null
+}
+
+/** A tile tap needs the product page: other option groups or upsell steps follow the special group. */
+export function specialHasMore(p: Product): boolean {
+  const g = specialGroup(p)
+  return (p.choice || []).some((c) => c !== g) || !!p.steps?.length
+}
+
 /** May show its sizes in a WIDE card. */
 export function obVarCard(p: Product): boolean {
   const sv = obSizes(p)

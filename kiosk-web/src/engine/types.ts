@@ -41,6 +41,12 @@ export interface Product {
   z?: string
   canMenu?: boolean
   choice?: string[]
+  /**
+   * API menus: the option group whose wizard SubTitle is "Special" (2026-10-26). The product gets a full-row card with
+   * one tile per option; a tile opens the product page with that option chosen, or adds it at once when the product
+   * has no other groups and no upsell.
+   */
+  special?: string
   mods?: string[]
   allergens: Allergens
   desc: L10n

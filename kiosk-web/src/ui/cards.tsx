@@ -1,8 +1,8 @@
 import { useShallow } from 'zustand/shallow'
 // Product cards (visual, compact, wide) and the R44 order button / inline stepper.
 
-import { obConfigs, obLine, obQty, obSizeQty, lineSummary } from '../engine/cart'
-import { alHidden, lineMax, obBlocked, obHasReq, obNeedsDetail, obSizes, obVarCard, pname, servingsOf, defServingIx } from '../engine/catalog'
+import { obConfigs, obLine, obQty, obSizeQty, lineSummary, specialQty } from '../engine/cart'
+import { alHidden, lineMax, obBlocked, obHasReq, obNeedsDetail, obSizes, obVarCard, pname, servingsOf, defServingIx, specialGroup } from '../engine/catalog'
 import { fmt } from '../engine/money'
 import { E, L, t, tf } from '../engine/state'
 import type { Product } from '../engine/types'
@@ -229,11 +229,54 @@ function ObwSizes({ p }: { p: Product }) {
   )
 }
 
+/** "Special" option group as tiles (same look as the size tiles): name, price, "+"; the count of that option in the cart. */
+function SpecialTiles({ p, g }: { p: Product; g: string }) {
+  const cart = useEngine((s) => s.cart)
+  const specialPick = useEngine((s) => s.specialPick)
+  const dis = !!obBlocked(p)
+  return (
+    <>
+      {E().mods[g].items.map((it) => {
+        const q = specialQty(cart, p, g, it.id)
+        const price = p.price + it.price
+        return (
+          <button
+            key={it.id}
+            type="button"
+            disabled={dis}
+            aria-disabled={dis ? true : undefined}
+            data-a="specialPick"
+            data-opt={it.id}
+            className={`press obw-sz${q ? ' has' : ''}`}
+            aria-label={tf(q ? 'obVarAq' : 'obVarA', { name: pname(p), size: L(it.name), price: fmt(price), q })}
+            onClick={() => specialPick(p.id, it.id)}
+          >
+            <span className="obw-szt">
+              <span className="obw-szl">{L(it.name)}</span>
+              {it.sub ? <span className="obw-szs2">{L(it.sub)}</span> : null}
+            </span>
+            <span className="obw-szp">
+              <span className="num">{fmt(price)}</span>
+              {dis ? null : (
+                <span className="obw-szadd" aria-hidden="true">
+                  <Ic n="plus" sw={3} />
+                </span>
+              )}
+            </span>
+            {q ? <span className="ob-vc num">{q}</span> : null}
+          </button>
+        )
+      })}
+    </>
+  )
+}
+
 export function ProductWide({ p }: { p: Product }) {
   const openProduct = useEngine((s) => s.openProduct)
   const gtcKey = useEngine((s) => s.gtcKey)
   const info = E().obwInfo[p.id] || {}
-  const sizes = obVarCard(p) && !alHidden(p)
+  const special = specialGroup(p)
+  const sizes = !special && obVarCard(p) && !alHidden(p)
   const sub = p.sub || info.sub ? L(p.sub || info.sub) : ''
   const tags = (p.flavour || info.flavour || []).slice(0, 3)
   return (
@@ -255,8 +298,12 @@ export function ProductWide({ p }: { p: Product }) {
             ))}
           </div>
         ) : null}
-        <div className={`obw-row${sizes ? ' sz' : ''}`}>
-          {sizes ? (
+        <div className={`obw-row${sizes || special ? ' sz' : ''}`}>
+          {special ? (
+            <div className="obw-szs" data-obw={p.id} role="group" aria-label={L(E().mods[special].label)}>
+              <SpecialTiles p={p} g={special} />
+            </div>
+          ) : sizes ? (
             <div className="obw-szs" data-obw={p.id} role="group" aria-label={t('sizeT')}>
               <ObwSizes p={p} />
             </div>
@@ -265,9 +312,11 @@ export function ProductWide({ p }: { p: Product }) {
               <ObMoney p={p} px={26} />
             </div>
           )}
-          <span className={`card-ctl${gtcKey === p.id ? ' open' : ''}`} data-ctl-for={p.id} data-ctl-size="72" data-ctl-wide="1">
-            <CardCtl p={p} size={72} wide />
-          </span>
+          {special ? null : (
+            <span className={`card-ctl${gtcKey === p.id ? ' open' : ''}`} data-ctl-for={p.id} data-ctl-size="72" data-ctl-wide="1">
+              <CardCtl p={p} size={72} wide />
+            </span>
+          )}
         </div>
       </div>
     </article>
