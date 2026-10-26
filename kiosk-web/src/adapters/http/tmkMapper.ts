@@ -16,6 +16,7 @@
 // - Products priced 0 show their 0 price.
 // - http image URLs go through the image proxy (imgUrl).
 
+import { accentPalette } from '../../engine/accent'
 import type { Allergens, Cat, CmsBlock, CmsItem, EngineData, L10n, Lang, ModGroup, ModItem, Product, Promo, Screensaver, Slide } from '../../engine/types'
 import type { TmkLangData, TmkProduct, TmkRoot, TmkSlide, TmkUpsaleCollection } from './tmk'
 import { iconForCategory, promoActive } from './tmkRules'
@@ -189,7 +190,11 @@ export function screensaverOf(trees: TmkLangData[], primary: TmkLangData, img: (
       .map((s) => slideOf(s, img))
   }
   const sec = (n: number, dflt: number) => (Number(n) > 0 ? Number(n) : dflt) * 1000
-  return { intervalMs: sec(ss.SlideTimer, 7), idleMs: sec(ss.ActivationTime, 30), opacity: Math.max(0, Math.min(1, ss.Transparency ?? 1)), slides }
+  // Transparency 0 (or missing) means "not set", not "invisible": a venue backend sent 0.0 and the whole
+  // screensaver disappeared (2026-10-21). Only a value between 0 and 1 dims the slides.
+  const t = Number(ss.Transparency)
+  const opacity = t > 0 && t < 1 ? t : 1
+  return { intervalMs: sec(ss.SlideTimer, 7), idleMs: sec(ss.ActivationTime, 30), opacity, slides }
 }
 
 export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptions): EngineData {
@@ -269,9 +274,10 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
    * max > 1 → 'step' group (min/max, chained before the upsell steps). An option is offered only with an
    * integer ProductId (the order POST sends that id); a wizard without usable options is dropped.
    */
-  const modifierGroups = (p: TmkProduct): { choice: string[]; steps: string[] } => {
+  const modifierGroups = (p: TmkProduct): { choice: string[]; steps: string[]; special?: string } => {
     const choice: string[] = []
     const steps: string[] = []
+    let special: string | undefined
     const order = <T extends { DisplayOrder?: number }>(a: T, b: T) => (a.DisplayOrder ?? 0) - (b.DisplayOrder ?? 0)
     for (const w of [...(p.ModifierWizards || [])].sort(order)) {
       const k = modKey(p.ProductId, w.ModifierId)
@@ -303,13 +309,15 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
       if (max <= 1) {
         mods[k] = { label, type: 'choice', req: !!w.IsMandatory, items, ...(def ? { def } : {}) }
         choice.push(k)
+        // SubTitle "Special" (single-select only): the product's tile group on its full-row card.
+        if (!special && (w.SubTitle || '').trim().toLowerCase() === 'special') special = k
       } else {
         mods[k] = { label, type: 'step', req: !!w.IsMandatory, items, min, max, next: null, ui: 'chips' }
         if (steps.length) mods[steps[steps.length - 1]].next = k
         steps.push(k)
       }
     }
-    return { choice, steps }
+    return { choice, steps, ...(special ? { special } : {}) }
   }
 
   for (const s of subs) {
@@ -346,6 +354,7 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
         allergens,
         desc: tr((x) => x.prod.get(p.ProductId)?.desc, desc),
         ...(mg.choice.length ? { choice: mg.choice } : {}),
+        ...(mg.special ? { special: mg.special } : {}),
         ...(steps.length ? { steps } : {}),
         ...(p.IdOtherPos ? { plu: p.IdOtherPos } : {}),
         ...(isPicture(p.SmallPictureUrl) ? { apiImg: p.SmallPictureUrl! } : {}),
@@ -379,15 +388,19 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
   const algFilter = ALLERGENS.filter((a) => !DIET_IDS.has(a.id)).map((a) => a.key)
   const premX: Record<string, ModGroup> = pack.mods.premX ? { premX: { ...pack.mods.premX, items: [] } } : {}
 
+  const accent = accentPalette(raw.ThemeResponse?.ActiveColor)
   return {
     ...pack,
     screensaver: screensaverOf(trees, primaryTree, opts.img),
     venue: {
       ...(raw.ThemeResponse?.RestaurantName ? { name: raw.ThemeResponse.RestaurantName } : {}),
       ...(isPicture(raw.ThemeResponse?.LogoImage?.Url) ? { logoImg: opts.img(raw.ThemeResponse.LogoImage!.Url) } : {}),
+      ...(isPicture(raw.ThemeResponse?.CoverImage?.Url) ? { coverImg: opts.img(raw.ThemeResponse.CoverImage!.Url) } : {}),
     },
     brand: {
       ...pack.brand,
+      // ThemeResponse.ActiveColor replaces the pack's accent tokens (engine/accent.ts); no usable colour → the pack's own.
+      ...(accent ? { colors: { ...pack.brand.colors, ...accent } } : {}),
       languages,
       defaultLanguage: languages.includes(pack.brand.defaultLanguage) ? pack.brand.defaultLanguage : primary,
       promos,

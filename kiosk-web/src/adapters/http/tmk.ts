@@ -12,6 +12,8 @@ export interface TmkTheme {
   LanguagesList?: { Name: string; Locale: string }[]
   LogoImage?: { Url: string } | null
   CoverImage?: { Url: string } | null
+  /** Venue accent colour, e.g. "#3881F3" (2026-10-26: drives the kiosk's accent tokens, engine/accent.ts). */
+  ActiveColor?: string | null
   CurrencySettings?: { CurrencySymbol?: string; CurrencyName?: string }
 }
 

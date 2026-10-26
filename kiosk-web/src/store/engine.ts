@@ -20,9 +20,9 @@ import {
   xsLinesOf,
   type RewardChange,
 } from '../engine/cart'
-import { byId, defServingIx, homeHasContent, lineMax, mustId, obBlocked, obNeedsDetail, obSizes, obVarCard, pname, servingsOf } from '../engine/catalog'
+import { byId, defServingIx, homeHasContent, lineMax, mustId, obBlocked, obNeedsDetail, obSizes, obVarCard, pname, servingsOf, specialGroup, specialHasMore } from '../engine/catalog'
 import { cmsById, experienceFor } from '../engine/cms'
-import { cfgKey, clampQty, exQty, exSet, grpSet, newDraft, stepKey, unavailParts, validateDraft, xsConflicts, xsKey, xsPortion, xsRemove, xsSel, xsSelected, xsSet, draftValid } from '../engine/draft'
+import { cfgKey, clampQty, exQty, exSet, groupLocked, grpSet, newDraft, stepKey, unavailParts, validateDraft, xsConflicts, xsKey, xsPortion, xsRemove, xsSel, xsSelected, xsSet, draftValid } from '../engine/draft'
 import { E, L, checkProducts, hasEngine, setAllergenFilter, setLang as engineSetLang } from '../engine/state'
 import type { CartLine, Draft, Lang, Product } from '../engine/types'
 
@@ -140,6 +140,8 @@ export interface EngineState {
   cardInc(pid: string, wide: boolean): void
   cardDec(pid: string, wide: boolean): void
   obVar(pid: string, ix: number): void
+  /** Full-row card of a "Special" product: tap an option tile. */
+  specialPick(pid: string, id: string): void
   pickServing(pid: string, ix: number, ctx: 'card' | 'pdp'): void
   gtcExpand(pid: string): void
   gtcCollapse(): void
@@ -504,6 +506,26 @@ export const useEngine = create<EngineState>((set, get) => {
         obToast(tfSafe('obAdded', { name: `${pname(p)} (${L(sv[ix].short)})` }))
       })
     },
+    specialPick: (pid, id) => {
+      const p = byId(pid)
+      const g = specialGroup(p)
+      if (!p || !g || obBlocked(p) || p.infoOnly) return
+      const it = E().mods[g].items.find((x) => x.id === id)
+      if (!it) return
+      if (quickLocked(pid + ':' + g + ':' + id)) return
+      const d = newDraft(p)
+      d.choices[g] = id
+      // More option groups or upsell → the product page with this option already chosen; otherwise straight to the basket.
+      if (specialHasMore(p)) {
+        guarded(p, () => openProductNow(p, { draft: d }))
+        return
+      }
+      if (!draftValid(d)) return
+      guarded(p, () => {
+        addDraft(d, p)
+        obToast(tfSafe('obAdded', { name: `${pname(p)} (${L(it.name)})` }))
+      })
+    },
     pickServing: (pid, ix, ctx) => {
       const p = byId(pid)
       if (!p || !servingsOf(p)) return
@@ -536,6 +558,8 @@ export const useEngine = create<EngineState>((set, get) => {
     },
     choice: (g, id) =>
       mutateDraft((d) => {
+        // A group below an unfinished mandatory group is locked (draft.groupLocked).
+        if (groupLocked(d, g) && d.choices[g] !== id) return
         d.choices[g] = id
       }),
     pick: (g, id) =>

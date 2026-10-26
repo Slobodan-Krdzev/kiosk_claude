@@ -34,6 +34,9 @@ export const hasLinked = (cart: CartLine[], lid: string): boolean => xsLinesOf(c
 export const obLines = (cart: CartLine[], p: Product): CartLine[] => cart.filter((l) => l.pid === p.id && l.lineType === 'product' && !l.reward)
 export const obConfigs = (cart: CartLine[], p: Product): number => new Set(obLines(cart, p).map((l) => l.key)).size
 export const obSizeQty = (cart: CartLine[], p: Product, i: number): number => obLines(cart, p).filter((l) => servingIx(p, l) === i).reduce((a, l) => a + l.qty, 0)
+/** Units in the cart of product p with option `id` in its special group (count on that tile). */
+export const specialQty = (cart: CartLine[], p: Product, g: string, id: string): number =>
+  obLines(cart, p).filter((l) => l.choices?.[g] === id).reduce((a, l) => a + l.qty, 0)
 export const hasCat = (cart: CartLine[], cat: string): boolean => cart.some((l) => byId(l.pid)?.cat === cat)
 export const rewardClaimed = (cart: CartLine[]): boolean => cart.some((l) => l.reward)
 

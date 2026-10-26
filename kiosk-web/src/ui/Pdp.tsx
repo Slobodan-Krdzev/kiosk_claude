@@ -10,6 +10,7 @@ import {
   grpCount,
   grpMax,
   grpMin,
+  groupLocked,
   isStep,
   optionUnavailable,
   stepLocked,
@@ -136,13 +137,32 @@ const r44Cols = (items: ModItem[]): number => {
   return n <= 2 ? n : n === 3 ? 3 : long ? 2 : 4
 }
 
-function Group({ g, d, need, hint }: { g: string; d: Draft; need: boolean; hint: string }) {
+function Group({ g, d, need, hint, nudge }: { g: string; d: Draft; need: boolean; hint: string; nudge: () => void }) {
   const choice = useEngine((s) => s.choice)
   const grp = E().mods[g]
   const req = !!grp.req
   const filter = getAllergenFilter()
+  // Disabled while a mandatory group above it is not done (draft.groupLocked); a tap points to that group.
+  const locked = groupLocked(d, g)
   return (
-    <section className={`grp r44-grp${need ? ' grp-need' : ''}`} id={`grp-${g}`} role="group" aria-labelledby={`grpl-${g}`}>
+    <section
+      className={`grp r44-grp${need ? ' grp-need' : ''}`}
+      id={`grp-${g}`}
+      role="group"
+      aria-labelledby={`grpl-${g}`}
+      aria-disabled={locked || undefined}
+      data-locked={locked || undefined}
+      style={{ opacity: locked ? 0.38 : 1, filter: locked ? 'grayscale(1)' : undefined, transition: 'opacity 250ms ease, filter 250ms ease' }}
+      onClickCapture={
+        locked
+          ? (e) => {
+              e.stopPropagation()
+              e.preventDefault()
+              nudge()
+            }
+          : undefined
+      }
+    >
       <R44Head title={<span id={`grpl-${g}`}>{L(grp.label)}</span>} note={req ? 'req' : 'opt'} />
       <div id={`hint-${g}`} className="reqHint r44-hint" role="status" aria-live="polite">
         {hint}
@@ -233,8 +253,7 @@ function StepTile({ g, it, d, full }: { g: string; it: ModItem; d: Draft; full: 
   )
 }
 
-/** One upsell step on the product page. Steps after it appear as the guest picks (chain from the API collection). */
-// Kept for the revert described at the step rendering below (picture tiles for upsell collections).
+/** One upsell step on the product page (picture tiles). Steps after it appear as the guest picks (chain from the API collection). */
 function StepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; need: boolean; hint: string; nudge: () => void }) {
   const grp = E().mods[g]
   const full = grpCount(d, g) >= grpMax(g)
@@ -354,9 +373,6 @@ function ChipStepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; nee
     </section>
   )
 }
-
-// Referenced so the kept tile section compiles while unused (see the revert note at the step rendering).
-void StepSection
 
 function EnhTile({ v, d }: { v: CmsItem; d: Draft }) {
   const exQtyAct = useEngine((s) => s.exQty)
@@ -768,20 +784,20 @@ function ProductPage({ p, d, xp, editing, nudge, need, hint }: { p: Product; d: 
           </div>
           <SizeSection p={p} d={d} />
           {req.map((g) => (
-            <Group key={g.id} g={g.id} d={d} need={need === g.id} hint={need === g.id ? hint : ''} />
+            <Group key={g.id} g={g.id} d={d} need={need === g.id} hint={need === g.id ? hint : ''} nudge={nudge} />
           ))}
           {opt.map((g) => (
-            <Group key={g.id} g={g.id} d={d} need={false} hint="" />
+            <Group key={g.id} g={g.id} d={d} need={false} hint="" nudge={nudge} />
           ))}
-          {/* 2026-10-20 (Alex): upsell steps are drawn as the chip grid too, no pictures. To bring the picture tiles
-              back for upsell collections, replace the line below with the commented branch (StepSection stays in
-              the file for that):
-              activeSteps(p, d).map((g) =>
-                E().mods[g].ui === 'chips' ? <ChipStepSection key={g} … /> : <StepSection key={g} … />,
-              ) */}
-          {activeSteps(p, d).map((g) => (
-            <ChipStepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
-          ))}
+          {/* Modifier groups with several picks (ui 'chips') are the chip grid; upsell collection steps are the
+              picture tiles again (2026-10-26, Alex: "rendered with the image, the same way they used to be"). */}
+          {activeSteps(p, d).map((g) =>
+            E().mods[g].ui === 'chips' ? (
+              <ChipStepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
+            ) : (
+              <StepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
+            ),
+          )}
           {vu ? <EnhSection xp={xp} d={d} /> : null}
           {vu && xp.menuUpgrade ? (
             <div className="r44-menu">
@@ -998,6 +1014,47 @@ export function PriceRows({ p, d }: { p: Product; d: Draft }) {
   )
 }
 
+/** A group is done when its choice is made (single select) or its maximum is reached (multi select). */
+function groupDone(d: Draft, g: string): boolean {
+  if (!E().mods[g]) return false
+  return isStep(g) ? grpCount(d, g) >= grpMax(g) : !!d.choices[g]
+}
+
+/**
+ * Auto-advance (Alex, 2026-10-26): when a tap completes an option group, the next group scrolls to the top of the
+ * product page. Only a group that turns done after the page opened counts — opening with an option already chosen
+ * (a Special tile) does not move the page. The scroll is smooth and skipped when there is no next group.
+ */
+function useAutoAdvance(pid: string | null, draft: Draft | null) {
+  const prev = useRef<{ pid: string | null; done: Set<string> }>({ pid: null, done: new Set() })
+  useEffect(() => {
+    if (!pid || !draft) {
+      prev.current = { pid: null, done: new Set() }
+      return
+    }
+    const groups = Array.from(document.querySelectorAll<HTMLElement>('#pdp section.r44-grp[id^="grp-"]'))
+    const done = new Set(groups.map((el) => el.id.slice(4)).filter((g) => groupDone(draft, g)))
+    const before = prev.current
+    prev.current = { pid, done }
+    if (before.pid !== pid) return // page just opened (or another product): remember, do not scroll
+    const fresh = groups.findIndex((el) => done.has(el.id.slice(4)) && !before.done.has(el.id.slice(4)))
+    if (fresh < 0) return
+    const next = groups[fresh + 1]
+    const scroller = next?.closest<HTMLElement>('.r44-scroll')
+    if (!next || !scroller) return
+    // The kiosk stage is drawn scaled (Stage.tsx): screen distances ÷ scale = scroll distances.
+    const scale = scroller.getBoundingClientRect().height / (scroller.offsetHeight || 1) || 1
+    const sTop = scroller.getBoundingClientRect().top
+    // Stop just below the floating back / info buttons that sit over the top of the page.
+    const back = document.querySelector<HTMLElement>('#pdp [data-a="backProduct"]')
+    const cover = back && !scroller.contains(back) ? Math.max(0, (back.getBoundingClientRect().bottom - sTop) / scale) : 0
+    const top = (next.getBoundingClientRect().top - sTop) / scale + scroller.scrollTop - cover - 12
+    // Let the tapped chip show its selected state first.
+    const t = setTimeout(() => scroller.scrollTo({ top, behavior: 'smooth' }), 180)
+    return () => clearTimeout(t)
+  }, [pid, draft])
+}
+
 export function Pdp() {
   const pid = useEngine((s) => s.pid)
   const draft = useEngine((s) => s.draft)
@@ -1010,6 +1067,7 @@ export function Pdp() {
   useEffect(() => () => {
     if (timer.current) clearTimeout(timer.current)
   }, [])
+  useAutoAdvance(pid, draft)
   if (!pid || !draft) return null
   const p = mustId(pid)
   const xp = draftExperience({ cart, editing, draft, pid } as Pick<EngineState, 'cart' | 'editing' | 'draft' | 'pid'>)

@@ -26,6 +26,7 @@ export function warmupOrder(d: EngineData, lang: string): string[] {
   ;(slides[lang as keyof typeof slides] ?? []).forEach((s) => add(s.img))
   Object.values(slides).forEach((l) => (l ?? []).forEach((s) => add(s.img)))
   add(d.venue?.logoImg)
+  add(d.venue?.coverImg)
   ;(d.brand.promos ?? []).forEach((p) => add(p.img))
   for (const c of d.cats) d.products.filter((p) => p.cat === c.id && !p.disabled && !p.infoOnly).forEach((p) => add(p.img))
   Object.values(d.mods).forEach((g) => g.items.forEach((it) => add(it.img)))

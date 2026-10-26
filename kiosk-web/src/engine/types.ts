@@ -41,6 +41,12 @@ export interface Product {
   z?: string
   canMenu?: boolean
   choice?: string[]
+  /**
+   * API menus: the option group whose wizard SubTitle is "Special" (2026-10-26). The product gets a full-row card with
+   * one tile per option; a tile opens the product page with that option chosen, or adds it at once when the product
+   * has no other groups and no upsell.
+   */
+  special?: string
   mods?: string[]
   allergens: Allergens
   desc: L10n
@@ -321,7 +327,7 @@ export interface Screensaver {
   intervalMs: number
   /** Idle time before the screensaver starts (API ActivationTime, seconds → ms). Not used yet. */
   idleMs: number
-  /** Slide opacity 0..1 (API Transparency). */
+  /** Slide opacity (API Transparency); 0 or missing = fully visible. */
   opacity: number
   /** Slides per language, in display order. */
   slides: Partial<Record<Lang, Slide[]>>
@@ -331,6 +337,8 @@ export interface Screensaver {
 export interface Venue {
   name?: string
   logoImg?: string
+  /** Sidebar background photo (API ThemeResponse.CoverImage). Absent → the plain dark sidebar. */
+  coverImg?: string
 }
 
 export interface EngineData {

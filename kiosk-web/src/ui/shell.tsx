@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/shallow'
 
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { baseTotal, cartCount, cartTotal, rewardClaimed, rewardLeft } from '../engine/cart'
-import { alHidden, byId, catLabel, catOf, homeHasContent, obVarCard, pname, popularProducts, prodsInCards, venueMenu, venueName, visible } from '../engine/catalog'
+import { alHidden, byId, catLabel, catOf, homeHasContent, obVarCard, pname, popularProducts, prodsInCards, specialGroup, venueMenu, venueName, visible } from '../engine/catalog'
 import { usePopularityVersion } from '../engine/popularity'
 import { cmsAddable, cmsFinishBlock, obwMode, presentationFor } from '../engine/cms'
 import { fmt } from '../engine/money'
@@ -14,6 +14,9 @@ import { CompactCard, FinishItem, ProductCard, ProductWide } from './cards'
 import { FoodImg, Ic, LangPills } from './primitives'
 
 const SIDEBAR_FALLBACK = `${import.meta.env.BASE_URL.replace(/\/?$/, '/')}brand/img/plateTer.webp`
+
+/** Dark tint over the venue's sidebar cover photo, stronger than the brand pack's so the labels stay readable (Alex, 2026-10-26). */
+const COVER_OVERLAY = 0.85
 
 export function Rail() {
   const b = E().brand
@@ -61,14 +64,27 @@ export function Rail() {
   )
 
   const sb = b.sidebar
-  // API menu: the venue's logo and name, no brand photo / taglines (audit F10). The brand pack's sidebar photo was
-  // shown on API menus from 2026-10-16 to 2026-10-20 while the venue image was undecided; since 2026-10-20 the rail
-  // is the plain dark surface again (Alex: "remove it and instead add the plain color as you did previously").
+  // API menu: the venue's logo and name, no brand taglines (audit F10). Background (2026-10-26, Alex): the venue's
+  // ThemeResponse.CoverImage when the menu has one and it loads; otherwise the plain dark surface.
   const venue = venueMenu()
   const logo = venue ? E().venue!.logoImg : b.logoImg
+  const cover = venue ? E().venue!.coverImg : undefined
+  const [coverBroken, setCoverBroken] = useState<string | null>(null)
+  const venueCover = cover && cover !== coverBroken ? cover : null
   return (
     <nav id="railSide" className="flex-none relative z-20 flex flex-col text-cream overflow-hidden" style={{ width: b.layout.sidebarWidth, boxShadow: '16px 0 40px -18px rgba(20,17,12,.38)' }}>
       <div className="absolute inset-0" style={{ background: !venue && sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
+        {venueCover ? (
+          <img
+            key={venueCover}
+            src={venueCover}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            // The cover is cropped from its left edge, not its middle (Alex, 2026-10-26).
+            style={{ objectPosition: 'left center' }}
+            onError={() => setCoverBroken(venueCover)}
+          />
+        ) : null}
         {!venue && sb.backgroundType === 'image' ? (
           <img
             src={SIDEBAR_FALLBACK}
@@ -78,7 +94,7 @@ export function Rail() {
             onError={(e) => e.currentTarget.remove()}
           />
         ) : null}
-        {(sb.overlayOpacity ?? 0) > 0 ? <div className="absolute inset-0" style={{ background: sb.overlayColor, opacity: sb.overlayOpacity }} /> : null}
+        {(sb.overlayOpacity ?? 0) > 0 ? <div className="absolute inset-0" style={{ background: sb.overlayColor, opacity: venueCover ? COVER_OVERLAY : sb.overlayOpacity }} /> : null}
       </div>
       <div className="relative z-10 flex flex-col h-full">
         <button type="button" data-a="attract" aria-label={venue ? venueName() || t('navHome') : b.name} className="press pt-8 pb-4 px-4 grid place-items-center flex-none" onClick={a.attract}>
@@ -429,6 +445,11 @@ function MenuGrid({ cat, filter }: { cat: string; filter: string }) {
     rest = []
   } else if (mode === 'top') {
     wide = list.filter((p) => obVarCard(p) && !alHidden(p))
+    rest = list.filter((p) => !wide.includes(p))
+  }
+  // API "Special" products (option tiles) always take a full row (2026-10-26).
+  if (rest.some((p) => specialGroup(p))) {
+    wide = list.filter((p) => wide.includes(p) || !!specialGroup(p))
     rest = list.filter((p) => !wide.includes(p))
   }
   const Card = PP.card === 'compact' ? CompactCard : ProductCard

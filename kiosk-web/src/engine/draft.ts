@@ -116,20 +116,30 @@ export function grpSet(d: Draft, g: string, id: string, n: number): boolean {
   return true
 }
 
+/** Option groups in product-page order: required modifier groups, optional ones, then the active upsell steps. */
+export function pageGroups(p: Product, d: Draft): string[] {
+  const m = E().mods
+  const ch = (p.choice || []).filter((g) => m[g])
+  return [...ch.filter((g) => m[g].req), ...ch.filter((g) => !m[g].req), ...activeSteps(p, d)]
+}
+
 /**
- * An upsell step is locked (greyed out, no new picks) while an earlier step on the page is required and not
- * finished yet — the product-page form of the old wizard's "choose first, then Next" (2026-10-15).
- * Picks already made in a step that becomes locked are kept.
+ * A group is locked (greyed out, no new picks) while a group above it on the page is mandatory and not done yet —
+ * the product-page form of the old wizard's "choose first, then Next". Since 2026-10-26 (Alex) this covers every
+ * modifier group and upsell step, not only the upsell chain. Picks already made in a group that becomes locked are kept.
  */
-export function stepLocked(d: Draft, g: string): boolean {
+export function groupLocked(d: Draft, g: string): boolean {
   const p = byId(d.pid)
-  if (!p || !isStep(g)) return false
-  for (const s of activeSteps(p, d)) {
+  if (!p) return false
+  for (const s of pageGroups(p, d)) {
     if (s === g) return false
-    if (grpCount(d, s) < grpMin(s)) return true
+    if (groupUnmet(d, s)) return true
   }
   return false
 }
+
+/** Upsell / multi-pick step form of groupLocked (kept name: used by grpSet and the step sections). */
+export const stepLocked = (d: Draft, g: string): boolean => isStep(g) && groupLocked(d, g)
 
 /** Groups whose rules apply to the draft right now: modifiers and the active upsell steps. */
 export const ruleGroups = (p: Product, d: Draft): string[] => [...(p.choice || []), ...activeSteps(p, d)]
