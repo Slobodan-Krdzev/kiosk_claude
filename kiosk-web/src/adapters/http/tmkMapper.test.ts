@@ -340,7 +340,7 @@ describe('catalog source', () => {
     const t = resolveCatalogSource(undefined, '?testMode=true&menuId=2490')
     expect(t).toMatchObject({ source: 'test', menuId: 2490 })
     expect(catalogUrl(t)).toBe('https://my.tabletmenukaart.nl/service/kioskTestModeResources?menu=2490')
-    expect(catalogUrl(resolveCatalogSource(undefined, '?source=api'))).toBe('https://kioskapi.dev.revelapps.com/api/getfullresources')
+    expect(catalogUrl(resolveCatalogSource(undefined, '?source=api'))).toBe('http://f.revelapps.com:9543/api/getfullresources')
   })
 })
 

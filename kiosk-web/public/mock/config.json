@@ -9,7 +9,7 @@
   "mode": "demo",
   "catalogSource": {
     "source": "api",
-    "apiBase": "https://kioskapi.dev.revelapps.com/api",
+    "apiBase": "http://f.revelapps.com:9543/api",
     "testUrl": "https://my.tabletmenukaart.nl/service/kioskTestModeResources",
     "menuId": 2490,
     "tableNumber": "9"

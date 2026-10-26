@@ -51,6 +51,7 @@ window.kioskConfig = { api: "https://<this-location-backend>/api" }   // full UR
 - When present, `api` replaces `catalogSource.apiBase` from `public/mock/config.json` and selects the API menu.
   `?testMode=true` and `?source=static` still win. When absent or unusable, `config.json` applies and the staff
   panel's Device card says `Backend · <host> · config.json` with the reason (the old kiosk went blank instead).
+  The default backend in both places is `http://f.revelapps.com:9543/api` (production too, 2026-10-26).
 - Checks after install: `https://<kiosk-host>/config.js` must show the file (not the app's HTML — the server must
   not rewrite it), `<api>/getfullresources` must return the menu. Product images are plain `http://`: the host
   must serve the `/img-proxy` route the dev server provides, or the backend must serve https images (B5).
