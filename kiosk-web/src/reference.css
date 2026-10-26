@@ -175,6 +175,8 @@ body.tablet .grp{ scroll-margin-top:24px; }
   opacity:0; transition:opacity var(--m-herofade,650ms) ease; }
 .heroimg.on{ opacity:1; }
 .ctapulse{ animation:ctapulse 2.2s ease-in-out infinite; }
+/* screensaver start button (Attract.tsx, 2026-10-26) */
+@keyframes attWake{ from{ opacity:0; transform:translateY(24px); } to{ opacity:1; transform:none; } }
 @keyframes ctapulse{
   0%,100%{ transform:scale(1); box-shadow:0 14px 44px -10px rgba(0,0,0,.55); }
   50%{ transform:scale(1.028); box-shadow:0 20px 64px -8px rgb(var(--c-cream) / .45); } }
