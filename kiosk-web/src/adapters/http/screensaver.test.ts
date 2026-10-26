@@ -29,3 +29,4 @@ describe('screensaver transparency', () => {
     expect(ss.slides.nl![0].img).toBe('http://192.168.0.2:9091/Shared/Images/a.gif')
   })
 })
+

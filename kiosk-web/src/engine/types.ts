@@ -331,6 +331,8 @@ export interface Screensaver {
 export interface Venue {
   name?: string
   logoImg?: string
+  /** Sidebar background photo (API ThemeResponse.CoverImage). Absent → the plain dark sidebar. */
+  coverImg?: string
 }
 
 export interface EngineData {

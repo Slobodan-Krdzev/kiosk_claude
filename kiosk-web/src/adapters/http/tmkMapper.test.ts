@@ -377,8 +377,8 @@ describe('first screen: screensaver slides', () => {
 
 describe('first screen: venue identity', () => {
   it('logo comes from ThemeResponse.LogoImage (proxied when http), idle time from Screensaver.ActivationTime', () => {
-    expect(map(FULL).venue).toEqual({ name: 'Tapas Mainstreet', logoImg: FULL.ThemeResponse.LogoImage!.Url })
-    expect(map(TEST).venue).toEqual({ logoImg: proxiedImg('/', TEST.ThemeResponse.LogoImage!.Url) })
+    expect(map(FULL).venue).toEqual({ name: 'Tapas Mainstreet', logoImg: FULL.ThemeResponse.LogoImage!.Url, coverImg: FULL.ThemeResponse.CoverImage!.Url })
+    expect(map(TEST).venue).toEqual({ logoImg: proxiedImg('/', TEST.ThemeResponse.LogoImage!.Url), coverImg: proxiedImg('/', TEST.ThemeResponse.CoverImage!.Url) })
     expect(map(TEST).screensaver!.idleMs).toBe(30000)
   })
 })
@@ -396,5 +396,16 @@ describe('allergens (docs/reference/product-allergen-map.md)', () => {
     expect(d.algFilter).toHaveLength(18)
     expect(d.algFilter).not.toContain('vegan')
     expect(Object.keys(d.alg)).toHaveLength(22)
+  })
+})
+
+describe('sidebar cover image (ThemeResponse.CoverImage, 2026-10-26)', () => {
+  const withCover = (cover: { Url: string } | null) => ({ ...FULL, ThemeResponse: { ...FULL.ThemeResponse, CoverImage: cover } }) as TmkRoot
+  it('a real picture becomes venue.coverImg', () => {
+    expect(map(withCover({ Url: 'https://kioskapi.dev.revelapps.com/Shared/Images/cover.gif' })).venue?.coverImg).toBe('https://kioskapi.dev.revelapps.com/Shared/Images/cover.gif')
+  })
+  it('missing or a Default placeholder → no cover (the sidebar keeps its plain colour)', () => {
+    expect(map(withCover(null)).venue?.coverImg).toBeUndefined()
+    expect(map(withCover({ Url: 'https://kioskapi.dev.revelapps.com/Shared/Images/DefaultCoverImage.png' })).venue?.coverImg).toBeUndefined()
   })
 })

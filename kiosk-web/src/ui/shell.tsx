@@ -61,14 +61,26 @@ export function Rail() {
   )
 
   const sb = b.sidebar
-  // API menu: the venue's logo and name, no brand photo / taglines (audit F10). The brand pack's sidebar photo was
-  // shown on API menus from 2026-10-16 to 2026-10-20 while the venue image was undecided; since 2026-10-20 the rail
-  // is the plain dark surface again (Alex: "remove it and instead add the plain color as you did previously").
+  // API menu: the venue's logo and name, no brand taglines (audit F10). Background (2026-10-26, Alex): the venue's
+  // ThemeResponse.CoverImage when the menu has one and it loads; otherwise the plain dark surface.
   const venue = venueMenu()
   const logo = venue ? E().venue!.logoImg : b.logoImg
+  const cover = venue ? E().venue!.coverImg : undefined
+  const [coverBroken, setCoverBroken] = useState<string | null>(null)
+  const venueCover = cover && cover !== coverBroken ? cover : null
   return (
     <nav id="railSide" className="flex-none relative z-20 flex flex-col text-cream overflow-hidden" style={{ width: b.layout.sidebarWidth, boxShadow: '16px 0 40px -18px rgba(20,17,12,.38)' }}>
       <div className="absolute inset-0" style={{ background: !venue && sb.backgroundType === 'color' ? sb.backgroundColor : 'radial-gradient(120% 90% at 50% 0%, #26211A 0%, #191713 72%)' }}>
+        {venueCover ? (
+          <img
+            key={venueCover}
+            src={venueCover}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: sb.focalPoint ? `${sb.focalPoint.x}% ${sb.focalPoint.y}%` : sb.backgroundPosition || 'center' }}
+            onError={() => setCoverBroken(venueCover)}
+          />
+        ) : null}
         {!venue && sb.backgroundType === 'image' ? (
           <img
             src={SIDEBAR_FALLBACK}

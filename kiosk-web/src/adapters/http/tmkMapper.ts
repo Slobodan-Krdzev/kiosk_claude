@@ -389,6 +389,7 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
     venue: {
       ...(raw.ThemeResponse?.RestaurantName ? { name: raw.ThemeResponse.RestaurantName } : {}),
       ...(isPicture(raw.ThemeResponse?.LogoImage?.Url) ? { logoImg: opts.img(raw.ThemeResponse.LogoImage!.Url) } : {}),
+      ...(isPicture(raw.ThemeResponse?.CoverImage?.Url) ? { coverImg: opts.img(raw.ThemeResponse.CoverImage!.Url) } : {}),
     },
     brand: {
       ...pack.brand,
