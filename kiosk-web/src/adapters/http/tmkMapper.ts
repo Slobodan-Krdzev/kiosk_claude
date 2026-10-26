@@ -16,6 +16,7 @@
 // - Products priced 0 show their 0 price.
 // - http image URLs go through the image proxy (imgUrl).
 
+import { accentPalette } from '../../engine/accent'
 import type { Allergens, Cat, CmsBlock, CmsItem, EngineData, L10n, Lang, ModGroup, ModItem, Product, Promo, Screensaver, Slide } from '../../engine/types'
 import type { TmkLangData, TmkProduct, TmkRoot, TmkSlide, TmkUpsaleCollection } from './tmk'
 import { iconForCategory, promoActive } from './tmkRules'
@@ -387,6 +388,7 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
   const algFilter = ALLERGENS.filter((a) => !DIET_IDS.has(a.id)).map((a) => a.key)
   const premX: Record<string, ModGroup> = pack.mods.premX ? { premX: { ...pack.mods.premX, items: [] } } : {}
 
+  const accent = accentPalette(raw.ThemeResponse?.ActiveColor)
   return {
     ...pack,
     screensaver: screensaverOf(trees, primaryTree, opts.img),
@@ -397,6 +399,8 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
     },
     brand: {
       ...pack.brand,
+      // ThemeResponse.ActiveColor replaces the pack's accent tokens (engine/accent.ts); no usable colour → the pack's own.
+      ...(accent ? { colors: { ...pack.brand.colors, ...accent } } : {}),
       languages,
       defaultLanguage: languages.includes(pack.brand.defaultLanguage) ? pack.brand.defaultLanguage : primary,
       promos,

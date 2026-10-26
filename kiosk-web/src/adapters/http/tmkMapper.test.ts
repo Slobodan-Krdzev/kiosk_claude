@@ -409,3 +409,12 @@ describe('sidebar cover image (ThemeResponse.CoverImage, 2026-10-26)', () => {
     expect(map(withCover({ Url: 'https://kioskapi.dev.revelapps.com/Shared/Images/DefaultCoverImage.png' })).venue?.coverImg).toBeUndefined()
   })
 })
+
+describe('venue accent (ThemeResponse.ActiveColor, 2026-10-26)', () => {
+  it('replaces the pack accent tokens; no colour keeps the pack green', () => {
+    const c = map({ ...FULL, ThemeResponse: { ...FULL.ThemeResponse, ActiveColor: '#3881F3' } } as TmkRoot).brand.colors
+    expect([c.primary, c.primarysoft]).toEqual(['#3881F3', '#E3EDFD'])
+    expect(c.paper).toBe(pack().brand.colors.paper)
+    expect(map({ ...FULL, ThemeResponse: { ...FULL.ThemeResponse, ActiveColor: null } } as TmkRoot).brand.colors.primary).toBe(pack().brand.colors.primary)
+  })
+})
