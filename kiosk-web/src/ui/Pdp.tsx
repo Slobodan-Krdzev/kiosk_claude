@@ -355,9 +355,6 @@ function ChipStepSection({ g, d, need, hint, nudge }: { g: string; d: Draft; nee
   )
 }
 
-// Referenced so the kept tile section compiles while unused (see the revert note at the step rendering).
-void StepSection
-
 function EnhTile({ v, d }: { v: CmsItem; d: Draft }) {
   const exQtyAct = useEngine((s) => s.exQty)
   const g = E().roleGroup[v.role]
@@ -773,15 +770,15 @@ function ProductPage({ p, d, xp, editing, nudge, need, hint }: { p: Product; d: 
           {opt.map((g) => (
             <Group key={g.id} g={g.id} d={d} need={false} hint="" />
           ))}
-          {/* 2026-10-20 (Alex): upsell steps are drawn as the chip grid too, no pictures. To bring the picture tiles
-              back for upsell collections, replace the line below with the commented branch (StepSection stays in
-              the file for that):
-              activeSteps(p, d).map((g) =>
-                E().mods[g].ui === 'chips' ? <ChipStepSection key={g} … /> : <StepSection key={g} … />,
-              ) */}
-          {activeSteps(p, d).map((g) => (
-            <ChipStepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
-          ))}
+          {/* Modifier groups with several picks (ui 'chips') are the chip grid; upsell collection steps are the
+              picture tiles again (2026-10-26, Alex: "rendered with the image, the same way they used to be"). */}
+          {activeSteps(p, d).map((g) =>
+            E().mods[g].ui === 'chips' ? (
+              <ChipStepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
+            ) : (
+              <StepSection key={g} g={g} d={d} need={need === g} hint={need === g ? hint : ''} nudge={nudge} />
+            ),
+          )}
           {vu ? <EnhSection xp={xp} d={d} /> : null}
           {vu && xp.menuUpgrade ? (
             <div className="r44-menu">
