@@ -31,22 +31,6 @@ export function catalogUrl(s: CatalogSourceConfig): string {
   return `${s.apiBase.replace(/\/+$/, '')}/getfullresources`
 }
 
-/**
- * Plain-http menu images (the test menu's my.tabletmenukaart.nl serves all of them as http://).
- * - Development (`vite` dev/preview server): fetched through the server's /img-proxy route (vite.config.ts).
- * - Production build: the same image over https. No proxy route exists on a venue's web server (images were
- *   missing on the test server, 2026-10-21), and both image hosts answer https (checked 2026-10-21); an https
- *   kiosk page would block or auto-upgrade http images anyway.
- */
-export function proxiedImg(base: string, url: string, dev: boolean = import.meta.env.DEV, pageProtocol: string = typeof location !== 'undefined' ? location.protocol : 'https:'): string {
-  if (!/^http:\/\//i.test(url)) return url
-  // Production: an http kiosk page (e.g. a venue's local server http://192.168.0.2:9544) loads the image exactly
-  // as the menu gives it; only an https page upgrades it, because browsers block http images there.
-  if (!dev) return pageProtocol === 'https:' ? url.replace(/^http:\/\//i, 'https://') : url
-  const root = base.endsWith('/') ? base : base + '/'
-  return `${root}img-proxy?u=${encodeURIComponent(url)}`
-}
-
 export const DEFAULT_MENU_TIMEOUT_MS = 20_000
 
 /**
@@ -72,7 +56,8 @@ export async function fetchMenu(s: CatalogSourceConfig, timeoutMs = DEFAULT_MENU
 
 export function mapMenu(raw: TmkRoot, pack: EngineData, base: string, lang?: Lang): EngineData {
   const root = base.endsWith('/') ? base : base + '/'
-  return mapTmkToEngine(raw, pack, { img: (u) => proxiedImg(base, u), asset: (path) => root + path, lang })
+  // Pictures load from the full URL the backend sends (ImageUrl, PictureUrl, Url …), unchanged (Alex, 2026-10-27).
+  return mapTmkToEngine(raw, pack, { img: (u) => u, asset: (path) => root + path, lang })
 }
 
 export async function loadEngineData(base: string, s: CatalogSourceConfig, lang?: Lang, timeoutMs?: number): Promise<EngineData> {
