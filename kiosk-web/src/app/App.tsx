@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { DEFAULT_MENU_TIMEOUT_MS, fetchMenu, mapMenu, resolveCatalogSource } from '../adapters/http/catalogSource'
+import { DEFAULT_MENU_TIMEOUT_MS, fetchMenu, mapMenu, resolveCatalogSource, setImageBase } from '../adapters/http/catalogSource'
 import { askContinueWithoutReceipt } from './orderPrompts'
 import { withLiveAdapters } from '../adapters/http/tmkLive'
 import { withTimeout } from '../adapters/withTimeout'
@@ -7,7 +7,7 @@ import type { CatalogSourceConfig } from '../domain/types'
 import { fetchEngineData, resolveOrderTagConfig } from '../engine/data'
 import { E, setEngine, t } from '../engine/state'
 import { startLogoHoldWatch } from './fullscreen'
-import { readKioskConfig } from './kioskConfig'
+import { readImageBase, readKioskConfig } from './kioskConfig'
 import { startTapRescue } from './tapRescue'
 import { startStickyFullscreen } from './kioskMode'
 import { preconnect, warmImages, warmupOrder } from './imageWarmup'
@@ -113,6 +113,7 @@ async function boot(): Promise<void> {
     // config.js (per-location backend address) replaces config.json's apiBase and selects the API menu;
     // ?testMode=true / ?source=static still win inside resolveCatalogSource.
     const kc = readKioskConfig()
+    setImageBase(readImageBase())
     const source = resolveCatalogSource(kc.api ? { ...(config.catalogSource || {}), apiBase: kc.api, source: 'api' } : config.catalogSource, window.location.search)
     const timeoutMs = config.timeouts.menuLoad ?? DEFAULT_MENU_TIMEOUT_MS
     // API menu on the simulation: availability (and the no-op price check) go to the kiosk API, as the old kiosk did.

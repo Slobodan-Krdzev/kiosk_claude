@@ -20,6 +20,8 @@ window.kioskConfig = {
 
 Default backend (2026-10-26, Alex): `http://f.revelapps.com:9543/api`, also for production. The release folder ships a `config.js` with it, and the build falls back to it (`mock/config.json`) when `config.js` is missing. A location with another backend changes only this file.
 
+**Optional `imageBase`** (2026-10-27): the f.revelapps.com menu links every picture on the venue's local-network address `http://192.168.0.2:9091/…`, which a device outside that network cannot reach. With `imageBase: "http://f.revelapps.com:9091"` the kiosk loads every picture whose link is on a private-network host (10.x, 172.16–31.x, 192.168.x, 127.x, localhost) from that origin instead, same path. Public links are never changed. The proper fix is the backend sending public picture links; then `imageBase` can be removed.
+
 **Why a separate file:** `index.html` loads `config.js` with a plain `<script src="./config.js">` before the app starts. Vite does not bundle it, so the same build can ship to every location and only this file changes. Changing the backend needs no rebuild: edit the file and reload the kiosk.
 
 ## Installing at a location
