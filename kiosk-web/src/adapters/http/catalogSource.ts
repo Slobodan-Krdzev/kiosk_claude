@@ -70,29 +70,9 @@ export async function fetchMenu(s: CatalogSourceConfig, timeoutMs = DEFAULT_MENU
   }
 }
 
-/** A private-network host (10/8, 172.16/12, 192.168/16, 127/8, localhost). */
-export const isPrivateHost = (h: string): boolean =>
-  h === 'localhost' || /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)
-
-/** config.js imageBase (kioskConfig.readImageBase): picture links on a private-network host move to this origin. */
-let imageBase: string | null = null
-export const setImageBase = (v: string | null): void => {
-  imageBase = v
-}
-
-export function rehostImg(url: string, base: string | null = imageBase): string {
-  if (!base) return url
-  try {
-    const u = new URL(url)
-    return isPrivateHost(u.hostname) ? base + u.pathname + u.search : url
-  } catch {
-    return url
-  }
-}
-
 export function mapMenu(raw: TmkRoot, pack: EngineData, base: string, lang?: Lang): EngineData {
   const root = base.endsWith('/') ? base : base + '/'
-  return mapTmkToEngine(raw, pack, { img: (u) => proxiedImg(base, rehostImg(u)), asset: (path) => root + path, lang })
+  return mapTmkToEngine(raw, pack, { img: (u) => proxiedImg(base, u), asset: (path) => root + path, lang })
 }
 
 export async function loadEngineData(base: string, s: CatalogSourceConfig, lang?: Lang, timeoutMs?: number): Promise<EngineData> {

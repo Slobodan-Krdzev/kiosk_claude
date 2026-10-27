@@ -7,7 +7,7 @@ import react from '@vitejs/plugin-react'
 // kiosk page would block. GET /img-proxy?u=<http url> fetches the image server-side.
 // Only the API's image hosts and local-network servers (a venue's own backend, e.g. 192.168.0.2:9091 —
 // 2026-10-21) are allowed, so this is not an open proxy.
-const IMG_HOSTS = new Set(['my.tabletmenukaart.nl', 'kioskapi.dev.revelapps.com', 'f.revelapps.com'])
+const IMG_HOSTS = new Set(['my.tabletmenukaart.nl', 'kioskapi.dev.revelapps.com'])
 const isLanHost = (h: string): boolean =>
   h === 'localhost' || /^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h)
 const IMG_MAX_BYTES = 8 * 1024 * 1024
