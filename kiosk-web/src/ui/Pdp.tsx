@@ -2,7 +2,7 @@ import { useShallow } from 'zustand/shallow'
 // Product detail page (R44 layout) + customize step. Ports of renderR44(), r44*(), vuMenuBlock(), vuDrinksBlock(), xsSection(), SCR.customize, stepDock().
 
 import { useEffect, useRef, useState } from 'react'
-import { byId, lineMax, mustId, pname, servingIx, servingsOf } from '../engine/catalog'
+import { byId, lineMax, mustId, normalTiles, pname, servingIx, servingsOf } from '../engine/catalog'
 import { cmsById, drinkUp, priceOf } from '../engine/cms'
 import {
   activeSteps,
@@ -167,30 +167,92 @@ function Group({ g, d, need, hint, nudge }: { g: string; d: Draft; need: boolean
       <div id={`hint-${g}`} className="reqHint r44-hint" role="status" aria-live="polite">
         {hint}
       </div>
-      <div className="r44-opts" style={{ gridTemplateColumns: `repeat(${r44Cols(grp.items)},minmax(0,1fr))` }}>
-        {grp.items.map((it) => {
-          const on = d.choices[g] === it.id
-          const bl = [...filter].some((a) => (it.allergens?.contains || []).includes(a))
-          return (
-            <button key={it.id} type="button" data-a={bl ? 'r44Blocked' : 'choice'} aria-pressed={on && !bl} aria-disabled={bl ? true : undefined} className={`press optBtn r44-opt${bl ? ' blk' : ''}`} onClick={() => !bl && choice(g, it.id)}>
-              <span className="r44-ol">
-                <span className="r44-on">{L(it.name)}</span>
-                {it.sub ? <span className="r44-os">{L(it.sub)}</span> : null}
-              </span>
-              {it.price ? (
-                <span className="r44-op hd num">
-                  {it.price > 0 ? '+' : ''}
-                  {fmt(it.price)}
+      {normalTiles(mustId(d.pid), g) ? (
+        <OptionalTiles g={g} d={d} />
+      ) : (
+        <div className="r44-opts" style={{ gridTemplateColumns: `repeat(${r44Cols(grp.items)},minmax(0,1fr))` }}>
+          {grp.items.map((it) => {
+            const on = d.choices[g] === it.id
+            const bl = [...filter].some((a) => (it.allergens?.contains || []).includes(a))
+            return (
+              <button key={it.id} type="button" data-a={bl ? 'r44Blocked' : 'choice'} aria-pressed={on && !bl} aria-disabled={bl ? true : undefined} className={`press optBtn r44-opt${bl ? ' blk' : ''}`} onClick={() => !bl && choice(g, on && grp.blank ? null : it.id)}>
+                <span className="r44-ol">
+                  <span className="r44-on">{L(it.name)}</span>
+                  {it.sub ? <span className="r44-os">{L(it.sub)}</span> : null}
                 </span>
-              ) : null}
-              <span className="r44-ck" aria-hidden="true">
-                <Ic n="check" sw={3} />
-              </span>
-            </button>
-          )
-        })}
-      </div>
+                {it.price ? (
+                  <span className="r44-op hd num">
+                    {it.price > 0 ? '+' : ''}
+                    {fmt(it.price)}
+                  </span>
+                ) : null}
+                <span className="r44-ck" aria-hidden="true">
+                  <Ic n="check" sw={3} />
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </section>
+  )
+}
+
+/**
+ * Optional single-pick API modifier that is the product's only modifier group (Alex, 2026-10-27/28): the size cards of
+ * the product page (name, extra line, full price, check on the chosen card) without the bowl icon. With more groups it
+ * stays chips (a second tap clears the pick). The first card "Normal" is the product without the option and is
+ * chosen when the page opens (unless the backend marks an option DefaultSelected). The second card (the first option)
+ * carries the "Recommended" tag (Alex, 2026-10-28).
+ */
+function OptionalTiles({ g, d }: { g: string; d: Draft }) {
+  const choice = useEngine((s) => s.choice)
+  const p = mustId(d.pid)
+  const filter = getAllergenFilter()
+  const tiles: { id: string | null; name: string; sub?: string; diff: string; price: number; bl: boolean }[] = [
+    { id: null, name: t('optNormal'), diff: t('r44Base'), price: p.price, bl: false },
+    ...E().mods[g].items.map((it) => ({
+      id: it.id,
+      name: L(it.name),
+      ...(it.sub ? { sub: L(it.sub) } : {}),
+      diff: it.price ? `+ ${fmt(it.price)}` : '',
+      price: p.price + it.price,
+      bl: [...filter].some((a) => (it.allergens?.contains || []).includes(a)),
+    })),
+  ]
+  return (
+    <div className="r44-sizes" role="radiogroup" style={{ gridTemplateColumns: `repeat(${Math.min(tiles.length, 3)},minmax(0,1fr))` }}>
+      {tiles.map((x, i) => {
+        const on = (d.choices[g] ?? null) === x.id
+        return (
+          <button
+            key={x.id ?? 'normal'}
+            type="button"
+            role="radio"
+            data-a={x.bl ? 'r44Blocked' : 'choice'}
+            data-opt={x.id ?? ''}
+            aria-pressed={on && !x.bl}
+            aria-checked={on && !x.bl}
+            disabled={x.bl}
+            className={`press r44-size r44-noic${on ? ' on' : ''}`}
+            onClick={() => choice(g, x.id)}
+          >
+            <span className="r44-sz-mid">
+              <span className="r44-sz-nm">
+                <span className="hd">{x.name}</span>
+                {i === 1 ? <span className="r44-rec">{t('r44Rec')}</span> : null}
+              </span>
+              {x.sub ? <span className="r44-sz-g">{x.sub}</span> : null}
+              {x.diff ? <span className="r44-sz-d">{x.diff}</span> : null}
+            </span>
+            <span className="r44-sz-pr hd num">{fmt(x.price)}</span>
+            <span className="r44-ck" aria-hidden="true">
+              <Ic n="check" sw={3} />
+            </span>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 

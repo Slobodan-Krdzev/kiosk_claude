@@ -149,7 +149,8 @@ export interface EngineState {
   // product page
   openProduct(p: Product, opts?: { menu?: boolean; editing?: string | null; draft?: Draft | null; from?: 'home' | 'menu' | 'cart' }): void
   closeProduct(): void
-  choice(g: string, id: string): void
+  /** Pick an option of a single-pick group; null = none (the "Normal" tile of an optional API modifier). */
+  choice(g: string, id: string | null): void
   /** Upsell steps: toggle an option (within the step's min..max). */
   pick(g: string, id: string): void
   /** Upsell steps: change how often an option is taken. */
@@ -560,6 +561,7 @@ export const useEngine = create<EngineState>((set, get) => {
       mutateDraft((d) => {
         // A group below an unfinished mandatory group is locked (draft.groupLocked).
         if (groupLocked(d, g) && d.choices[g] !== id) return
+        if (id === null && !E().mods[g]?.blank) return
         d.choices[g] = id
       }),
     pick: (g, id) =>

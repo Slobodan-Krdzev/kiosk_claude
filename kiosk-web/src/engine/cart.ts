@@ -206,7 +206,7 @@ export function lineSummaryBody(cart: CartLine[], l: CartLine): string {
   for (const [g, cid] of Object.entries(l.choices || {})) {
     const grp = d.mods[g]
     const it = cid ? modItem(g, cid) : null
-    if (it && grp.items.length > 1) bits.push(grp.req ? L(it.name) : `${L(grp.label)}: ${L(it.name)}`)
+    if (it && (grp.items.length > 1 || grp.blank)) bits.push(grp.req || L(grp.label) === L(it.name) ? L(it.name) : `${L(grp.label)}: ${L(it.name)}`)
   }
   ;(l.extras || []).forEach(([g, id]) => {
     const q = exQty(l, g, id)
