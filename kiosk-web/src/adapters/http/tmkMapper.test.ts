@@ -11,7 +11,7 @@ import { activeSteps, blockReason, draftValid, exQty, firstIncomplete, grpCount,
 import { setAllergenFilter, setEngine, setLang, setUnavailable } from '../../engine/state'
 import type { EngineData, Product } from '../../engine/types'
 import { currentSlides, slideOn } from '../../engine/slides'
-import { catalogUrl, proxiedImg, resolveCatalogSource } from './catalogSource'
+import { catalogUrl, resolveCatalogSource } from './catalogSource'
 import type { TmkRoot } from './tmk'
 import { htmlToText, mapTmkToEngine } from './tmkMapper'
 import { buildOrderPayload } from './tmkOrder'
@@ -33,7 +33,7 @@ function pack(): EngineData {
   })
 }
 
-const img = (u: string) => proxiedImg('/', u)
+const img = (u: string) => u
 const map = (raw: TmkRoot) => mapTmkToEngine(raw, pack(), { img })
 const prod = (d: EngineData, id: number): Product => d.products.find((p) => p.id === String(id))!
 
@@ -108,27 +108,7 @@ describe('menu structure (decision 1: SubCategories of MainCategories[0])', () =
   })
 })
 
-describe('images in the production build (2026-10-21)', () => {
-  it('http images become https, https stays, nothing points at the dev-only /img-proxy route', () => {
-    expect(proxiedImg('./', 'http://my.tabletmenukaart.nl/sharedfiles/a.jpg', false, 'https:')).toBe('https://my.tabletmenukaart.nl/sharedfiles/a.jpg')
-    expect(proxiedImg('./', 'http://my.tabletmenukaart.nl/sharedfiles/a.jpg', false, 'http:')).toBe('http://my.tabletmenukaart.nl/sharedfiles/a.jpg') // local http host keeps the original
-    expect(proxiedImg('./', 'https://kioskapi.dev.revelapps.com/x.png', false, 'http:')).toBe('https://kioskapi.dev.revelapps.com/x.png')
-    expect(proxiedImg('./', 'http://my.tabletmenukaart.nl/a.jpg', true)).toContain('img-proxy?u=')
-  })
-})
 
-describe('images (decision 6: proxy)', () => {
-  it('http image URLs go through /img-proxy, https stays direct', () => {
-    expect(proxiedImg('./', 'http://my.tabletmenukaart.nl/a b.png')).toBe('./img-proxy?u=' + encodeURIComponent('http://my.tabletmenukaart.nl/a b.png'))
-    expect(proxiedImg('./', 'https://kioskapi.dev.revelapps.com/x.png')).toBe('https://kioskapi.dev.revelapps.com/x.png')
-    const d = map(TEST)
-    expect(prod(d, 465447).img).toContain(encodeURIComponent('dc294c57')) // detail picture is a Default placeholder → small picture
-    expect(d.products.every((p) => !decodeURIComponent(p.img || '').includes('/Default'))).toBe(true)
-    const withImg = d.products.filter((p) => p.img)
-    expect(withImg.length).toBeGreaterThan(0)
-    expect(withImg.every((p) => !p.img!.startsWith('http://'))).toBe(true)
-  })
-})
 
 describe('product details', () => {
   it('descriptions are plain text, never HTML', () => {
@@ -352,7 +332,7 @@ describe('first screen: screensaver slides', () => {
     expect(ss.opacity).toBe(1)
     expect(ss.slides.nl).toHaveLength(5)
     expect(ss.slides.en).toHaveLength(5)
-    expect(ss.slides.nl![0].img).toBe(proxiedImg('/', TEST.TMKData[0].Screensaver!.Slides[0].ImageUrl))
+    expect(ss.slides.nl![0].img).toBe(TEST.TMKData[0].Screensaver!.Slides[0].ImageUrl)
     expect(ss.slides.nl![1]).toMatchObject({ pid: '458266', cat: 's56321' })
     const full = map(FULL).screensaver!
     expect(full.intervalMs).toBe(20000)
@@ -378,7 +358,7 @@ describe('first screen: screensaver slides', () => {
 describe('first screen: venue identity', () => {
   it('logo comes from ThemeResponse.LogoImage (proxied when http), idle time from Screensaver.ActivationTime', () => {
     expect(map(FULL).venue).toEqual({ name: 'Tapas Mainstreet', logoImg: FULL.ThemeResponse.LogoImage!.Url, coverImg: FULL.ThemeResponse.CoverImage!.Url })
-    expect(map(TEST).venue).toEqual({ logoImg: proxiedImg('/', TEST.ThemeResponse.LogoImage!.Url), coverImg: proxiedImg('/', TEST.ThemeResponse.CoverImage!.Url) })
+    expect(map(TEST).venue).toEqual({ logoImg: TEST.ThemeResponse.LogoImage!.Url, coverImg: TEST.ThemeResponse.CoverImage!.Url })
     expect(map(TEST).screensaver!.idleMs).toBe(30000)
   })
 })
@@ -416,5 +396,14 @@ describe('venue accent (ThemeResponse.ActiveColor, 2026-10-26)', () => {
     expect([c.primary, c.primarysoft]).toEqual(['#3881F3', '#E3EDFD'])
     expect(c.paper).toBe(pack().brand.colors.paper)
     expect(map({ ...FULL, ThemeResponse: { ...FULL.ThemeResponse, ActiveColor: null } } as TmkRoot).brand.colors.primary).toBe(pack().brand.colors.primary)
+  })
+})
+
+describe('pictures (2026-10-27): the full URL the backend sends, unchanged', () => {
+  it('screensaver ImageUrl, logo, cover and product pictures are the API URLs exactly', () => {
+    const d = map(TEST)
+    expect(d.screensaver!.slides.nl![0].img).toBe(TEST.TMKData.find((t) => t.Language === 'nl')!.Screensaver!.Slides.filter((s) => !s.UseActivation && !s.UseRound)[0].ImageUrl)
+    expect(d.venue!.logoImg).toBe(TEST.ThemeResponse.LogoImage!.Url)
+    expect(d.products.filter((p) => p.img).every((p) => /^https?:\/\//.test(p.img!) && !p.img!.includes('img-proxy'))).toBe(true)
   })
 })

@@ -307,7 +307,7 @@ export function mapTmkToEngine(raw: TmkRoot, pack: EngineData, opts: TmkMapOptio
       const maxRaw = w.SelectionMax | 0
       const max = Math.min(items.length, Math.max(min, maxRaw > 0 ? maxRaw : w.ListType === 1 ? 1 : items.length))
       if (max <= 1) {
-        mods[k] = { label, type: 'choice', req: !!w.IsMandatory, items, ...(def ? { def } : {}) }
+        mods[k] = { label, type: 'choice', req: !!w.IsMandatory, items, ...(def ? { def } : {}), ...(w.IsMandatory ? {} : { blank: true }) }
         choice.push(k)
         // SubTitle "Special" (single-select only): the product's tile group on its full-row card.
         if (!special && (w.SubTitle || '').trim().toLowerCase() === 'special') special = k

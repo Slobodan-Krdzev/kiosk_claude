@@ -68,7 +68,7 @@ afterEach(() => vi.useRealTimers())
 
 describe('request body (kiosk-payment-flow.md "Request body")', () => {
   it('a real menu 2490 line with a picked upsell option: base price and option priced separately, OrderGuid = our order id', () => {
-    setEngine(mapTmkToEngine(TEST_RAW, pack(), { img: (u) => '/img-proxy?u=' + encodeURIComponent(u) }))
+    setEngine(mapTmkToEngine(TEST_RAW, pack(), { img: (u) => u }))
     setLang('nl')
     const p = E().products.find((x) => x.id === '469180')! // "7up (copy)", HasUpsaleCollection
     const d = newDraft(p)

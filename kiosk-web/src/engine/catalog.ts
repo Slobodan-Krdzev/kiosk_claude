@@ -69,8 +69,15 @@ export function obHasReq(p: Product): boolean {
 
 export function obNeedsDetail(p: Product): boolean {
   // API catalog: upsell steps are chosen on the product page; information-only products open it too (no add).
-  return obHasReq(p) || !!obSizes(p) || !!p.steps?.length || !!p.infoOnly
+  // Optional API modifiers (SelectionMin 0) are offered on the product page too, never added unasked (Alex, 2026-10-27).
+  return obHasReq(p) || (p.choice || []).some((g) => E().mods[g]?.blank) || !!obSizes(p) || !!p.steps?.length || !!p.infoOnly
 }
+
+/** Option groups from the API ModifierWizards: single-pick groups plus multi-pick wizard steps (not upsell steps). */
+export const modifierGroupCount = (p: Product): number => (p.choice || []).length + (p.steps || []).filter((g) => E().mods[g]?.ui === 'chips').length
+
+/** An optional single-pick modifier that is the product's only modifier group shows as size tiles with "Normal" first. */
+export const normalTiles = (p: Product, g: string): boolean => !!E().mods[g]?.blank && modifierGroupCount(p) === 1
 
 /** The "Special" tile group of an API product (types.ts Product.special), when its options exist. */
 export function specialGroup(p: Product | undefined | null): string | null {

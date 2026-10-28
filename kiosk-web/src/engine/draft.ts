@@ -10,7 +10,8 @@ export const clampQty = (n: number, max: number = MAX_LINE_QTY): number => Math.
 export function defChoice(g: string): string | null {
   const grp = E().mods[g]
   if (grp.def) return grp.def
-  if (grp.req) return null
+  // Mandatory and optional API modifiers start empty; the Dadawan pack pre-picks its free option.
+  if (grp.req || grp.blank) return null
   const z = grp.items.find((i) => i.price === 0)
   return (z || grp.items[0]).id
 }

@@ -105,6 +105,9 @@ export interface ModGroup {
   next?: string | null
   /** step: 'chips' renders the options as the choice-group chip grid (no pictures) — API modifier wizards. */
   ui?: 'chips'
+  /** choice: API modifier that may stay unpicked (not mandatory, SelectionMin 0). Starts empty (only DefaultSelected
+   *  pre-picks); the product card opens the product page, where a first "Normal" tile stands for no option. */
+  blank?: boolean
 }
 
 export interface Cat {

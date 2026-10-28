@@ -996,6 +996,8 @@ body.tablet .obw{ min-height:260px; } body.tablet .obw-img{ min-height:260px; }
 .r44-sz-pr{ font-size:calc(32px * var(--u)); line-height:1; }
 .r44-ck{ width:calc(24px * var(--u)); height:calc(24px * var(--u)); visibility:hidden; justify-self:end; }   /* slot always reserved */
 .r44-size.on .r44-ck, .r44-opt[aria-pressed="true"] .r44-ck{ visibility:visible; }
+.r44-size.r44-noic{ grid-template-columns:1fr auto calc(26px * var(--u)); }   /* optional modifier cards (Pdp OptionalTiles): no icon */
+.r44-size.r44-noic[disabled]{ opacity:.4; }
 /* choice buttons */
 .r44-opts{ display:grid; gap:calc(12px * var(--u)); }
 .r44-opt{ position:relative; min-height:calc(60px * var(--u)); border-radius:calc(14px * var(--u)); background:#fff; color:#000; box-shadow:inset 0 0 0 1.5px rgb(var(--c-ink) / .18);

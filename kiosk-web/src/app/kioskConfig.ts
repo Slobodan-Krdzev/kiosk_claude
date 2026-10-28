@@ -19,7 +19,7 @@ export interface KioskConfigRead {
 
 declare global {
   interface Window {
-    kioskConfig?: { api?: unknown; imageBase?: unknown }
+    kioskConfig?: { api?: unknown }
   }
 }
 
@@ -50,17 +50,4 @@ export function apiHost(url: string): string {
   } catch {
     return url
   }
-}
-
-/**
- * Optional `imageBase` in config.js (2026-10-27): the public origin that serves the menu's pictures, e.g.
- * "http://f.revelapps.com:9091". The venue backend sends picture links on its local-network address
- * (http://192.168.0.2:9091/…), which a device outside that network cannot reach. With imageBase set, a picture link
- * on a private-network host is loaded from imageBase instead (same path). Unset or not an http(s) URL → links as sent.
- */
-export function readImageBase(w: Pick<Window, 'kioskConfig'> = window): string | null {
-  const v = w.kioskConfig?.imageBase
-  if (typeof v !== 'string') return null
-  const t = v.trim().replace(/\/+$/, '')
-  return /^https?:\/\/[^/]+$/i.test(t) ? t : null
 }
